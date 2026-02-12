@@ -78,7 +78,8 @@ class EventRepository {
     } catch (_) {
       return _marchCluster2026Fallback;
     }
-    return null;
+    // No active event in Firestore: use march-cluster as default
+    return _marchCluster2026Fallback;
   }
 
   /// Submit RSVP for an event.

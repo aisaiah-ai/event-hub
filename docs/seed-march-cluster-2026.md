@@ -22,6 +22,7 @@ To use Firestore (and for production), add this document to your `events` collec
 
 ## Firestore Document
 
+**Database:** `(default)` (production uses the default Firestore database)  
 **Collection:** `events`  
 **Document ID:** `march-cluster-2026`
 
