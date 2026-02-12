@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Events collection: public read for landing/RSVP pages
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // RSVP subcollection: public create + read (for form submission)
+    match /events/{eventId}/rsvps/{rsvpId} {
+      allow create, read: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Event Hub admin: other subcollections require auth
+    match /events/{eventId}/{collection}/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

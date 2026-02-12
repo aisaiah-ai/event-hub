@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "834534025096",
+    "project_id": "aisaiah-event-hub",
+    "storage_bucket": "aisaiah-event-hub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834534025096:android:4ea3068e837ec6fa9cbc3d",
+        "android_client_info": {
+          "package_name": "com.eventhub.event_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBH-B9E5xK4FM2pIrL0QZPciDWdFVOqwnU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
