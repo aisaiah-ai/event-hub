@@ -7,17 +7,21 @@ import 'event_rsvp.dart';
 /// Repository for public events (events subdomain).
 /// Uses FirestoreConfig for named databases (event-hub-dev, event-hub-prod).
 class EventRepository {
-  EventRepository() : _firestore = FirestoreConfig.instance;
+  EventRepository() : _firestore = FirestoreConfig.instanceOrNull;
 
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
 
   static const String _eventsCollection = 'events';
 
   /// Fetch event by slug from events collection.
   /// In debug mode, returns fallback for march-cluster-2026 if not in Firestore or on permission error.
   Future<EventModel?> getEventBySlug(String slug) async {
+    final fs = _firestore;
+    if (fs == null) {
+      return slug == 'march-cluster-2026' ? _marchCluster2026Fallback : null;
+    }
     try {
-      final snapshot = await _firestore
+      final snapshot = await fs
           .collection(_eventsCollection)
           .where('slug', isEqualTo: slug)
           .limit(1)
@@ -65,8 +69,10 @@ class EventRepository {
   /// Get the currently active event (for events.aisaiah.org root redirect).
   /// In debug mode, falls back to march-cluster-2026 if no active event or on error.
   Future<EventModel?> getActiveEvent() async {
+    final fs = _firestore;
+    if (fs == null) return _marchCluster2026Fallback;
     try {
-      final snapshot = await _firestore
+      final snapshot = await fs
           .collection(_eventsCollection)
           .where('isActive', isEqualTo: true)
           .limit(1)
@@ -83,8 +89,15 @@ class EventRepository {
   }
 
   /// Submit RSVP for an event.
+  /// Throws if Firestore is not available (event-hub-prod database not created).
   Future<void> submitRsvp(String eventId, EventRsvp rsvp) async {
-    await _firestore
+    final fs = _firestore;
+    if (fs == null) {
+      throw StateError(
+        'Firestore not configured. Create the event-hub-prod database in Firebase Console.',
+      );
+    }
+    await fs
         .collection(_eventsCollection)
         .doc(eventId)
         .collection('rsvps')

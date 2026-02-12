@@ -1,5 +1,20 @@
 # Seed Event: March Cluster Central B Assembly
 
+## Create event-hub-prod Database (Required)
+
+The app uses the **event-hub-prod** named database. If it doesn't exist, the app runs in fallback mode (RSVP form works, but submissions fail until Firestore is set up).
+
+**To create it:**
+
+1. [Firebase Console](https://console.firebase.google.com/) → **aisaiah-event-hub** → **Firestore Database**
+2. If you only see one database, click **Create database** (or the "+" next to "Firestore Database")
+3. Choose **Create database** (not "Create database in Firestore Native")
+4. Database ID: **event-hub-prod**
+5. Location: same as your project (e.g. `us-central1`)
+6. Finish. Then deploy rules: `firebase deploy --only firestore`
+
+---
+
 ## Fix "permission-denied" Error
 
 If you see `cloud_firestore/permission-denied`, deploy the Firestore rules:

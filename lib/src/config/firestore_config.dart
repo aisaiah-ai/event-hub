@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-/// Environment: dev uses event-hub-dev, prod uses (default).
+/// Environment: dev uses event-hub-dev, prod uses event-hub-prod.
 enum AppEnvironment { dev, prod }
 
 /// Central Firestore configuration. Use [databaseId] when creating
@@ -19,20 +19,30 @@ class FirestoreConfig {
   static String get databaseId =>
       _env == AppEnvironment.dev ? 'event-hub-dev' : 'event-hub-prod';
 
-  /// Firestore instance for the current environment.
-  static FirebaseFirestore get instance {
-    if (_instance != null) return _instance!;
-    _instance = FirebaseFirestore.instanceFor(
-      app: Firebase.app(),
-      databaseId: databaseId,
-    );
-    return _instance!;
+  /// Whether Firestore is available (named database exists).
+  static bool get isAvailable => _instance != null;
+
+  /// Firestore instance, or null if named database doesn't exist yet.
+  static FirebaseFirestore? get instanceOrNull {
+    if (_instance != null) return _instance;
+    try {
+      _instance = FirebaseFirestore.instanceFor(
+        app: Firebase.app(),
+        databaseId: databaseId,
+      );
+      return _instance;
+    } catch (_) {
+      return null;
+    }
   }
+
+  /// Firestore instance. Throws if not available.
+  static FirebaseFirestore get instance => instanceOrNull!;
 
   /// Initialize config. Call from main() before runApp.
   static void init(AppEnvironment env) {
     _env = env;
-    _instance = null; // Reset so next [instance] uses new databaseId
+    _instance = null; // Reset so next [instanceOrNull] uses new databaseId
   }
 
   /// Initialize from dart-define. E.g. flutter run --dart-define=ENV=dev

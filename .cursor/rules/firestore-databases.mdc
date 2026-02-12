@@ -1,0 +1,26 @@
+---
+description: Firestore database configuration - use named databases event-hub-dev and event-hub-prod
+globs: lib/src/config/firestore_config.dart,**/event_repository.dart,docs/seed*.md,docs/deploy*.md
+alwaysApply: false
+---
+
+# Firestore Database Configuration
+
+**Do not change these settings.** The project uses named Firestore databases:
+
+- **Dev:** `event-hub-dev`
+- **Prod:** `event-hub-prod`
+
+**Never use** the default `(default)` database. Always use the named databases above.
+
+## Location
+
+`lib/src/config/firestore_config.dart` — `databaseId` getter must return:
+- `event-hub-dev` when `_env == AppEnvironment.dev`
+- `event-hub-prod` when `_env == AppEnvironment.prod`
+
+## Seed / docs
+
+When documenting Firestore setup, seed data, or deployment:
+- Reference `event-hub-dev` and `event-hub-prod` — not the default database
+- Event documents go in the `events` collection within these named databases
