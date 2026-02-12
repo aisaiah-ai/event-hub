@@ -3,16 +3,15 @@ name: Deploy
 on:
   workflow_dispatch:
   push:
-    branches: [dev, main]
+    branches: [main]
 
 jobs:
   deploy-web:
-    name: Build & Deploy to Firebase Hosting
+    name: Build & Deploy to Cloudflare Pages
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
     permissions:
       contents: read
-      id-token: write
+      deployments: write
     steps:
       - uses: actions/checkout@v4
 
@@ -25,33 +24,16 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Web
-        run: |
-          if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
-            flutter build web --release --dart-define=ENV=dev
-          else
-            flutter build web --release --dart-define=ENV=prod
-          fi
+      - name: Build Web (prod)
+        run: flutter build web --release --dart-define=ENV=prod
 
-      - name: Deploy to Firebase Hosting (DEV)
-        if: github.ref == 'refs/heads/dev'
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
-          projectId: aisaiah-events-dev
-          channelId: live
-          entryPoint: .
-
-      - name: Deploy to Firebase Hosting (PROD)
-        if: github.ref == 'refs/heads/main'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}
-          projectId: aisaiah-events-prod
-          channelId: live
-          entryPoint: .
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=event-hub
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   build-ios:
     name: Build iOS

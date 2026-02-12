@@ -24,3 +24,15 @@ alwaysApply: true
 When documenting Firestore setup, seed data, or deployment:
 - Reference `event-hub-dev` and `event-hub-prod` — not the default database
 - Event documents go in the `events` collection within these named databases
+
+## No GCP service accounts
+
+- Do **not** require GCP service account keys for workflows
+- Deploy uses Cloudflare (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID)
+- Firestore seed (dev → prod) runs **locally** with `gcloud auth login` — no service account
+
+## Scripts hardly work
+
+- Scripts (e.g. seed-prod-from-dev) are unreliable — auth, env, gcloud version, export path format can all fail
+- **Always** document a manual fallback (step-by-step gcloud commands) in the same doc
+- Put manual steps first or prominently so users can recover when the script fails

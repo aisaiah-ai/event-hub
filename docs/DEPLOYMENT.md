@@ -37,6 +37,9 @@ CI/CD and infrastructure for Event Hub (Firebase Hosting + Firestore).
 
 Add these in **Settings → Secrets and variables → Actions**:
 
+### Deploy (Firebase Hosting)
+
+
 | Secret | Value | Used for |
 |--------|-------|----------|
 | `FIREBASE_SERVICE_ACCOUNT_DEV` | JSON key for aisaiah-events-dev | Deploy to DEV |
