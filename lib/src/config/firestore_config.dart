@@ -15,10 +15,9 @@ class FirestoreConfig {
   /// Current environment.
   static AppEnvironment get environment => _env;
 
-  /// Database ID: 'event-hub-dev' for dev, default for prod.
-  /// Prod uses (default) so it works without creating named DB.
+  /// Database ID: 'event-hub-dev' for dev, 'event-hub-prod' for prod.
   static String get databaseId =>
-      _env == AppEnvironment.dev ? 'event-hub-dev' : '(default)';
+      _env == AppEnvironment.dev ? 'event-hub-dev' : 'event-hub-prod';
 
   /// Firestore instance for the current environment.
   static FirebaseFirestore get instance {
