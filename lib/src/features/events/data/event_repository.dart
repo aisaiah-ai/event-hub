@@ -89,12 +89,13 @@ class EventRepository {
   }
 
   /// Submit RSVP for an event.
-  /// Throws if Firestore is not available (event-hub-prod database not created).
+  /// Throws if Firestore is not available (named database not created).
   Future<void> submitRsvp(String eventId, EventRsvp rsvp) async {
     final fs = _firestore;
     if (fs == null) {
+      final dbId = FirestoreConfig.databaseId;
       throw StateError(
-        'Firestore not configured. Create the event-hub-prod database in Firebase Console.',
+        'Firestore not configured. Create the $dbId database in Firebase Console.',
       );
     }
     await fs

@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+
+import '../../config/environment.dart';
 
 /// Environment: dev uses event-hub-dev, prod uses event-hub-prod.
+/// Database selection is controlled by [Environment.env] only (--dart-define=ENV).
 enum AppEnvironment { dev, prod }
 
 /// Central Firestore configuration. Use [databaseId] when creating
@@ -40,20 +42,14 @@ class FirestoreConfig {
   /// Firestore instance. Throws if not available.
   static FirebaseFirestore get instance => instanceOrNull!;
 
-  /// Initialize config. Call from main() before runApp.
+  /// Initialize config from Environment. Call from main() before runApp.
+  /// Uses --dart-define=ENV (dev|prod). Defaults to prod when not set.
+  static void initFromEnvironment() {
+    init(Environment.isDev ? AppEnvironment.dev : AppEnvironment.prod);
+  }
+
   static void init(AppEnvironment env) {
     _env = env;
     _instance = null; // Reset so next [instanceOrNull] uses new databaseId
-  }
-
-  /// Initialize from dart-define. E.g. flutter build web --dart-define=ENV=dev
-  /// Defaults to dev when building (safer for testing), prod when not set.
-  static void initFromDartDefine() {
-    const env = String.fromEnvironment('ENV', defaultValue: '');
-    if (env.isNotEmpty) {
-      init(env == 'dev' ? AppEnvironment.dev : AppEnvironment.prod);
-    } else {
-      init(kDebugMode ? AppEnvironment.dev : AppEnvironment.prod);
-    }
   }
 }

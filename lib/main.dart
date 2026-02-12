@@ -3,18 +3,32 @@ import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
+import 'config/environment.dart';
 import 'firebase_options.dart';
 import 'src/app_router.dart';
-import 'src/config/firestore_config.dart';
+import 'src/config/firestore_config.dart'
+    show AppEnvironment, FirestoreConfig;
 import 'src/theme/app_theme.dart';
 import 'src/utils/url_utils.dart';
 
 void main() async {
+  // ENV must be set via --dart-define=ENV (CI/CD). No hostname fallback.
+  // Fails fast if undefined or invalid.
+  final env = Environment.env;
+  // ignore: avoid_print
+  print('Running in ENV: $env');
+
+  assert(Environment.isDev || Environment.isProd,
+      'Environment must be dev or prod; got $env');
+
   usePathUrlStrategy();
   if (kIsWeb) {
     redirectHashToPathIfNeeded();
   }
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Single Firebase project; Firestore database (event-hub-dev vs event-hub-prod)
+  // is selected by FirestoreConfig based on ENV.
   bool firebaseOk = false;
   try {
     await Firebase.initializeApp(
@@ -25,9 +39,26 @@ void main() async {
     debugPrint('Firebase init failed: $e');
     if (kDebugMode) rethrow;
   }
+
   if (firebaseOk) {
-    FirestoreConfig.initFromDartDefine();
-    runApp(const EventHubApp());
+    FirestoreConfig.initFromEnvironment();
+    // Safety: ensure Firestore matches ENV (debug mode only; asserts removed in release)
+    assert(
+      (Environment.isDev && FirestoreConfig.environment == AppEnvironment.dev) ||
+          (Environment.isProd &&
+              FirestoreConfig.environment == AppEnvironment.prod),
+      'FirestoreConfig must match Environment',
+    );
+    runApp(
+      Environment.isDev
+          ? Banner(
+              message: 'DEV ENVIRONMENT',
+              location: BannerLocation.topEnd,
+              color: Colors.red,
+              child: const EventHubApp(),
+            )
+          : const EventHubApp(),
+    );
   } else {
     runApp(const _FirebaseErrorApp());
   }
