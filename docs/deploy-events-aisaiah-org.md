@@ -30,6 +30,11 @@ In your repo: **Settings** → **Secrets and variables** → **Actions** → **N
 | `CLOUDFLARE_API_TOKEN` | Your Cloudflare API token |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID |
 
+### Add Firebase authorized domain
+
+1. [Firebase Console](https://console.firebase.google.com/) → **aisaiah-event-hub** → **Authentication** → **Settings** → **Authorized domains**.
+2. Add **events.aisaiah.org** so Firebase (and Firestore) work from the custom domain.
+
 ### Add custom domain in Cloudflare
 
 1. **Workers & Pages** → **event-hub** → **Custom domains** → **Set up a custom domain**.

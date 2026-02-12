@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
@@ -14,9 +14,9 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // Run `flutterfire configure` to generate Firebase config
     debugPrint('Firebase init failed: $e');
-    rethrow;
+    // Don't rethrow: let app load; Firestore calls may fail but we avoid blank screen
+    if (kDebugMode) rethrow;
   }
   // Use dev database in debug mode, prod otherwise
   FirestoreConfig.init(kDebugMode ? AppEnvironment.dev : AppEnvironment.prod);

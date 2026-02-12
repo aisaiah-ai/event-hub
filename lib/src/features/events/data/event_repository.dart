@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../../config/firestore_config.dart';
 import 'event_model.dart';
@@ -28,13 +27,13 @@ class EventRepository {
         return EventModel.fromFirestore(snapshot.docs.first);
       }
     } catch (e) {
-      if (kDebugMode && slug == 'march-cluster-2026') {
+      if (slug == 'march-cluster-2026') {
         return _marchCluster2026Fallback;
       }
       rethrow;
     }
 
-    if (kDebugMode && slug == 'march-cluster-2026') {
+    if (slug == 'march-cluster-2026') {
       return _marchCluster2026Fallback;
     }
     return null;
@@ -77,14 +76,9 @@ class EventRepository {
         return EventModel.fromFirestore(snapshot.docs.first);
       }
     } catch (_) {
-      if (kDebugMode) {
-        return _marchCluster2026Fallback;
-      }
-      return null;
-    }
-    if (kDebugMode) {
       return _marchCluster2026Fallback;
     }
+    return null;
     return null;
   }
 
