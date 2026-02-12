@@ -20,7 +20,7 @@ void main() async {
     if (kDebugMode) rethrow;
   }
   if (firebaseOk) {
-    FirestoreConfig.init(kDebugMode ? AppEnvironment.dev : AppEnvironment.prod);
+    FirestoreConfig.initFromDartDefine();
     runApp(const EventHubApp());
   } else {
     runApp(const _FirebaseErrorApp());

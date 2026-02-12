@@ -43,6 +43,8 @@ In your repo: **Settings** → **Secrets and variables** → **Actions** → **N
 
 ## 2. Deploy
 
+**Currently using `event-hub-dev`** for testing. To switch to prod, edit `.github/workflows/deploy.yml` and change `--dart-define=ENV=dev` to `--dart-define=ENV=prod`.
+
 ### Automatic (recommended)
 
 Push to `main`:
