@@ -79,7 +79,6 @@ class EventRepository {
       return _marchCluster2026Fallback;
     }
     return null;
-    return null;
   }
 
   /// Submit RSVP for an event.

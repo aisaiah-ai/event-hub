@@ -61,15 +61,17 @@ class _SchemaEditorScreenState extends State<SchemaEditorScreen> {
     if (_schema == null) return;
     try {
       await _schemaService.saveSchema(widget.eventId, _schema!);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Schema saved')));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 

@@ -672,8 +672,9 @@ class _RsvpCheckbox extends StatelessWidget {
                   value: value,
                   onChanged: onChanged,
                   fillColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected))
+                    if (states.contains(WidgetState.selected)) {
                       return EventTokens.accentGold;
+                    }
                     return Colors.transparent;
                   }),
                   checkColor: EventTokens.textPrimary,
