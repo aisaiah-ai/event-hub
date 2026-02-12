@@ -3,18 +3,16 @@ name: Deploy
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    tags:
-      - 'v*'
+    branches: [dev, main]
 
 jobs:
   deploy-web:
-    name: Deploy Web to Cloudflare Pages
+    name: Build & Deploy to Firebase Hosting
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
     permissions:
       contents: read
-      deployments: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,16 +26,32 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release --dart-define=ENV=dev
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+            flutter build web --release --dart-define=ENV=dev
+          else
+            flutter build web --release --dart-define=ENV=prod
+          fi
 
-      - name: Deploy to Cloudflare Pages
-        id: deploy
-        uses: cloudflare/wrangler-action@v3
+      - name: Deploy to Firebase Hosting (DEV)
+        if: github.ref == 'refs/heads/dev'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build/web --project-name=event-hub
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          projectId: aisaiah-events-dev
+          channelId: live
+          entryPoint: .
+
+      - name: Deploy to Firebase Hosting (PROD)
+        if: github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}
+          projectId: aisaiah-events-prod
+          channelId: live
+          entryPoint: .
 
   build-ios:
     name: Build iOS

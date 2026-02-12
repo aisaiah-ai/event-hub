@@ -16,6 +16,8 @@ Event Hub uses **Cloud Firestore** as the database. This document describes the 
 | `event-hub-dev` | Development |
 | `event-hub-prod` | Production |
 
+**Authoritative source:** `docs/DATABASE_NAMES.md`
+
 The app uses **event-hub-dev** when running in debug mode (`flutter run`), and **event-hub-prod** for release builds. Other applications can connect to the same databases using these IDs. Override with `--dart-define=ENV=dev` or `ENV=prod` if using `FirestoreConfig.initFromDartDefine()`.
 
 ---

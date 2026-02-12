@@ -3,21 +3,62 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Events collection: public read for landing/RSVP pages
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin(eventId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.token.email)).data.role == "ADMIN";
+    }
+
+    function isStaff(eventId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.token.email)) &&
+        (
+          get(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.token.email)).data.role == "STAFF" ||
+          get(/databases/$(database)/documents/events/$(eventId)/admins/$(request.auth.token.email)).data.role == "ADMIN"
+        );
+    }
+
     match /events/{eventId} {
+
       allow read: if true;
-      allow write: if request.auth != null;
-    }
 
-    // RSVP subcollection: public create + read (for form submission)
-    match /events/{eventId}/rsvps/{rsvpId} {
-      allow create, read: if true;
-      allow update, delete: if request.auth != null;
-    }
+      match /rsvps/{rsvpId} {
+        allow create, read: if true;
+        allow update, delete: if isStaff(eventId);
+      }
 
-    // Event Hub admin: other subcollections require auth
-    match /events/{eventId}/{collection}/{docId} {
-      allow read, write: if request.auth != null;
+      match /registrants/{registrantId} {
+        allow read: if isStaff(eventId);
+        allow write: if isStaff(eventId);
+      }
+
+      match /schemas/{docId} {
+        allow read: if isStaff(eventId);
+        allow write: if isAdmin(eventId);
+      }
+
+      match /sessions/{sessionId} {
+        allow read: if true;
+
+        match /attendance/{registrantId} {
+          allow read: if isStaff(eventId);
+          allow create: if isStaff(eventId);
+        }
+      }
+
+      match /formationSignals/{registrantId} {
+        allow read: if isStaff(eventId);
+        allow write: if isStaff(eventId);
+      }
+
+      match /admins/{email} {
+        allow read: if isAdmin(eventId);
+        allow write: if isAdmin(eventId);
+      }
     }
   }
 }

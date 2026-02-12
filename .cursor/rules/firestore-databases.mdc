@@ -1,7 +1,7 @@
 ---
-description: Firestore database configuration - use named databases event-hub-dev and event-hub-prod
-globs: lib/src/config/firestore_config.dart,**/event_repository.dart,docs/seed*.md,docs/deploy*.md
-alwaysApply: false
+description: Firestore database names - event-hub-dev and event-hub-prod (permanent)
+globs: lib/src/config/firestore_config.dart,**/event_repository.dart,docs/seed*.md,docs/deploy*.md,docs/DATABASE_NAMES.md,infra/**/*.tf
+alwaysApply: true
 ---
 
 # Firestore Database Configuration

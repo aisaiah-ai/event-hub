@@ -1,5 +1,7 @@
 # Seed Event: March Cluster Central B Assembly
 
+**Database names:** `event-hub-dev` (dev), `event-hub-prod` (prod). See `docs/DATABASE_NAMES.md`.
+
 ## Create event-hub-prod Database (Required)
 
 The app uses the **event-hub-prod** named database. If it doesn't exist, the app runs in fallback mode (RSVP form works, but submissions fail until Firestore is set up).
