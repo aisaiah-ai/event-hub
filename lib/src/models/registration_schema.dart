@@ -32,20 +32,19 @@ class RegistrationSchema {
   }
 
   Map<String, dynamic> toJson() => {
-        'version': version,
-        'updatedAt': Timestamp.fromDate(updatedAt),
-        'fields': fields.map((f) => f.toJson()).toList(),
-        'roleOverrides': roleOverrides.toJson(),
-      };
+    'version': version,
+    'updatedAt': Timestamp.fromDate(updatedAt),
+    'fields': fields.map((f) => f.toJson()).toList(),
+    'roleOverrides': roleOverrides.toJson(),
+  };
 
   factory RegistrationSchema.fromJson(Map<String, dynamic> json) {
     final updatedAt = json['updatedAt'];
     return RegistrationSchema(
       version: json['version'] as int? ?? 0,
-      updatedAt: updatedAt is Timestamp
-          ? updatedAt.toDate()
-          : DateTime.now(),
-      fields: (json['fields'] as List<dynamic>?)
+      updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : DateTime.now(),
+      fields:
+          (json['fields'] as List<dynamic>?)
               ?.map((e) => SchemaField.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],

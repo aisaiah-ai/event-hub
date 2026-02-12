@@ -7,9 +7,7 @@ void main() {
     final schema = RegistrationSchema(
       version: 0,
       updatedAt: DateTime.now(),
-      fields: [
-        SchemaField(key: 'name', label: 'Name', type: FieldType.text),
-      ],
+      fields: [SchemaField(key: 'name', label: 'Name', type: FieldType.text)],
     );
 
     await tester.pumpWidget(

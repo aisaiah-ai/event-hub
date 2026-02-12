@@ -19,7 +19,11 @@ void main() {
         version: 0,
         updatedAt: DateTime.now(),
         fields: [
-          SchemaField(key: 'fullName', label: 'Full Name', type: FieldType.text),
+          SchemaField(
+            key: 'fullName',
+            label: 'Full Name',
+            type: FieldType.text,
+          ),
           SchemaField(key: 'email', label: 'Email', type: FieldType.email),
         ],
       );
@@ -37,5 +41,4 @@ void main() {
       expect(id1.length, 20);
     });
   });
-
 }

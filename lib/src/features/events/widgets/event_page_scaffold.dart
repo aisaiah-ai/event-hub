@@ -7,12 +7,7 @@ import '../event_tokens.dart';
 /// Scaffold for event pages with dynamic branding: background and logo.
 /// Uses [EventModel] branding when provided, otherwise defaults.
 class EventPageScaffold extends StatelessWidget {
-  const EventPageScaffold({
-    super.key,
-    this.event,
-    this.body,
-    this.appBar,
-  });
+  const EventPageScaffold({super.key, this.event, this.body, this.appBar});
 
   final EventModel? event;
   final Widget? body;
@@ -27,10 +22,7 @@ class EventPageScaffold extends StatelessWidget {
       appBar: appBar,
       body: Stack(
         fit: StackFit.expand,
-        children: [
-          _buildBackground(primary),
-          body ?? const SizedBox.shrink(),
-        ],
+        children: [_buildBackground(primary), body ?? const SizedBox.shrink()],
       ),
     );
   }
@@ -54,7 +46,8 @@ class EventPageScaffold extends StatelessWidget {
           ),
         ),
         // Optional full background image
-        if (event?.backgroundImageUrl != null && event!.backgroundImageUrl!.isNotEmpty)
+        if (event?.backgroundImageUrl != null &&
+            event!.backgroundImageUrl!.isNotEmpty)
           _buildBackgroundImage(event!.backgroundImageUrl!),
         // Pattern overlay (event-specific or default CFC mosaic)
         _buildPatternOverlay(
@@ -68,7 +61,11 @@ class EventPageScaffold extends StatelessWidget {
     if (_isAssetPath(url)) {
       return Image.asset(url, fit: BoxFit.cover);
     }
-    return Image.network(url, fit: BoxFit.cover, errorBuilder: (_, e, st) => const SizedBox.expand());
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, e, st) => const SizedBox.expand(),
+    );
   }
 
   Widget _buildPatternOverlay(String url) {
@@ -87,7 +84,11 @@ class EventPageScaffold extends StatelessWidget {
     }
     return Opacity(
       opacity: opacity,
-      child: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, e, st) => const SizedBox.expand()),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, e, st) => const SizedBox.expand(),
+      ),
     );
   }
 
@@ -96,11 +97,7 @@ class EventPageScaffold extends StatelessWidget {
 
 /// Logo widget for event branding. Supports asset paths and network URLs.
 class EventLogo extends StatelessWidget {
-  const EventLogo({
-    super.key,
-    this.logoUrl,
-    this.size = 96,
-  });
+  const EventLogo({super.key, this.logoUrl, this.size = 96});
 
   final String? logoUrl;
   final double size;

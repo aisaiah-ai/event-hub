@@ -6,12 +6,11 @@ import '../models/registration_schema.dart';
 /// Loads and saves registration schema from Firestore.
 class SchemaService {
   SchemaService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirestoreConfig.instance;
+    : _firestore = firestore ?? FirestoreConfig.instance;
 
   final FirebaseFirestore _firestore;
 
-  String _schemaPath(String eventId) =>
-      'events/$eventId/schemas/registration';
+  String _schemaPath(String eventId) => 'events/$eventId/schemas/registration';
 
   /// Load registration schema for an event.
   Future<RegistrationSchema?> getSchema(String eventId) async {
@@ -46,11 +45,7 @@ class SchemaService {
     if (existing != null) return;
     await saveSchema(
       eventId,
-      RegistrationSchema(
-        version: 0,
-        updatedAt: DateTime.now(),
-        fields: [],
-      ),
+      RegistrationSchema(version: 0, updatedAt: DateTime.now(), fields: []),
     );
   }
 }

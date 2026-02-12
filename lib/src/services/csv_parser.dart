@@ -41,7 +41,10 @@ class CsvParser {
         mapping[header] = schema.fields[idx].key;
       } else {
         for (final f in schema.fields) {
-          final labelNorm = f.label.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+          final labelNorm = f.label.toLowerCase().replaceAll(
+            RegExp(r'\s+'),
+            '_',
+          );
           if (labelNorm == lower || f.key.toLowerCase() == lower) {
             mapping[header] = f.key;
             break;
@@ -53,10 +56,7 @@ class CsvParser {
   }
 
   /// Deterministic registrant ID from row values.
-  String deterministicId(
-    Map<String, dynamic> values,
-    List<String> keyFields,
-  ) {
+  String deterministicId(Map<String, dynamic> values, List<String> keyFields) {
     final parts = <String>[];
     for (final k in keyFields) {
       parts.add(values[k]?.toString() ?? '');

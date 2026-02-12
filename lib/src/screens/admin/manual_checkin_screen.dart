@@ -92,13 +92,16 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
           : _registrants.where((r) {
               final p = r.profile.toString().toLowerCase();
               final a = r.answers.toString().toLowerCase();
-              return p.contains(q) || a.contains(q) || r.id.toLowerCase().contains(q);
+              return p.contains(q) ||
+                  a.contains(q) ||
+                  r.id.toLowerCase().contains(q);
             }).toList();
     });
   }
 
   String _displayName(Registrant r) {
-    final name = r.profile['name'] ?? r.profile['firstName'] ?? r.profile['fullName'];
+    final name =
+        r.profile['name'] ?? r.profile['firstName'] ?? r.profile['fullName'];
     if (name?.toString().trim().isNotEmpty ?? false) {
       return name.toString().trim();
     }
@@ -113,7 +116,8 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
   String _displaySubtitle(Registrant r) {
     final parts = <String>[];
     final role = r.profile['role'] ?? r.answers['role'];
-    final unit = r.profile['unit'] ?? r.answers['unit'] ?? r.answers['affiliation'];
+    final unit =
+        r.profile['unit'] ?? r.answers['unit'] ?? r.answers['affiliation'];
     if (role != null && role.toString().isNotEmpty) {
       parts.add(role.toString());
     }
@@ -161,10 +165,8 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
     final id = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (ctx) => RegistrantNewScreen(
-          eventId: widget.eventId,
-          role: UserRole.staff,
-        ),
+        builder: (ctx) =>
+            RegistrantNewScreen(eventId: widget.eventId, role: UserRole.staff),
       ),
     );
     if (id != null && mounted) {
@@ -176,19 +178,20 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
 
   void _onScanQr() {
     // Placeholder: wire up mobile_scanner or similar when added
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('QR scanning coming soon')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('QR scanning coming soon')));
   }
 
-  String get _eventTitle =>
-      widget.eventTitle ?? _formatEventId(widget.eventId);
+  String get _eventTitle => widget.eventTitle ?? _formatEventId(widget.eventId);
 
   String _formatEventId(String id) {
     if (id.isEmpty) return 'Event';
     final parts = id.split('-');
     return parts
-        .map((p) => p.isNotEmpty ? '${p[0].toUpperCase()}${p.substring(1)}' : '')
+        .map(
+          (p) => p.isNotEmpty ? '${p[0].toUpperCase()}${p.substring(1)}' : '',
+        )
         .join(' ');
   }
 
@@ -223,9 +226,7 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
           Positioned.fill(
             child: Opacity(
               opacity: 0.06,
-              child: CustomPaint(
-                painter: _GeometricPatternPainter(),
-              ),
+              child: CustomPaint(painter: _GeometricPatternPainter()),
             ),
           ),
           // Mosaic corner decorations
@@ -241,477 +242,474 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
           ),
           // Main content
           SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Logo — stylized figure with halo
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFea580c),
-                              width: 2,
-                            ),
-                            color: Colors.transparent,
-                          ),
-                        ),
-                        const Icon(
-                          Icons.accessibility_new_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 8,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFea580c),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Logo — stylized figure with halo
+                      Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Text(
-                            'Event Hub',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFFcbd5e1),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFea580c),
+                                width: 2,
+                              ),
+                              color: Colors.transparent,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _eventTitle,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 22,
-                              height: 1.2,
-                            ),
+                          const Icon(
+                            Icons.accessibility_new_rounded,
+                            color: Colors.white,
+                            size: 28,
                           ),
-                          if (dateStr != null || venueStr != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              [dateStr, venueStr]
-                                  .whereType<String>()
-                                  .join(' • '),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF94a3b8),
-                                fontSize: 13,
+                          Positioned(
+                            top: 4,
+                            right: 8,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFea580c),
+                                shape: BoxShape.circle,
                               ),
                             ),
-                          ],
+                          ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          context.go('/admin?eventId=${widget.eventId}'),
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: Colors.white70,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              // QR Scan button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _onScanQr,
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0xFF1d4ed8),
-                                  Color(0xFF2563eb),
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color.lerp(
-                                    const Color(0xFF2563eb),
-                                    Colors.transparent,
-                                    0.6,
-                                  )!,
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.camera_alt_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Scan Conference QR Code',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Fastest way to check in',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF94a3b8),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // OR separator
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        color: const Color(0xFF334155),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF94a3b8),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        color: const Color(0xFF334155),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Manual search field — light gradient, keyboard icon
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFf8fafc),
-                        Color(0xFFe2e8f0),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color.lerp(
-                          const Color(0xFF0a2f3d),
-                          Colors.transparent,
-                          0.85,
-                        )!,
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    style: const TextStyle(
-                      color: Color(0xFF1e293b),
-                      fontSize: 16,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Enter Name or CFC ID',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF64748b),
-                        fontSize: 15,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.keyboard_rounded,
-                        color: Color(0xFF64748b),
-                        size: 22,
-                      ),
-                      filled: true,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF94a3b8),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Search results
-              if (_searchController.text.trim().isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1e293b),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF334155)),
-                    ),
-                    child: _filtered.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Text(
-                              'No matches for "${_searchController.text}"',
-                              style: const TextStyle(
-                                color: Color(0xFF94a3b8),
-                                fontSize: 14,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Event Hub',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFFcbd5e1),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            itemCount: _filtered.length,
-                            itemBuilder: (ctx, i) {
-                              final r = _filtered[i];
-                              return ListTile(
-                                title: Text(
-                                  _displayName(r),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  _displaySubtitle(r),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF94a3b8),
-                                  ),
-                                ),
-                                onTap: () {
-                                  _searchController.clear();
-                                  _searchFocusNode.unfocus();
-                                  _checkIn(r);
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(
-                      color: Color(0xFFf87171),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              // Success state — light card with dark text
-              if (_lastCheckedIn != null && _lastCheckedInAt != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFf8fafc),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color.lerp(
-                            const Color(0xFF0a2f3d),
-                            Colors.transparent,
-                            0.9,
-                          )!,
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF22c55e),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Checked In Successfully',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: const Color(0xFF16a34a),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _eventTitle,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 22,
+                                height: 1.2,
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _displayName(_lastCheckedIn!),
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: const Color(0xFF1e293b),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
-                                ),
-                              ),
+                            ),
+                            if (dateStr != null || venueStr != null) ...[
                               const SizedBox(height: 4),
                               Text(
-                                _displaySubtitle(_lastCheckedIn!),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF64748b),
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Checked in at ${DateFormat.jm().format(_lastCheckedInAt!)}',
+                                [
+                                  dateStr,
+                                  venueStr,
+                                ].whereType<String>().join(' • '),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: const Color(0xFF94a3b8),
                                   fontSize: 13,
                                 ),
                               ),
                             ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () =>
+                            context.go('/admin?eventId=${widget.eventId}'),
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: Colors.white70,
+                          size: 24,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // QR Scan button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _onScanQr,
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0xFF1d4ed8),
+                                    Color(0xFF2563eb),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color.lerp(
+                                      const Color(0xFF2563eb),
+                                      Colors.transparent,
+                                      0.6,
+                                    )!,
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Scan Conference QR Code',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Fastest way to check in',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF94a3b8),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // OR separator
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: const Color(0xFF334155),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF94a3b8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: const Color(0xFF334155),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Manual search field — light gradient, keyboard icon
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFFf8fafc), Color(0xFFe2e8f0)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color.lerp(
+                            const Color(0xFF0a2f3d),
+                            Colors.transparent,
+                            0.85,
+                          )!,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ] else if (_loading)
-                const Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: Colors.white54,
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      style: const TextStyle(
+                        color: Color(0xFF1e293b),
+                        fontSize: 16,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Enter Name or CFC ID',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF64748b),
+                          fontSize: 15,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.keyboard_rounded,
+                          color: Color(0xFF64748b),
+                          size: 22,
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: InputBorder.none,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF94a3b8),
+                            width: 1,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                )
-              else
+                ),
+                // Search results
+                if (_searchController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1e293b),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: _filtered.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text(
+                                'No matches for "${_searchController.text}"',
+                                style: const TextStyle(
+                                  color: Color(0xFF94a3b8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: _filtered.length,
+                              itemBuilder: (ctx, i) {
+                                final r = _filtered[i];
+                                return ListTile(
+                                  title: Text(
+                                    _displayName(r),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    _displaySubtitle(r),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF94a3b8),
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    _searchController.clear();
+                                    _searchFocusNode.unfocus();
+                                    _checkIn(r);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(
+                        color: Color(0xFFf87171),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                // Success state — light card with dark text
+                if (_lastCheckedIn != null && _lastCheckedInAt != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFf8fafc),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color.lerp(
+                              const Color(0xFF0a2f3d),
+                              Colors.transparent,
+                              0.9,
+                            )!,
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF22c55e),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Checked In Successfully',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: const Color(0xFF16a34a),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _displayName(_lastCheckedIn!),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: const Color(0xFF1e293b),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _displaySubtitle(_lastCheckedIn!),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFF64748b),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Checked in at ${DateFormat.jm().format(_lastCheckedInAt!)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFF94a3b8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else if (_loading)
+                  const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
+                    ),
+                  )
+                else
+                  const Spacer(),
                 const Spacer(),
-              const Spacer(),
-              // Footer links
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 1,
-                      color: const Color(0xFF475569),
-                      margin: const EdgeInsets.only(bottom: 16),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          onPressed: _createAndCheckIn,
-                          child: Text(
-                            'Manual Add Attendee',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF94a3b8),
-                              decoration: TextDecoration.underline,
-                              decorationColor: const Color(0xFF94a3b8),
+                // Footer links
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 1,
+                        color: const Color(0xFF475569),
+                        margin: const EdgeInsets.only(bottom: 16),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: _createAndCheckIn,
+                            child: Text(
+                              'Manual Add Attendee',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF94a3b8),
+                                decoration: TextDecoration.underline,
+                                decorationColor: const Color(0xFF94a3b8),
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 16,
-                          color: const Color(0xFF475569),
-                        ),
-                        TextButton(
-                          onPressed: () =>
-                              context.go('/admin?eventId=${widget.eventId}'),
-                          child: Text(
-                            'Switch Session / Day',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF94a3b8),
-                              decoration: TextDecoration.underline,
-                              decorationColor: const Color(0xFF94a3b8),
+                          Container(
+                            width: 1,
+                            height: 16,
+                            color: const Color(0xFF475569),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                context.go('/admin?eventId=${widget.eventId}'),
+                            child: Text(
+                              'Switch Session / Day',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF94a3b8),
+                                decoration: TextDecoration.underline,
+                                decorationColor: const Color(0xFF94a3b8),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ],
       ),
     );

@@ -17,11 +17,11 @@ class Session {
   final String? type;
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        if (startAt != null) 'startAt': Timestamp.fromDate(startAt!),
-        if (endAt != null) 'endAt': Timestamp.fromDate(endAt!),
-        if (type != null) 'type': type,
-      };
+    'title': title,
+    if (startAt != null) 'startAt': Timestamp.fromDate(startAt!),
+    if (endAt != null) 'endAt': Timestamp.fromDate(endAt!),
+    if (type != null) 'type': type,
+  };
 
   factory Session.fromFirestore(String id, Map<String, dynamic> json) {
     final startAt = json['startAt'];

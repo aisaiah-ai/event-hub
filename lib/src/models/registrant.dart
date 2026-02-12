@@ -15,10 +15,10 @@ class EventAttendance {
   final String? checkedInBy;
 
   Map<String, dynamic> toJson() => {
-        'checkedIn': checkedIn,
-        if (checkedInAt != null) 'checkedInAt': Timestamp.fromDate(checkedInAt!),
-        if (checkedInBy != null) 'checkedInBy': checkedInBy,
-      };
+    'checkedIn': checkedIn,
+    if (checkedInAt != null) 'checkedInAt': Timestamp.fromDate(checkedInAt!),
+    if (checkedInBy != null) 'checkedInBy': checkedInBy,
+  };
 
   factory EventAttendance.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const EventAttendance();
@@ -44,18 +44,18 @@ class RegistrantFlags {
   final List<String> validationWarnings;
 
   Map<String, dynamic> toJson() => {
-        'isWalkIn': isWalkIn,
-        'hasValidationWarnings': hasValidationWarnings,
-        if (validationWarnings.isNotEmpty) 'validationWarnings': validationWarnings,
-      };
+    'isWalkIn': isWalkIn,
+    'hasValidationWarnings': hasValidationWarnings,
+    if (validationWarnings.isNotEmpty) 'validationWarnings': validationWarnings,
+  };
 
   factory RegistrantFlags.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const RegistrantFlags();
     return RegistrantFlags(
       isWalkIn: json['isWalkIn'] as bool? ?? false,
-      hasValidationWarnings:
-          json['hasValidationWarnings'] as bool? ?? false,
-      validationWarnings: (json['validationWarnings'] as List<dynamic>?)
+      hasValidationWarnings: json['hasValidationWarnings'] as bool? ?? false,
+      validationWarnings:
+          (json['validationWarnings'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -90,16 +90,16 @@ class Registrant {
   final RegistrantFlags flags;
 
   Map<String, dynamic> toJson() => {
-        'profile': profile,
-        'answers': answers,
-        'source': source.name,
-        'registrationStatus': registrationStatus,
-        if (registeredAt != null) 'registeredAt': Timestamp.fromDate(registeredAt!),
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-        if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
-        'eventAttendance': eventAttendance.toJson(),
-        'flags': flags.toJson(),
-      };
+    'profile': profile,
+    'answers': answers,
+    'source': source.name,
+    'registrationStatus': registrationStatus,
+    if (registeredAt != null) 'registeredAt': Timestamp.fromDate(registeredAt!),
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+    if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+    'eventAttendance': eventAttendance.toJson(),
+    'flags': flags.toJson(),
+  };
 
   factory Registrant.fromFirestore(String id, Map<String, dynamic> json) {
     final registeredAt = json['registeredAt'];

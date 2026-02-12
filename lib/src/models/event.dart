@@ -21,13 +21,13 @@ class Event {
   final DateTime? updatedAt;
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'description': description,
-        if (startAt != null) 'startAt': Timestamp.fromDate(startAt!),
-        if (endAt != null) 'endAt': Timestamp.fromDate(endAt!),
-        if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
-        if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
-      };
+    'title': title,
+    'description': description,
+    if (startAt != null) 'startAt': Timestamp.fromDate(startAt!),
+    if (endAt != null) 'endAt': Timestamp.fromDate(endAt!),
+    if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+    if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+  };
 
   factory Event.fromFirestore(String id, Map<String, dynamic>? json) {
     if (json == null) return Event(id: id);

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../checkin_tokens.dart';
 
 class OfflineBanner extends StatelessWidget {
-  const OfflineBanner({
-    super.key,
-    this.text = 'Offline Mode Active',
-  });
+  const OfflineBanner({super.key, this.text = 'Offline Mode Active'});
 
   final String text;
 
@@ -29,11 +26,7 @@ class OfflineBanner extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.cloud_off,
-            color: CheckinTokens.accentGold,
-            size: 20,
-          ),
+          Icon(Icons.cloud_off, color: CheckinTokens.accentGold, size: 20),
           const SizedBox(width: CheckinTokens.spacingS),
           Text(
             text,

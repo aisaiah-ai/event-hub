@@ -4,10 +4,7 @@ import '../checkin_tokens.dart';
 import '../models/checkin_state.dart';
 
 class CheckinStatusCard extends StatelessWidget {
-  const CheckinStatusCard({
-    super.key,
-    required this.result,
-  });
+  const CheckinStatusCard({super.key, required this.result});
 
   final CheckinResult result;
 
@@ -200,7 +197,8 @@ class CheckinStatusCard extends StatelessWidget {
               ),
               const SizedBox(height: CheckinTokens.spacingS),
               Text(
-                result.message ?? 'Unable to check in. Please try manual entry.',
+                result.message ??
+                    'Unable to check in. Please try manual entry.',
                 style: TextStyle(
                   color: CheckinTokens.textPrimary.withValues(alpha: 0.7),
                   fontSize: 14,

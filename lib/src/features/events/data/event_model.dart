@@ -55,10 +55,12 @@ class EventModel {
   final String? organizationName;
 
   /// Resolved primary color.
-  Color get primaryColor => _parseColor(primaryColorHex) ?? const Color(0xFF0E3A5D);
+  Color get primaryColor =>
+      _parseColor(primaryColorHex) ?? const Color(0xFF0E3A5D);
 
   /// Resolved accent color.
-  Color get accentColor => _parseColor(accentColorHex) ?? const Color(0xFFF4A340);
+  Color get accentColor =>
+      _parseColor(accentColorHex) ?? const Color(0xFFF4A340);
 
   static Color? _parseColor(String? hex) {
     if (hex == null || hex.isEmpty) return null;
@@ -84,15 +86,20 @@ class EventModel {
       metadata: data['metadata'] as Map<String, dynamic>? ?? {},
       logoUrl: branding['logoUrl'] as String? ?? data['logoUrl'] as String?,
       backgroundImageUrl:
-          branding['backgroundImageUrl'] as String? ?? data['backgroundImageUrl'] as String?,
+          branding['backgroundImageUrl'] as String? ??
+          data['backgroundImageUrl'] as String?,
       backgroundPatternUrl:
-          branding['backgroundPatternUrl'] as String? ?? data['backgroundPatternUrl'] as String?,
+          branding['backgroundPatternUrl'] as String? ??
+          data['backgroundPatternUrl'] as String?,
       primaryColorHex:
-          branding['primaryColorHex'] as String? ?? data['primaryColorHex'] as String?,
+          branding['primaryColorHex'] as String? ??
+          data['primaryColorHex'] as String?,
       accentColorHex:
-          branding['accentColorHex'] as String? ?? data['accentColorHex'] as String?,
+          branding['accentColorHex'] as String? ??
+          data['accentColorHex'] as String?,
       organizationName:
-          branding['organizationName'] as String? ?? data['organizationName'] as String?,
+          branding['organizationName'] as String? ??
+          data['organizationName'] as String?,
     );
   }
 
@@ -111,10 +118,28 @@ class EventModel {
   /// Formatted date for display (e.g. "March 14, Saturday").
   String get displayDate {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
-    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
     final m = months[startDate.month - 1];
     final w = weekdays[startDate.weekday - 1];
     return '$m ${startDate.day}, $w';

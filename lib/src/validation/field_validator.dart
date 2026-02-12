@@ -20,7 +20,8 @@ class FieldValidator {
     dynamic value,
     bool requiredEnforced,
   ) {
-    final isEmpty = value == null ||
+    final isEmpty =
+        value == null ||
         (value is String && value.trim().isEmpty) ||
         (value is List && value.isEmpty);
 
@@ -47,7 +48,8 @@ class FieldValidator {
         }
         break;
       case FieldType.select:
-        if (field.options.isNotEmpty && !field.options.contains(value.toString())) {
+        if (field.options.isNotEmpty &&
+            !field.options.contains(value.toString())) {
           return FieldValidationResult(
             error: 'Must be one of: ${field.options.join(", ")}',
           );
@@ -57,9 +59,7 @@ class FieldValidator {
         if (value is List) {
           for (final item in value) {
             if (!field.options.contains(item.toString())) {
-              return FieldValidationResult(
-                error: 'Invalid option: $item',
-              );
+              return FieldValidationResult(error: 'Invalid option: $item');
             }
           }
         }

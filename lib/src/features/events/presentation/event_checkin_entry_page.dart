@@ -60,11 +60,15 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: EventTokens.textOffWhite),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/events/${widget.eventSlug}'),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go('/events/${widget.eventSlug}'),
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: EventTokens.textOffWhite))
+          ? const Center(
+              child: CircularProgressIndicator(color: EventTokens.textOffWhite),
+            )
           : Center(
               child: Padding(
                 padding: const EdgeInsets.all(EventTokens.spacingL),
@@ -101,13 +105,22 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
                         final q = <String, String>{
                           'eventId': _event?.id ?? widget.eventSlug,
                           if (_event != null) 'eventTitle': _event!.name,
-                          if (_event != null) 'eventVenue': '${_event!.locationName}, ${_event!.address}',
-                          if (_event != null) 'eventDate': _event!.startDate.toIso8601String().split('T').first,
+                          if (_event != null)
+                            'eventVenue':
+                                '${_event!.locationName}, ${_event!.address}',
+                          if (_event != null)
+                            'eventDate': _event!.startDate
+                                .toIso8601String()
+                                .split('T')
+                                .first,
                         };
-                        context.go(Uri(path: '/checkin', queryParameters: q).toString());
+                        context.go(
+                          Uri(path: '/checkin', queryParameters: q).toString(),
+                        );
                       },
                       style: FilledButton.styleFrom(
-                        backgroundColor: _event?.accentColor ?? EventTokens.accentGold,
+                        backgroundColor:
+                            _event?.accentColor ?? EventTokens.accentGold,
                         foregroundColor: EventTokens.textPrimary,
                       ),
                       child: const Text('Go to Check-in'),

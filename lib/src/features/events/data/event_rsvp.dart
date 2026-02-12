@@ -27,15 +27,15 @@ class EventRsvp {
   final String? cfcId;
 
   Map<String, dynamic> toFirestore() => {
-        'name': name,
-        'household': household,
-        'attendingRally': attendingRally,
-        'attendingDinner': attendingDinner,
-        'attendeesCount': attendeesCount,
-        if (celebrationType != null) 'celebrationType': celebrationType,
-        'createdAt': Timestamp.fromDate(createdAt),
-        if (source != null) 'source': source,
-        if (area != null) 'area': area,
-        if (cfcId != null) 'cfcId': cfcId,
-      };
+    'name': name,
+    'household': household,
+    'attendingRally': attendingRally,
+    'attendingDinner': attendingDinner,
+    'attendeesCount': attendeesCount,
+    if (celebrationType != null) 'celebrationType': celebrationType,
+    'createdAt': Timestamp.fromDate(createdAt),
+    if (source != null) 'source': source,
+    if (area != null) 'area': area,
+    if (cfcId != null) 'cfcId': cfcId,
+  };
 }

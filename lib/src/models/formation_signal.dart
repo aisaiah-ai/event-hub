@@ -15,18 +15,20 @@ class FormationSignal {
   final DateTime? updatedAt;
 
   Map<String, dynamic> toJson() => {
-        'eventId': eventId,
-        'registrantId': registrantId,
-        'tags': tags,
-        'updatedAt': Timestamp.fromDate(updatedAt ?? DateTime.now()),
-      };
+    'eventId': eventId,
+    'registrantId': registrantId,
+    'tags': tags,
+    'updatedAt': Timestamp.fromDate(updatedAt ?? DateTime.now()),
+  };
 
   factory FormationSignal.fromJson(Map<String, dynamic> json) {
     final updatedAt = json['updatedAt'];
     return FormationSignal(
       eventId: json['eventId'] as String? ?? '',
       registrantId: json['registrantId'] as String? ?? '',
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          [],
       updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
     );
   }

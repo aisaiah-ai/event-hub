@@ -81,11 +81,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
 
     for (final field in widget.schema.fields) {
       final value = _values[field.key];
-      final result = _validator.validate(
-        field,
-        value,
-        !_allowMissingRequired,
-      );
+      final result = _validator.validate(field, value, !_allowMissingRequired);
 
       if (!result.isValid) {
         if (_allowMissingRequired && field.required) {
@@ -109,11 +105,13 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
       return;
     }
 
-    widget.onSubmit(DynamicFormResult(
-      profile: profile,
-      answers: answers,
-      validationWarnings: warnings,
-    ));
+    widget.onSubmit(
+      DynamicFormResult(
+        profile: profile,
+        answers: answers,
+        validationWarnings: warnings,
+      ),
+    );
   }
 
   @override
@@ -126,10 +124,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
           ...widget.schema.fields.map((field) => _buildField(field)),
           const SizedBox(height: 24),
           if (!widget.readOnly)
-            FilledButton(
-              onPressed: _submit,
-              child: Text(widget.submitLabel),
-            ),
+            FilledButton(onPressed: _submit, child: Text(widget.submitLabel)),
         ],
       ),
     );
@@ -154,8 +149,8 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
               child: Text(
                 error,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ),
         ],

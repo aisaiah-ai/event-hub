@@ -2,10 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 /// Environment: dev uses event-hub-dev, prod uses (default).
-enum AppEnvironment {
-  dev,
-  prod,
-}
+enum AppEnvironment { dev, prod }
 
 /// Central Firestore configuration. Use [databaseId] when creating
 /// FirebaseFirestore.instanceFor() for the named database.

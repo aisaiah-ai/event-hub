@@ -11,10 +11,7 @@ import 'schema_service.dart';
 
 /// Result of parsing a CSV row.
 class CsvRowResult {
-  const CsvRowResult({
-    required this.values,
-    required this.warnings,
-  });
+  const CsvRowResult({required this.values, required this.warnings});
 
   final Map<String, dynamic> values;
   final List<String> warnings;
@@ -29,10 +26,10 @@ class CsvImportService {
     FirebaseFirestore? firestore,
     SchemaService? schemaService,
     RegistrantService? registrantService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _schemaService = schemaService ?? SchemaService(firestore: firestore),
-        _registrantService =
-            registrantService ?? RegistrantService(firestore: firestore);
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _schemaService = schemaService ?? SchemaService(firestore: firestore),
+       _registrantService =
+           registrantService ?? RegistrantService(firestore: firestore);
 
   static const _parser = CsvParser();
 
@@ -50,8 +47,7 @@ class CsvImportService {
   HeaderMapping autoMapHeaders(
     List<String> csvHeaders,
     RegistrationSchema schema,
-  ) =>
-      _parser.autoMapHeaders(csvHeaders, schema);
+  ) => _parser.autoMapHeaders(csvHeaders, schema);
 
   /// Parse a single row with mapping and schema validation.
   CsvRowResult parseRow(
@@ -90,7 +86,9 @@ class CsvImportService {
 
     for (final field in schema.fields) {
       if (field.required && !values.containsKey(field.key)) {
-        final canBypass = schema.roleOverrides.allowMissingRequired(validationRole);
+        final canBypass = schema.roleOverrides.allowMissingRequired(
+          validationRole,
+        );
         if (canBypass) {
           warnings.add('Missing required (admin bypass): ${field.label}');
         }
@@ -185,12 +183,14 @@ class CsvImportService {
         .limit(5)
         .get();
     return snap.docs
-        .map((d) =>
-            Map<String, String>.from(
-              (d.data()['mapping'] as Map?)?.map(
-                (k, v) => MapEntry(k.toString(), v.toString()),
-              ) ?? {},
-            ))
+        .map(
+          (d) => Map<String, String>.from(
+            (d.data()['mapping'] as Map?)?.map(
+                  (k, v) => MapEntry(k.toString(), v.toString()),
+                ) ??
+                {},
+          ),
+        )
         .toList();
   }
 }

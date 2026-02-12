@@ -61,20 +61,28 @@ class _SchemaEditorScreenState extends State<SchemaEditorScreen> {
     if (_schema == null) return;
     try {
       await _schemaService.saveSchema(widget.eventId, _schema!);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schema saved')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Schema saved')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   void _addField() {
     setState(() {
       final fields = List<SchemaField>.from(_schema!.fields);
-      fields.add(SchemaField(
-        key: 'field_${fields.length + 1}',
-        label: 'New Field',
-        type: FieldType.text,
-      ));
+      fields.add(
+        SchemaField(
+          key: 'field_${fields.length + 1}',
+          label: 'New Field',
+          type: FieldType.text,
+        ),
+      );
       _schema = _schema!.copyWith(fields: fields);
     });
   }
@@ -167,8 +175,11 @@ class _SchemaEditorScreenState extends State<SchemaEditorScreen> {
                   key: ValueKey(f.key),
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    leading: const Icon(Icons.drag_handle_rounded,
-                        color: Color(0xFF94a3b8), size: 20),
+                    leading: const Icon(
+                      Icons.drag_handle_rounded,
+                      color: Color(0xFF94a3b8),
+                      size: 20,
+                    ),
                     title: Text(
                       '${f.label} (${f.key})',
                       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -196,7 +207,9 @@ class _SchemaEditorScreenState extends State<SchemaEditorScreen> {
                                 ? const Color(0xFFcbd5e1)
                                 : const Color(0xFFf43f5e),
                           ),
-                          onPressed: f.locked ? null : () => _deleteField(index),
+                          onPressed: f.locked
+                              ? null
+                              : () => _deleteField(index),
                           tooltip: 'Delete',
                         ),
                       ],
@@ -231,9 +244,9 @@ class _SchemaEditorScreenState extends State<SchemaEditorScreen> {
             child: Text(
               'Preview',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0f172a),
-                  ),
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF0f172a),
+              ),
             ),
           ),
           Expanded(
@@ -316,7 +329,10 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
               value: _type,
               decoration: const InputDecoration(labelText: 'Type'),
               items: FieldType.values
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t.displayName)))
+                  .map(
+                    (t) =>
+                        DropdownMenuItem(value: t, child: Text(t.displayName)),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _type = v ?? _type),
             ),
@@ -328,15 +344,22 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
             SwitchListTile(
               title: const Text('Locked'),
               value: _locked,
-              onChanged: widget.field.locked ? null : (v) => setState(() => _locked = v),
+              onChanged: widget.field.locked
+                  ? null
+                  : (v) => setState(() => _locked = v),
             ),
             if (_type == FieldType.select || _type == FieldType.multiselect)
               TextField(
                 decoration: const InputDecoration(
                   labelText: 'Options (comma-separated)',
                 ),
-                onChanged: (v) =>
-                    setState(() => _options = v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()),
+                onChanged: (v) => setState(
+                  () => _options = v
+                      .split(',')
+                      .map((e) => e.trim())
+                      .where((e) => e.isNotEmpty)
+                      .toList(),
+                ),
               ),
           ],
         ),
@@ -348,15 +371,18 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
         ),
         FilledButton(
           onPressed: () {
-            Navigator.pop(context, SchemaField(
-              key: _keyController.text.trim(),
-              label: _labelController.text.trim(),
-              type: _type,
-              required: _required,
-              options: _options,
-              locked: _locked,
-              formationTags: FormationTags(tags: _formationTags),
-            ));
+            Navigator.pop(
+              context,
+              SchemaField(
+                key: _keyController.text.trim(),
+                label: _labelController.text.trim(),
+                type: _type,
+                required: _required,
+                options: _options,
+                locked: _locked,
+                formationTags: FormationTags(tags: _formationTags),
+              ),
+            );
           },
           child: const Text('Save'),
         ),

@@ -59,10 +59,7 @@ class _EventLandingPageState extends State<EventLandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return EventPageScaffold(
-      event: _event,
-      body: _buildBody(),
-    );
+    return EventPageScaffold(event: _event, body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -87,7 +84,11 @@ class _EventLandingPageState extends State<EventLandingPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: EventTokens.textOffWhite, size: 48),
+            const Icon(
+              Icons.error_outline,
+              color: EventTokens.textOffWhite,
+              size: 48,
+            ),
             const SizedBox(height: EventTokens.spacingM),
             Text(
               'Something went wrong',
@@ -100,7 +101,10 @@ class _EventLandingPageState extends State<EventLandingPage> {
             const SizedBox(height: EventTokens.spacingS),
             TextButton(
               onPressed: _load,
-              child: const Text('Retry', style: TextStyle(color: EventTokens.accentGold)),
+              child: const Text(
+                'Retry',
+                style: TextStyle(color: EventTokens.accentGold),
+              ),
             ),
           ],
         ),
@@ -115,7 +119,11 @@ class _EventLandingPageState extends State<EventLandingPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, color: EventTokens.textOffWhite, size: 48),
+            const Icon(
+              Icons.search_off,
+              color: EventTokens.textOffWhite,
+              size: 48,
+            ),
             const SizedBox(height: EventTokens.spacingM),
             Text(
               'Event not found',
@@ -161,7 +169,9 @@ class _EventLandingPageState extends State<EventLandingPage> {
                       Text(
                         orgName,
                         style: TextStyle(
-                          color: EventTokens.textOffWhite.withValues(alpha: 0.9),
+                          color: EventTokens.textOffWhite.withValues(
+                            alpha: 0.9,
+                          ),
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
                         ),
@@ -179,7 +189,9 @@ class _EventLandingPageState extends State<EventLandingPage> {
                       Text(
                         '${event.dateRangeText} • ${event.locationName}',
                         style: TextStyle(
-                          color: EventTokens.textOffWhite.withValues(alpha: 0.9),
+                          color: EventTokens.textOffWhite.withValues(
+                            alpha: 0.9,
+                          ),
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
                         ),
@@ -195,7 +207,8 @@ class _EventLandingPageState extends State<EventLandingPage> {
                 eventSlug: event.slug,
                 queryParams: widget.queryParams,
               ),
-            if (event.allowRsvp && event.allowCheckin) const SizedBox(height: EventTokens.spacingM),
+            if (event.allowRsvp && event.allowCheckin)
+              const SizedBox(height: EventTokens.spacingM),
             if (event.allowCheckin) ...[
               _ActionButton(
                 label: 'Check-in',
@@ -212,10 +225,7 @@ class _EventLandingPageState extends State<EventLandingPage> {
 }
 
 class _RedirectToRsvp extends StatefulWidget {
-  const _RedirectToRsvp({
-    required this.eventSlug,
-    this.queryParams = const {},
-  });
+  const _RedirectToRsvp({required this.eventSlug, this.queryParams = const {}});
 
   final String eventSlug;
   final Map<String, String> queryParams;
@@ -232,7 +242,9 @@ class _RedirectToRsvpState extends State<_RedirectToRsvp> {
       if (!mounted) return;
       final uri = Uri(
         path: '/events/${widget.eventSlug}/rsvp',
-        queryParameters: widget.queryParams.isNotEmpty ? widget.queryParams : null,
+        queryParameters: widget.queryParams.isNotEmpty
+            ? widget.queryParams
+            : null,
       );
       context.go(uri.toString());
     });

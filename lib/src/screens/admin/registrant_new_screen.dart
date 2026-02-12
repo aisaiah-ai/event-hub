@@ -68,18 +68,21 @@ class _RegistrantNewScreenState extends State<RegistrantNewScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      final id = await _registrantService.saveRegistrant(widget.eventId, registrant);
+      final id = await _registrantService.saveRegistrant(
+        widget.eventId,
+        registrant,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registrant created: $id')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Registrant created: $id')));
         Navigator.pop(context, id);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -89,9 +92,7 @@ class _RegistrantNewScreenState extends State<RegistrantNewScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading || _schema == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_schema!.fields.isEmpty) {
       return Scaffold(

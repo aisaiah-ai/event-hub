@@ -24,7 +24,8 @@ class StyledScaffold extends StatelessWidget {
         leading: showBack
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => context.canPop() ? context.pop() : context.go('/admin'),
+                onPressed: () =>
+                    context.canPop() ? context.pop() : context.go('/admin'),
               )
             : null,
         title: Text(title),

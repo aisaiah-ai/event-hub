@@ -43,11 +43,13 @@ class EventRepository {
   static final EventModel _marchCluster2026Fallback = EventModel(
     id: 'march-cluster-2026',
     slug: 'march-cluster-2026',
-    name: 'March Cluster Central B (BBS, Tampa, Port Charlotte) Assembly, Evangelization Rally & Fellowship night',
+    name:
+        'March Cluster Central B (BBS, Tampa, Port Charlotte) Assembly, Evangelization Rally & Fellowship night',
     startDate: DateTime(2026, 3, 14),
     endDate: DateTime(2026, 3, 14),
     locationName: "St. Michael's Hall",
-    address: "Incarnation Catholic Church, 8220 W Hillsborough Ave, Tampa, FL 33615",
+    address:
+        "Incarnation Catholic Church, 8220 W Hillsborough Ave, Tampa, FL 33615",
     isActive: true,
     allowRsvp: true,
     allowCheckin: false,

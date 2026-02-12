@@ -67,3 +67,28 @@ The workflow uses `--project-name=event-hub`. If your Cloudflare Pages project h
 ```yaml
 command: pages deploy build/web --project-name=YOUR_PROJECT_NAME
 ```
+
+## 5. Troubleshooting deploy errors
+
+### Build failures
+
+| Step | Error | Fix |
+|------|-------|-----|
+| **Install dependencies** | `Bad state: No element` or SDK version mismatch | The workflow uses Flutter 3.38.7 (Dart 3.10.7). If `pubspec.yaml` has `sdk: ^3.10.7`, this should work. |
+| **Install dependencies** | `Because event_hub depends on X` / version conflict | Run `flutter pub get` locally and fix any conflicts. |
+| **Build Web** | Build errors | Run `flutter build web --release` locally to reproduce. |
+
+### Cloudflare deploy failures
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Error: No account id found` | Missing `CLOUDFLARE_ACCOUNT_ID` secret | Add repo secret in **Settings → Secrets → Actions**. |
+| `Error: Invalid API token` or `401` | Missing or wrong `CLOUDFLARE_API_TOKEN` | Create a new token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) with **Account → Cloudflare Pages → Edit**. Add as secret. |
+| `Error: Project not found` / `404` | Cloudflare Pages project doesn't exist | Create the project in Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Direct Upload**, name it `event-hub`. |
+| `Error: No such file or directory 'build/web'` | Flutter build failed earlier | Fix the Build Web step; the deploy step runs only after a successful build. |
+
+### Where to see errors
+
+1. **Actions** → **Deploy** → click the failed run
+2. Expand the failed step (e.g. "Deploy to Cloudflare Pages")
+3. Check the red error lines in the log

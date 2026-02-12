@@ -103,11 +103,15 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         attendingRally: _attendingRally,
         attendingDinner: _attendingDinner,
         attendeesCount: _attendeesCount,
-        celebrationType: _celebrationController.text.trim().isEmpty ? null : _celebrationController.text.trim(),
+        celebrationType: _celebrationController.text.trim().isEmpty
+            ? null
+            : _celebrationController.text.trim(),
         createdAt: DateTime.now(),
         source: widget.source,
         area: _area!,
-        cfcId: _cfcIdController.text.trim().isEmpty ? null : _cfcIdController.text.trim(),
+        cfcId: _cfcIdController.text.trim().isEmpty
+            ? null
+            : _cfcIdController.text.trim(),
       );
       await _repo.submitRsvp(_event!.id, rsvp);
       HapticFeedback.mediumImpact();
@@ -132,7 +136,9 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: EventTokens.textOffWhite),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/events/${widget.eventSlug}'),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go('/events/${widget.eventSlug}'),
         ),
       ),
       body: _buildBody(),
@@ -161,9 +167,19 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: EventTokens.textOffWhite, size: 48),
+            const Icon(
+              Icons.error_outline,
+              color: EventTokens.textOffWhite,
+              size: 48,
+            ),
             const SizedBox(height: EventTokens.spacingM),
-            TextButton(onPressed: _load, child: const Text('Retry', style: TextStyle(color: EventTokens.accentGold))),
+            TextButton(
+              onPressed: _load,
+              child: const Text(
+                'Retry',
+                style: TextStyle(color: EventTokens.accentGold),
+              ),
+            ),
           ],
         ),
       ),
@@ -177,7 +193,11 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: EventTokens.accentGold, size: 64),
+            const Icon(
+              Icons.check_circle,
+              color: EventTokens.accentGold,
+              size: 64,
+            ),
             const SizedBox(height: EventTokens.spacingL),
             Text(
               'Thank you!',
@@ -221,9 +241,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: EventTokens.spacingS),
-          Center(
-            child: EventLogo(logoUrl: event.logoUrl, size: 72),
-          ),
+          Center(child: EventLogo(logoUrl: event.logoUrl, size: 72)),
           const SizedBox(height: EventTokens.spacingM),
           Center(
             child: Text(
@@ -248,7 +266,11 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
           const SizedBox(height: EventTokens.spacingXL),
           _SectionHeader(icon: Icons.calendar_today, title: 'Event Details'),
           const SizedBox(height: EventTokens.spacingS),
-          _DetailRow(icon: Icons.calendar_month, label: 'Date', value: event.displayDate),
+          _DetailRow(
+            icon: Icons.calendar_month,
+            label: 'Date',
+            value: event.displayDate,
+          ),
           const SizedBox(height: EventTokens.spacingS),
           _DetailRow(
             icon: Icons.location_on,
@@ -289,7 +311,10 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
                 color: Colors.red.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
               ),
-              child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 14)),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 14),
+              ),
             ),
             const SizedBox(height: EventTokens.spacingM),
           ],
@@ -327,21 +352,55 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
               const SizedBox(width: EventTokens.spacingM),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: EventTokens.spacingS),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: EventTokens.spacingS,
+                  ),
                   decoration: BoxDecoration(
                     color: EventTokens.surfaceCard.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
+                    borderRadius: BorderRadius.circular(
+                      EventTokens.radiusMedium,
+                    ),
                   ),
                   child: DropdownButton<String>(
                     value: _area,
                     isExpanded: true,
                     underline: const SizedBox(),
-                    hint: Text('Select area', style: TextStyle(color: EventTokens.textMuted, fontSize: 14)),
+                    hint: Text(
+                      'Select area',
+                      style: TextStyle(
+                        color: EventTokens.textMuted,
+                        fontSize: 14,
+                      ),
+                    ),
                     items: const [
-                      DropdownMenuItem(value: 'BBS', child: Text('BBS', style: TextStyle(color: EventTokens.textPrimary))),
-                      DropdownMenuItem(value: 'Tampa', child: Text('Tampa', style: TextStyle(color: EventTokens.textPrimary))),
-                      DropdownMenuItem(value: 'Port Charlotte', child: Text('Port Charlotte', style: TextStyle(color: EventTokens.textPrimary))),
-                      DropdownMenuItem(value: 'Others', child: Text('Others', style: TextStyle(color: EventTokens.textPrimary))),
+                      DropdownMenuItem(
+                        value: 'BBS',
+                        child: Text(
+                          'BBS',
+                          style: TextStyle(color: EventTokens.textPrimary),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Tampa',
+                        child: Text(
+                          'Tampa',
+                          style: TextStyle(color: EventTokens.textPrimary),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Port Charlotte',
+                        child: Text(
+                          'Port Charlotte',
+                          style: TextStyle(color: EventTokens.textPrimary),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Others',
+                        child: Text(
+                          'Others',
+                          style: TextStyle(color: EventTokens.textPrimary),
+                        ),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _area = v),
                     dropdownColor: EventTokens.surfaceCard,
@@ -366,7 +425,9 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
               ),
               const SizedBox(width: EventTokens.spacingM),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: EventTokens.spacingS),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: EventTokens.spacingS,
+                ),
                 decoration: BoxDecoration(
                   color: EventTokens.surfaceCard.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
@@ -374,7 +435,16 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
                 child: DropdownButton<int>(
                   value: _attendeesCount,
                   underline: const SizedBox(),
-                  items: List.generate(20, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}', style: const TextStyle(color: EventTokens.textPrimary)))),
+                  items: List.generate(
+                    20,
+                    (i) => DropdownMenuItem(
+                      value: i + 1,
+                      child: Text(
+                        '${i + 1}',
+                        style: const TextStyle(color: EventTokens.textPrimary),
+                      ),
+                    ),
+                  ),
                   onChanged: (v) => setState(() => _attendeesCount = v ?? 1),
                   dropdownColor: EventTokens.surfaceCard,
                 ),
@@ -425,10 +495,14 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
       labelStyle: const TextStyle(color: EventTokens.textMuted),
       filled: true,
       fillColor: EventTokens.surfaceCard,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(EventTokens.radiusMedium)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
-        borderSide: BorderSide(color: EventTokens.textPrimary.withValues(alpha: 0.2)),
+        borderSide: BorderSide(
+          color: EventTokens.textPrimary.withValues(alpha: 0.2),
+        ),
       ),
     );
   }
@@ -460,7 +534,11 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -520,7 +598,9 @@ class _ScheduleRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: EventTokens.surfaceCard.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
-        border: Border.all(color: EventTokens.accentGold.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: EventTokens.accentGold.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,7 +672,8 @@ class _RsvpCheckbox extends StatelessWidget {
                   value: value,
                   onChanged: onChanged,
                   fillColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) return EventTokens.accentGold;
+                    if (states.contains(WidgetState.selected))
+                      return EventTokens.accentGold;
                     return Colors.transparent;
                   }),
                   checkColor: EventTokens.textPrimary,

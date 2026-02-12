@@ -111,7 +111,8 @@ class HomeScreen extends StatelessWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       TextButton(
-                                        onPressed: () => context.go('/?eventId=$eventId'),
+                                        onPressed: () =>
+                                            context.go('/?eventId=$eventId'),
                                         style: TextButton.styleFrom(
                                           foregroundColor: Colors.white,
                                         ),
@@ -125,16 +126,18 @@ class HomeScreen extends StatelessWidget {
                                           ),
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(6),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
                                             'DEV',
                                             style: theme.textTheme.labelMedium
                                                 ?.copyWith(
-                                              color: AppTheme.heroDark,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.5,
-                                            ),
+                                                  color: AppTheme.heroDark,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.5,
+                                                ),
                                           ),
                                         )
                                       else
@@ -163,9 +166,7 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 48),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 48)),
         ],
       ),
     );
@@ -252,8 +253,9 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () =>
-                          context.go('/admin/schema/registration?eventId=$eventId'),
+                      onPressed: () => context.go(
+                        '/admin/schema/registration?eventId=$eventId',
+                      ),
                       style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFF1e40af),
                         padding: EdgeInsets.zero,
@@ -398,11 +400,7 @@ class _DarkBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color.lerp(
-              const Color(0xFF0f172a),
-              Colors.white,
-              0.92,
-            )!,
+            color: Color.lerp(const Color(0xFF0f172a), Colors.white, 0.92)!,
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -429,11 +427,7 @@ class _LightBlock extends StatelessWidget {
         border: Border.all(color: const Color(0xFFe2e8f0)),
         boxShadow: [
           BoxShadow(
-            color: Color.lerp(
-              const Color(0xFF0f172a),
-              Colors.white,
-              0.95,
-            )!,
+            color: Color.lerp(const Color(0xFF0f172a), Colors.white, 0.95)!,
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -474,11 +468,7 @@ class _ActionTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Color.lerp(
-                    const Color(0xFFf59e0b),
-                    Colors.white,
-                    0.9,
-                  ),
+                  color: Color.lerp(const Color(0xFFf59e0b), Colors.white, 0.9),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: const Color(0xFFea580c), size: 22),

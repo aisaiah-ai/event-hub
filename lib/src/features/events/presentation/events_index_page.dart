@@ -7,10 +7,7 @@ import '../event_tokens.dart';
 /// Events index — /events
 /// Redirects to active event if one exists, otherwise shows "no event" message.
 class EventsIndexPage extends StatefulWidget {
-  const EventsIndexPage({
-    super.key,
-    this.repository,
-  });
+  const EventsIndexPage({super.key, this.repository});
 
   final EventRepository? repository;
 

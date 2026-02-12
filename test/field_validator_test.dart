@@ -12,18 +12,9 @@ void main() {
         type: FieldType.text,
         required: true,
       );
-      expect(
-        validator.validate(field, null, true).isValid,
-        isFalse,
-      );
-      expect(
-        validator.validate(field, '', true).isValid,
-        isFalse,
-      );
-      expect(
-        validator.validate(field, 'John', true).isValid,
-        isTrue,
-      );
+      expect(validator.validate(field, null, true).isValid, isFalse);
+      expect(validator.validate(field, '', true).isValid, isFalse);
+      expect(validator.validate(field, 'John', true).isValid, isTrue);
     });
 
     test('skips required when not enforced', () {
@@ -33,10 +24,7 @@ void main() {
         type: FieldType.text,
         required: true,
       );
-      expect(
-        validator.validate(field, null, false).isValid,
-        isTrue,
-      );
+      expect(validator.validate(field, null, false).isValid, isTrue);
     });
 
     test('validates email format', () {
@@ -45,10 +33,7 @@ void main() {
         label: 'Email',
         type: FieldType.email,
       );
-      expect(
-        validator.validate(field, 'invalid', true).isValid,
-        isFalse,
-      );
+      expect(validator.validate(field, 'invalid', true).isValid, isFalse);
       expect(
         validator.validate(field, 'user@example.com', true).isValid,
         isTrue,
@@ -61,14 +46,8 @@ void main() {
         label: 'Age',
         type: FieldType.number,
       );
-      expect(
-        validator.validate(field, '42', true).isValid,
-        isTrue,
-      );
-      expect(
-        validator.validate(field, 'not-a-number', true).isValid,
-        isFalse,
-      );
+      expect(validator.validate(field, '42', true).isValid, isTrue);
+      expect(validator.validate(field, 'not-a-number', true).isValid, isFalse);
     });
 
     test('validates select options', () {
@@ -78,14 +57,8 @@ void main() {
         type: FieldType.select,
         options: ['admin', 'staff'],
       );
-      expect(
-        validator.validate(field, 'admin', true).isValid,
-        isTrue,
-      );
-      expect(
-        validator.validate(field, 'invalid', true).isValid,
-        isFalse,
-      );
+      expect(validator.validate(field, 'admin', true).isValid, isTrue);
+      expect(validator.validate(field, 'invalid', true).isValid, isFalse);
     });
   });
 }

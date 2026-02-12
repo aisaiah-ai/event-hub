@@ -1,9 +1,5 @@
 /// Source of registrant record.
-enum RegistrantSource {
-  import,
-  registration,
-  manual,
-}
+enum RegistrantSource { import, registration, manual }
 
 extension RegistrantSourceX on RegistrantSource {
   static RegistrantSource fromString(String value) {

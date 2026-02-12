@@ -23,22 +23,18 @@ class FooterActions extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _ActionLink(
-            label: 'Manual Add Attendee',
-            onTap: onManualAdd,
-          ),
+          _ActionLink(label: 'Manual Add Attendee', onTap: onManualAdd),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CheckinTokens.spacingM),
+            padding: const EdgeInsets.symmetric(
+              horizontal: CheckinTokens.spacingM,
+            ),
             child: Container(
               width: 1,
               height: 14,
               color: CheckinTokens.textMuted.withValues(alpha: 0.6),
             ),
           ),
-          _ActionLink(
-            label: 'Switch Session / Day',
-            onTap: onSwitchSession,
-          ),
+          _ActionLink(label: 'Switch Session / Day', onTap: onSwitchSession),
         ],
       ),
     );
@@ -46,10 +42,7 @@ class FooterActions extends StatelessWidget {
 }
 
 class _ActionLink extends StatelessWidget {
-  const _ActionLink({
-    required this.label,
-    required this.onTap,
-  });
+  const _ActionLink({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;

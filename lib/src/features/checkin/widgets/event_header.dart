@@ -30,10 +30,7 @@ class EventHeaderWidget extends StatelessWidget {
           SizedBox(
             height: CheckinTokens.emblemHeight,
             width: CheckinTokens.emblemHeight,
-            child: SvgPicture.asset(
-              emblemPath,
-              fit: BoxFit.contain,
-            ),
+            child: SvgPicture.asset(emblemPath, fit: BoxFit.contain),
           ),
           const SizedBox(width: CheckinTokens.spacingM),
           Expanded(

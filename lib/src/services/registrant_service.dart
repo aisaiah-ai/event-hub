@@ -10,11 +10,9 @@ class RegistrantService {
     FirebaseFirestore? firestore,
     FormationSignalService? formationSignalService,
   }) : _firestore = firestore ?? FirestoreConfig.instance {
-    _formationSignalService = formationSignalService ??
-        FormationSignalService(
-          firestore: _firestore,
-          registrantService: this,
-        );
+    _formationSignalService =
+        formationSignalService ??
+        FormationSignalService(firestore: _firestore, registrantService: this);
   }
 
   final FirebaseFirestore _firestore;
@@ -35,9 +33,9 @@ class RegistrantService {
         .doc('${_registrantsPath(eventId)}/$registrantId')
         .snapshots()
         .map((snap) {
-      if (!snap.exists || snap.data() == null) return null;
-      return Registrant.fromFirestore(snap.id, snap.data()!);
-    });
+          if (!snap.exists || snap.data() == null) return null;
+          return Registrant.fromFirestore(snap.id, snap.data()!);
+        });
   }
 
   Future<List<Registrant>> listRegistrants(String eventId) async {

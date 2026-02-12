@@ -41,15 +41,13 @@ class ManualEntryButton extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: CheckinTokens.spacingM),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CheckinTokens.spacingM,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.keyboard,
-                color: CheckinTokens.textPrimary,
-                size: 24,
-              ),
+              Icon(Icons.keyboard, color: CheckinTokens.textPrimary, size: 24),
               const SizedBox(width: CheckinTokens.spacingM),
               Text(
                 text,

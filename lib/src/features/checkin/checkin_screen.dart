@@ -43,7 +43,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth > 720 ? 720.0 : constraints.maxWidth;
+        final maxWidth = constraints.maxWidth > 720
+            ? 720.0
+            : constraints.maxWidth;
         return Scaffold(
           backgroundColor: CheckinTokens.primaryBlue,
           body: Stack(
@@ -104,11 +106,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF164B70),
-                Color(0xFF0E3A5D),
-                Color(0xFF0A2E47),
-              ],
+              colors: [Color(0xFF164B70), Color(0xFF0E3A5D), Color(0xFF0A2E47)],
             ),
           ),
         ),
@@ -129,12 +127,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
     return Row(
       children: [
         Expanded(
-          child: Divider(
-            color: CheckinTokens.textMuted.withValues(alpha: 0.5),
-          ),
+          child: Divider(color: CheckinTokens.textMuted.withValues(alpha: 0.5)),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: CheckinTokens.spacingM),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CheckinTokens.spacingM,
+          ),
           child: Text(
             'OR',
             style: TextStyle(
@@ -145,9 +143,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
           ),
         ),
         Expanded(
-          child: Divider(
-            color: CheckinTokens.textMuted.withValues(alpha: 0.5),
-          ),
+          child: Divider(color: CheckinTokens.textMuted.withValues(alpha: 0.5)),
         ),
       ],
     );
@@ -158,12 +154,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       left: CheckinTokens.spacingM,
       right: CheckinTokens.spacingM,
       bottom: CheckinTokens.spacingL,
-      child: SafeArea(
-        top: false,
-        child: Center(
-          child: OfflineBanner(),
-        ),
-      ),
+      child: SafeArea(top: false, child: Center(child: OfflineBanner())),
     );
   }
 
@@ -181,8 +172,18 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   String _formatDate(DateTime d) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[d.month - 1]} ${d.day}, ${d.year}';
   }
@@ -204,23 +205,29 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   void _onManualEntry() {
-    context.push(Uri(
-      path: '/admin/sessions/${widget.sessionId}/manual-checkin',
-      queryParameters: {'eventId': widget.eventId},
-    ).toString());
+    context.push(
+      Uri(
+        path: '/admin/sessions/${widget.sessionId}/manual-checkin',
+        queryParameters: {'eventId': widget.eventId},
+      ).toString(),
+    );
   }
 
   void _onManualAddAttendee() {
-    context.push(Uri(
-      path: '/admin/registrants/new',
-      queryParameters: {'eventId': widget.eventId},
-    ).toString());
+    context.push(
+      Uri(
+        path: '/admin/registrants/new',
+        queryParameters: {'eventId': widget.eventId},
+      ).toString(),
+    );
   }
 
   void _onSwitchSession() {
-    context.push(Uri(
-      path: '/admin',
-      queryParameters: {'eventId': widget.eventId},
-    ).toString());
+    context.push(
+      Uri(
+        path: '/admin',
+        queryParameters: {'eventId': widget.eventId},
+      ).toString(),
+    );
   }
 }

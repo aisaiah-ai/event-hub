@@ -14,9 +14,9 @@ enum FieldType {
 extension FieldTypeX on FieldType {
   static FieldType? fromString(String value) {
     return FieldType.values.cast<FieldType?>().firstWhere(
-          (e) => e?.name == value,
-          orElse: () => null,
-        );
+      (e) => e?.name == value,
+      orElse: () => null,
+    );
   }
 
   String get displayName {

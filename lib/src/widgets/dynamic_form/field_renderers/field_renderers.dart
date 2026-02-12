@@ -74,8 +74,8 @@ class FieldRenderer extends StatelessWidget {
           value: value is List
               ? value.map((e) => e.toString()).toList()
               : value != null
-                  ? [value.toString()]
-                  : [],
+              ? [value.toString()]
+              : [],
           onChanged: onChanged,
           readOnly: readOnly,
         );
@@ -85,8 +85,8 @@ class FieldRenderer extends StatelessWidget {
           value: value is DateTime
               ? value
               : value != null
-                  ? DateTime.tryParse(value.toString())
-                  : null,
+              ? DateTime.tryParse(value.toString())
+              : null,
           onChanged: onChanged,
           readOnly: readOnly,
         );
@@ -226,9 +226,11 @@ class _DateInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(field.label),
-      subtitle: Text(value != null
-          ? '${value!.year}-${value!.month.toString().padLeft(2, '0')}-${value!.day.toString().padLeft(2, '0')}'
-          : 'Select date'),
+      subtitle: Text(
+        value != null
+            ? '${value!.year}-${value!.month.toString().padLeft(2, '0')}-${value!.day.toString().padLeft(2, '0')}'
+            : 'Select date',
+      ),
       trailing: readOnly ? null : const Icon(Icons.calendar_today),
       onTap: readOnly
           ? null

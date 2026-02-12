@@ -13,10 +13,12 @@ class FormationSignalService {
     SchemaService? schemaService,
     RegistrantService? registrantService,
     SessionService? sessionService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _schemaService = schemaService ?? SchemaService(firestore: firestore),
-        _registrantService = registrantService ?? RegistrantService(firestore: firestore) {
-    _sessionService = sessionService ??
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _schemaService = schemaService ?? SchemaService(firestore: firestore),
+       _registrantService =
+           registrantService ?? RegistrantService(firestore: firestore) {
+    _sessionService =
+        sessionService ??
         SessionService(
           firestore: _firestore,
           registrantService: _registrantService,
@@ -36,9 +38,15 @@ class FormationSignalService {
   /// - Event check-in
   /// - Session check-in
   /// - Registrant creation/update
-  Future<void> generateForRegistrant(String eventId, String registrantId) async {
+  Future<void> generateForRegistrant(
+    String eventId,
+    String registrantId,
+  ) async {
     final schema = await _schemaService.getSchema(eventId);
-    final registrant = await _registrantService.getRegistrant(eventId, registrantId);
+    final registrant = await _registrantService.getRegistrant(
+      eventId,
+      registrantId,
+    );
     if (registrant == null) return;
 
     final tags = <String>[];
@@ -47,7 +55,8 @@ class FormationSignalService {
 
     for (final field in schema?.fields ?? []) {
       if (field.formationTags.tags.isEmpty) continue;
-      final value = registrant.answers[field.key] ?? registrant.profile[field.key];
+      final value =
+          registrant.answers[field.key] ?? registrant.profile[field.key];
       if (value != null && value.toString().isNotEmpty) {
         for (final tag in field.formationTags.tags) {
           tags.add(tag);
@@ -59,8 +68,10 @@ class FormationSignalService {
       tags.add('event_checked_in');
     }
 
-    final attendedSessions =
-        await _sessionService.getAttendedSessionIds(eventId, registrantId);
+    final attendedSessions = await _sessionService.getAttendedSessionIds(
+      eventId,
+      registrantId,
+    );
     for (final sessionId in attendedSessions) {
       tags.add('session:$sessionId');
     }
@@ -72,11 +83,16 @@ class FormationSignalService {
       updatedAt: DateTime.now(),
     );
 
-    await _firestore.doc(_signalPath(eventId, registrantId)).set(signal.toJson());
+    await _firestore
+        .doc(_signalPath(eventId, registrantId))
+        .set(signal.toJson());
   }
 
   /// Get formation signal for a registrant.
-  Future<FormationSignal?> getSignal(String eventId, String registrantId) async {
+  Future<FormationSignal?> getSignal(
+    String eventId,
+    String registrantId,
+  ) async {
     final snap = await _firestore.doc(_signalPath(eventId, registrantId)).get();
     if (!snap.exists || snap.data() == null) return null;
     return FormationSignal.fromJson(snap.data()!);

@@ -29,10 +29,7 @@ GoRouter createAppRouter() {
     initialLocation: '/events',
     routes: [
       // Root redirects to events
-      GoRoute(
-        path: '/',
-        redirect: (context, state) => '/events',
-      ),
+      GoRoute(path: '/', redirect: (context, state) => '/events'),
       // Events subdomain routes
       GoRoute(
         path: '/events',
@@ -43,10 +40,7 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
           final queryParams = state.uri.queryParameters;
-          return EventLandingPage(
-            eventSlug: slug,
-            queryParams: queryParams,
-          );
+          return EventLandingPage(eventSlug: slug, queryParams: queryParams);
         },
       ),
       GoRoute(
@@ -68,7 +62,8 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/checkin',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           final sessionId =
               state.uri.queryParameters['sessionId'] ?? defaultSessionId;
           return CheckinScreen(
@@ -85,28 +80,32 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/admin',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           return HomeScreen(eventId: eventId);
         },
       ),
       GoRoute(
         path: '/admin/schema/registration',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           return SchemaEditorScreen(eventId: eventId);
         },
       ),
       GoRoute(
         path: '/admin/registrants/new',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           return RegistrantNewScreen(eventId: eventId, role: UserRole.admin);
         },
       ),
       GoRoute(
         path: '/admin/registrants/:id/edit',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           final id = state.pathParameters['id'] ?? '';
           return RegistrantEditScreen(eventId: eventId, registrantId: id);
         },
@@ -114,7 +113,8 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/admin/sessions/:sessionId/manual-checkin',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           final sessionId = state.pathParameters['sessionId'] ?? '';
           return ManualCheckinScreen(
             eventId: eventId,
@@ -126,7 +126,8 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/admin/import/registrants',
         builder: (context, state) {
-          final eventId = state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
           return ImportRegistrantsScreen(eventId: eventId);
         },
       ),

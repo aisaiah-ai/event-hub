@@ -19,7 +19,8 @@ class ImportRegistrantsScreen extends StatefulWidget {
   final CsvImportService? importService;
 
   @override
-  State<ImportRegistrantsScreen> createState() => _ImportRegistrantsScreenState();
+  State<ImportRegistrantsScreen> createState() =>
+      _ImportRegistrantsScreenState();
 }
 
 class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
@@ -71,7 +72,9 @@ class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Imported ${result.imported}, skipped ${result.skipped}'),
+            content: Text(
+              'Imported ${result.imported}, skipped ${result.skipped}',
+            ),
           ),
         );
         if (result.errors.isNotEmpty) {
@@ -83,9 +86,9 @@ class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _importing = false);
@@ -133,8 +136,9 @@ class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
                     const SizedBox(height: 20),
                     FilledButton.icon(
                       onPressed: () async {
-                        final data =
-                            await Clipboard.getData(Clipboard.kTextPlain);
+                        final data = await Clipboard.getData(
+                          Clipboard.kTextPlain,
+                        );
                         if (data?.text != null) _parseCsv(data!.text!);
                       },
                       icon: const Icon(Icons.content_paste_rounded, size: 20),
@@ -149,48 +153,48 @@ class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
               Text(
                 '${_rows.length} rows • Map headers to schema',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF64748b),
-                    ),
+                  color: const Color(0xFF64748b),
+                ),
               ),
               const SizedBox(height: 12),
-            Card(
-              child: Column(
-                children: [
-                  ..._rows.first.keys.map((header) {
-                    return ListTile(
-                      title: Text(header),
-                      subtitle: DropdownButton<String>(
-                        value: _mapping[header],
-                        hint: const Text('Select schema field'),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('-- Skip --'),
-                          ),
-                          ..._schema!.fields.map(
-                            (f) => DropdownMenuItem(
-                              value: f.key,
-                              child: Text('${f.label} (${f.key})'),
+              Card(
+                child: Column(
+                  children: [
+                    ..._rows.first.keys.map((header) {
+                      return ListTile(
+                        title: Text(header),
+                        subtitle: DropdownButton<String>(
+                          value: _mapping[header],
+                          hint: const Text('Select schema field'),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('-- Skip --'),
                             ),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          setState(() {
-                            if (v != null) {
-                              _mapping[header] = v;
-                            } else {
-                              _mapping.remove(header);
-                            }
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                ],
+                            ..._schema!.fields.map(
+                              (f) => DropdownMenuItem(
+                                value: f.key,
+                                child: Text('${f.label} (${f.key})'),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            setState(() {
+                              if (v != null) {
+                                _mapping[header] = v;
+                              } else {
+                                _mapping.remove(header);
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
+              const SizedBox(height: 24),
+              FilledButton(
                 onPressed: _importing ? null : _import,
                 child: _importing
                     ? const SizedBox(
@@ -199,30 +203,30 @@ class _ImportRegistrantsScreenState extends State<ImportRegistrantsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Import'),
-            ),
-          ] else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 48),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.table_chart_rounded,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Paste CSV content to get started',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFF64748b),
-                          ),
-                    ),
-                  ],
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.table_chart_rounded,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Paste CSV content to get started',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: const Color(0xFF64748b),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
         ),
       ),
     );

@@ -1,17 +1,11 @@
 /// Check-in screen state.
 class CheckinState {
-  const CheckinState({
-    this.isOffline = false,
-    this.lastResult,
-  });
+  const CheckinState({this.isOffline = false, this.lastResult});
 
   final bool isOffline;
   final CheckinResult? lastResult;
 
-  CheckinState copyWith({
-    bool? isOffline,
-    CheckinResult? lastResult,
-  }) {
+  CheckinState copyWith({bool? isOffline, CheckinResult? lastResult}) {
     return CheckinState(
       isOffline: isOffline ?? this.isOffline,
       lastResult: lastResult ?? this.lastResult,
@@ -40,8 +34,4 @@ class CheckinResult {
   final String? message;
 }
 
-enum CheckinStatus {
-  success,
-  duplicate,
-  error,
-}
+enum CheckinStatus { success, duplicate, error }

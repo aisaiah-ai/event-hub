@@ -1,9 +1,5 @@
 /// Role-based validation overrides.
-enum UserRole {
-  admin,
-  staff,
-  user,
-}
+enum UserRole { admin, staff, user }
 
 extension UserRoleX on UserRole {
   static UserRole fromString(String value) {
@@ -51,9 +47,9 @@ class RoleOverrides {
   }
 
   Map<String, dynamic> toJson() => {
-        'ADMIN': {'allowMissingRequired': adminAllowMissingRequired},
-        'STAFF': {'allowMissingRequired': staffAllowMissingRequired},
-      };
+    'ADMIN': {'allowMissingRequired': adminAllowMissingRequired},
+    'STAFF': {'allowMissingRequired': staffAllowMissingRequired},
+  };
 
   factory RoleOverrides.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const RoleOverrides();

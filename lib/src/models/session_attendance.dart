@@ -13,11 +13,14 @@ class SessionAttendance {
   final String? checkedInBy;
 
   Map<String, dynamic> toJson() => {
-        if (checkedInAt != null) 'checkedInAt': Timestamp.fromDate(checkedInAt!),
-        if (checkedInBy != null) 'checkedInBy': checkedInBy,
-      };
+    if (checkedInAt != null) 'checkedInAt': Timestamp.fromDate(checkedInAt!),
+    if (checkedInBy != null) 'checkedInBy': checkedInBy,
+  };
 
-  factory SessionAttendance.fromFirestore(String registrantId, Map<String, dynamic>? json) {
+  factory SessionAttendance.fromFirestore(
+    String registrantId,
+    Map<String, dynamic>? json,
+  ) {
     if (json == null) return SessionAttendance(registrantId: registrantId);
     final checkedInAt = json['checkedInAt'];
     return SessionAttendance(

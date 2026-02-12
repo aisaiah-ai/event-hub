@@ -11,10 +11,12 @@ class SessionService {
     FirebaseFirestore? firestore,
     RegistrantService? registrantService,
     FormationSignalService? formationSignalService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _registrantService = registrantService ?? RegistrantService(firestore: firestore),
-        _formationSignalService = formationSignalService ??
-            FormationSignalService(firestore: firestore);
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _registrantService =
+           registrantService ?? RegistrantService(firestore: firestore),
+       _formationSignalService =
+           formationSignalService ??
+           FormationSignalService(firestore: firestore);
 
   final FirebaseFirestore _firestore;
   final RegistrantService _registrantService;
@@ -26,14 +28,13 @@ class SessionService {
 
   Future<List<Session>> listSessions(String eventId) async {
     final snap = await _firestore.collection(_sessionsPath(eventId)).get();
-    return snap.docs
-        .map((d) => Session.fromFirestore(d.id, d.data()))
-        .toList();
+    return snap.docs.map((d) => Session.fromFirestore(d.id, d.data())).toList();
   }
 
   Future<Session?> getSession(String eventId, String sessionId) async {
-    final snap =
-        await _firestore.doc('${_sessionsPath(eventId)}/$sessionId').get();
+    final snap = await _firestore
+        .doc('${_sessionsPath(eventId)}/$sessionId')
+        .get();
     if (!snap.exists || snap.data() == null) return null;
     return Session.fromFirestore(snap.id, snap.data()!);
   }
@@ -62,7 +63,10 @@ class SessionService {
     String registrantId,
     String checkedInBy,
   ) async {
-    final registrant = await _registrantService.getRegistrant(eventId, registrantId);
+    final registrant = await _registrantService.getRegistrant(
+      eventId,
+      registrantId,
+    );
     if (registrant == null) {
       throw StateError('Registrant not found');
     }
@@ -70,7 +74,9 @@ class SessionService {
       throw StateError('Event check-in required before session check-in');
     }
 
-    final ref = _firestore.doc('${_attendancePath(eventId, sessionId)}/$registrantId');
+    final ref = _firestore.doc(
+      '${_attendancePath(eventId, sessionId)}/$registrantId',
+    );
     await ref.set({
       'checkedInAt': FieldValue.serverTimestamp(),
       'checkedInBy': checkedInBy,

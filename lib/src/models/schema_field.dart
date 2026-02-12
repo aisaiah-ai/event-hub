@@ -68,32 +68,34 @@ class SchemaField {
   }
 
   Map<String, dynamic> toJson() => {
-        'key': key,
-        'label': label,
-        'type': type.name,
-        'required': required,
-        if (options.isNotEmpty) 'options': options,
-        if (validators.isNotEmpty)
-          'validators': validators.map((v) => v.toJson()).toList(),
-        if (systemField != null) 'systemField': systemField,
-        if (locked) 'locked': locked,
-        if (formationTags.tags.isNotEmpty)
-          'formation': formationTags.toJson(),
-      };
+    'key': key,
+    'label': label,
+    'type': type.name,
+    'required': required,
+    if (options.isNotEmpty) 'options': options,
+    if (validators.isNotEmpty)
+      'validators': validators.map((v) => v.toJson()).toList(),
+    if (systemField != null) 'systemField': systemField,
+    if (locked) 'locked': locked,
+    if (formationTags.tags.isNotEmpty) 'formation': formationTags.toJson(),
+  };
 
   factory SchemaField.fromJson(Map<String, dynamic> json) {
     final formation = json['formation'];
     return SchemaField(
       key: json['key'] as String? ?? '',
       label: json['label'] as String? ?? '',
-      type: FieldTypeX.fromString(json['type'] as String? ?? '') ??
+      type:
+          FieldTypeX.fromString(json['type'] as String? ?? '') ??
           FieldType.text,
       required: json['required'] as bool? ?? false,
-      options: (json['options'] as List<dynamic>?)
+      options:
+          (json['options'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      validators: (json['validators'] as List<dynamic>?)
+      validators:
+          (json['validators'] as List<dynamic>?)
               ?.map((e) => ValidatorConfig.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
