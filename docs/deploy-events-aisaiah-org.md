@@ -1,16 +1,18 @@
-# Publish to events.aisaiah.org via GitHub → Cloudflare Pages
+# Publish to events.aisaiah.org & rsvp.aisaiah.org via GitHub → Cloudflare Pages
 
 ## Flow
 
 1. **Push to GitHub** (`main` branch)
 2. **GitHub Actions** builds Flutter web and deploys to Cloudflare Pages
-3. **Cloudflare Pages** serves at events.aisaiah.org
+3. **Cloudflare Pages** serves at events.aisaiah.org and rsvp.aisaiah.org
 
 ## URLs
 
-Clean path-based URLs (no hash):
+| Domain | Landing | Notes |
+|--------|---------|-------|
+| **rsvp.aisaiah.org** | RSVP page at `/` | Short URL, no redirects |
+| **events.aisaiah.org** | `/events` → `/events/march-cluster-2026/rsvp` | Full paths |
 
-- `https://events.aisaiah.org/events/march-cluster-2026/rsvp`
 - `web/_redirects` routes all paths to `index.html` for SPA routing
 
 ## 1. One-time setup
@@ -37,15 +39,15 @@ In your repo: **Settings** → **Secrets and variables** → **Actions** → **N
 | `CLOUDFLARE_API_TOKEN` | Your Cloudflare API token |
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare Account ID |
 
-### Add Firebase authorized domain
+### Add Firebase authorized domains
 
 1. [Firebase Console](https://console.firebase.google.com/) → **aisaiah-event-hub** → **Authentication** → **Settings** → **Authorized domains**.
-2. Add **events.aisaiah.org** so Firebase (and Firestore) work from the custom domain.
+2. Add **events.aisaiah.org** and **rsvp.aisaiah.org** so Firebase (and Firestore) work from both domains.
 
-### Add custom domain in Cloudflare
+### Add custom domains in Cloudflare
 
 1. **Workers & Pages** → **event-hub** → **Custom domains** → **Set up a custom domain**.
-2. Enter **events.aisaiah.org**.
+2. Add **events.aisaiah.org** and **rsvp.aisaiah.org**.
 3. Cloudflare will show DNS records. If aisaiah.org uses Cloudflare DNS, it will often auto-configure. Otherwise, add the CNAME (or A records) at your DNS provider.
 
 ## 2. Deploy
@@ -70,9 +72,12 @@ Repo → **Actions** → **Deploy** → **Run workflow**.
 
 ## 3. URLs after setup
 
-- **Custom domain:** https://events.aisaiah.org
-- **RSVP page:** https://events.aisaiah.org/events/march-cluster-2026
-- **Cloudflare default:** https://event-hub.pages.dev (or similar, from your project)
+| URL | Purpose |
+|-----|---------|
+| **https://rsvp.aisaiah.org** | Short RSVP link (no redirects, lands on RSVP page) |
+| **https://events.aisaiah.org** | Full events site |
+| **https://events.aisaiah.org/events/march-cluster-2026/rsvp** | RSVP via events domain |
+| **https://event-hub.pages.dev** | Cloudflare default (if configured) |
 
 ## 4. Project name
 

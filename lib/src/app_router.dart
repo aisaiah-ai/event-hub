@@ -12,9 +12,13 @@ import 'screens/admin/registrant_new_screen.dart';
 import 'screens/admin/schema_editor_screen.dart';
 import 'models/role_override.dart';
 import 'screens/home_screen.dart';
+import 'utils/host_utils.dart';
 
 /// Event ID for development. In production, derive from route or auth.
 const defaultEventId = 'nlc-2025';
+
+/// Default event slug for rsvp.aisaiah.org root.
+const _defaultRsvpEventSlug = 'march-cluster-2026';
 
 /// Default session for check-in when none specified.
 const defaultSessionId = 'session-1';
@@ -28,8 +32,15 @@ GoRouter createAppRouter() {
   return GoRouter(
     initialLocation: '/events',
     routes: [
-      // Root redirects to events
-      GoRoute(path: '/', redirect: (context, state) => '/events'),
+      // rsvp.aisaiah.org: / shows RSVP directly (no redirect). events.aisaiah.org: / -> /events
+      GoRoute(
+        path: '/',
+        redirect: (context, state) =>
+            isRsvpSubdomain ? null : '/events',
+        builder: (context, state) => EventRsvpPage(
+          eventSlug: _defaultRsvpEventSlug,
+        ),
+      ),
       // Events subdomain routes
       GoRoute(
         path: '/events',

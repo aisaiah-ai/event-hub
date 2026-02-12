@@ -33,6 +33,18 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Fix hash URLs before Flutter loads: #/events/... -> /events/... -->
+  <script>
+    (function() {
+      var h = window.location.hash;
+      if (h && h.indexOf('#/') === 0) {
+        var path = h.slice(1);
+        if (path && path !== '/') {
+          history.replaceState(null, '', path);
+        }
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

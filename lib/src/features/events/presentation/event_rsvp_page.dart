@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/event_model.dart';
@@ -181,43 +180,62 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
     );
   }
 
+  void _resetFormForAnother() {
+    setState(() {
+      _submitted = false;
+      _nameController.clear();
+      _householdController.clear();
+      _celebrationController.clear();
+      _cfcIdController.clear();
+      _attendingRally = true;
+      _attendingDinner = true;
+      _attendeesCount = 1;
+      _area = null;
+    });
+  }
+
   Widget _buildSuccess() {
+    final eventName = _event?.name ?? 'Event';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(EventTokens.spacingL),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: EventTokens.accentGold,
-              size: 64,
-            ),
-            const SizedBox(height: EventTokens.spacingL),
             Text(
-              'Thank you!',
+              '🎉 RSVP Confirmed',
               style: GoogleFonts.fraunces(
                 color: EventTokens.textOffWhite,
                 fontSize: 28,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: EventTokens.spacingS),
+            const SizedBox(height: EventTokens.spacingL),
             Text(
-              'Your RSVP has been recorded.',
+              'Thank you for registering for',
               style: TextStyle(
                 color: EventTokens.textOffWhite.withValues(alpha: 0.9),
                 fontSize: 16,
               ),
             ),
+            const SizedBox(height: EventTokens.spacingS),
+            Text(
+              eventName,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.fraunces(
+                color: EventTokens.accentGold,
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: EventTokens.spacingXL),
             FilledButton(
-              onPressed: () => context.go('/events/${widget.eventSlug}'),
+              onPressed: _resetFormForAnother,
               style: FilledButton.styleFrom(
                 backgroundColor: EventTokens.accentGold,
                 foregroundColor: EventTokens.textPrimary,
               ),
-              child: const Text('Back to Event'),
+              child: const Text('Register Another Person?'),
             ),
           ],
         ),
