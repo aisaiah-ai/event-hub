@@ -31,12 +31,12 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
       final event = await _repo.getActiveEvent();
       if (!mounted) return;
       if (event != null) {
-        context.go('/events/${event.slug}');
+        context.go('/events/${event.slug}/rsvp');
         return;
       }
     } catch (_) {
       if (!mounted) return;
-      context.go('/events/march-cluster-2026');
+      context.go('/events/march-cluster-2026/rsvp');
       return;
     }
     if (!mounted) return;

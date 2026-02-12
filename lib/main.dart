@@ -1,13 +1,19 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'firebase_options.dart';
 import 'src/app_router.dart';
 import 'src/config/firestore_config.dart';
 import 'src/theme/app_theme.dart';
+import 'src/utils/url_utils.dart';
 
 void main() async {
+  usePathUrlStrategy();
+  if (kIsWeb) {
+    redirectHashToPathIfNeeded();
+  }
   WidgetsFlutterBinding.ensureInitialized();
   bool firebaseOk = false;
   try {

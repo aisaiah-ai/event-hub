@@ -203,9 +203,18 @@ class _EventLandingPageState extends State<EventLandingPage> {
             ),
             const SizedBox(height: EventTokens.spacingXL),
             if (event.allowRsvp)
-              _RedirectToRsvp(
-                eventSlug: event.slug,
-                queryParams: widget.queryParams,
+              _ActionButton(
+                label: 'RSVP',
+                icon: Icons.edit_note,
+                onTap: () {
+                  final uri = Uri(
+                    path: '/events/${event.slug}/rsvp',
+                    queryParameters: widget.queryParams.isNotEmpty
+                        ? widget.queryParams
+                        : null,
+                  );
+                  context.push(uri.toString());
+                },
               ),
             if (event.allowRsvp && event.allowCheckin)
               const SizedBox(height: EventTokens.spacingM),
@@ -219,43 +228,6 @@ class _EventLandingPageState extends State<EventLandingPage> {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _RedirectToRsvp extends StatefulWidget {
-  const _RedirectToRsvp({required this.eventSlug, this.queryParams = const {}});
-
-  final String eventSlug;
-  final Map<String, String> queryParams;
-
-  @override
-  State<_RedirectToRsvp> createState() => _RedirectToRsvpState();
-}
-
-class _RedirectToRsvpState extends State<_RedirectToRsvp> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final uri = Uri(
-        path: '/events/${widget.eventSlug}/rsvp',
-        queryParameters: widget.queryParams.isNotEmpty
-            ? widget.queryParams
-            : null,
-      );
-      context.go(uri.toString());
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(EventTokens.spacingL),
-        child: CircularProgressIndicator(color: EventTokens.textOffWhite),
       ),
     );
   }

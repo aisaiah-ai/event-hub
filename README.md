@@ -48,12 +48,21 @@ Add `?eventId=xxx` to override default event.
 
 See [docs/README_SCHEMA_EVOLUTION.md](docs/README_SCHEMA_EVOLUTION.md).
 
+## Routing
+
+The app uses **path-based URLs** (no hash):
+
+- `https://events.aisaiah.org/events/march-cluster-2026/rsvp`
+- Old hash URLs (`#/events/...`) redirect to clean paths for backward compatibility.
+
+Requires SPA rewrites: `web/_redirects` and `firebase.json` serve all paths to `index.html`.
+
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`): Analyze, test, build Android/Web on push/PR
-- **Deploy** (`.github/workflows/deploy.yml`): Build and deploy web to Firebase Hosting on `main`
+- **Deploy** (`.github/workflows/deploy.yml`): Build and deploy web to Cloudflare Pages on `main`
 
-Configure `FIREBASE_TOKEN` secret for deploy.
+Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets.
 
 ## Tests
 

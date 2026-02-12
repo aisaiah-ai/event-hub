@@ -6,6 +6,13 @@
 2. **GitHub Actions** builds Flutter web and deploys to Cloudflare Pages
 3. **Cloudflare Pages** serves at events.aisaiah.org
 
+## URLs
+
+Clean path-based URLs (no hash):
+
+- `https://events.aisaiah.org/events/march-cluster-2026/rsvp`
+- `web/_redirects` routes all paths to `index.html` for SPA routing
+
 ## 1. One-time setup
 
 ### Create Cloudflare Pages project

@@ -134,12 +134,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: EventTokens.textOffWhite),
-          onPressed: () => context.canPop()
-              ? context.pop()
-              : context.go('/events/${widget.eventSlug}'),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: _buildBody(),
     );
