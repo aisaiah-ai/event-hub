@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../models/session.dart';
 import '../../events/data/event_model.dart';
@@ -337,6 +338,28 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
         LocationBlock(
           venue: widget.event.locationName,
           address: widget.event.address,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          iconColor: AppColors.goldIconContainer,
+          venueStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.navy,
+          ),
+          addressStyle: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.textPrimary87,
+          ),
         ),
         const SizedBox(height: AppSpacing.betweenSections),
         if (!_isMainCheckIn && widget.event.sessionsEnabled && widget.lockedSession == null) ...[

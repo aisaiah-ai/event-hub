@@ -258,22 +258,6 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
     return '${first ?? ''} ${last ?? ''}'.trim();
   }
 
-  String? _regionDisplay(Registrant r) {
-    final region = r.profile['region'] ?? r.answers['region'];
-    final other = r.profile['regionOtherText'] ?? r.answers['regionOtherText'];
-    if (region == null || region.toString().trim().isEmpty) return null;
-    final rg = region.toString().trim();
-    if (rg.toLowerCase() == 'other' &&
-        other != null &&
-        other.toString().trim().isNotEmpty) {
-      return 'Other – ${other.toString().trim()}';
-    }
-    if (other != null && other.toString().trim().isNotEmpty) {
-      return '$rg – ${other.toString().trim()}';
-    }
-    return rg;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loadingEvent) {

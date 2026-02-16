@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/environment.dart';
 import 'features/checkin/checkin_screen.dart';
 import 'features/event_checkin/presentation/checkin_dashboard_screen.dart';
+import 'features/event_checkin/presentation/wallboard_screen.dart';
 import 'features/event_checkin/presentation/checkin_manual_entry_page.dart';
 import 'features/event_checkin/data/checkin_mode.dart' show CheckInFlowType, CheckInMode;
 import 'features/event_checkin/presentation/checkin_search_page.dart';
@@ -37,14 +38,14 @@ DateTime? _parseEventDate(String? s) {
 
 GoRouter createAppRouter() {
   return GoRouter(
-    initialLocation: Environment.isDev ? '/events/nlc/checkin' : '/events',
+    initialLocation: '/admin/dashboard',
     routes: [
-      // rsvp.aisaiah.org: / shows RSVP. events: / -> /events or /events/nlc/checkin (dev)
+      // rsvp.aisaiah.org: / shows RSVP. Otherwise / -> dashboard
       GoRoute(
         path: '/',
         redirect: (context, state) {
           if (isRsvpSubdomain) return null;
-          return Environment.isDev ? '/events/nlc/checkin' : '/events';
+          return '/admin/dashboard';
         },
         builder: (context, state) => EventRsvpPage(
           eventSlug: _defaultRsvpEventSlug,
@@ -198,9 +199,25 @@ GoRouter createAppRouter() {
           final eventId =
               state.uri.queryParameters['eventId'] ?? defaultEventId;
           final eventTitle = state.uri.queryParameters['eventTitle'];
+          final eventVenue = state.uri.queryParameters['eventVenue'];
           return CheckinDashboardScreen(
             eventId: eventId,
             eventTitle: eventTitle,
+            eventVenue: eventVenue,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/admin/wallboard',
+        builder: (context, state) {
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventTitle = state.uri.queryParameters['eventTitle'] ?? 'Event';
+          final eventVenue = state.uri.queryParameters['eventVenue'];
+          return WallboardScreen(
+            eventId: eventId,
+            eventTitle: eventTitle,
+            eventVenue: eventVenue,
           );
         },
       ),

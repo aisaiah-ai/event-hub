@@ -1,6 +1,7 @@
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:timezone/data/latest_10y.dart' as tz_data;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -28,6 +29,11 @@ void main() async {
     redirectHashToPathIfNeeded();
   }
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Timezone DB for Last Updated display (PST default, tap to change).
+  try {
+    tz_data.initializeTimeZones();
+  } catch (_) {}
 
   // Single Firebase project; Firestore database (event-hub-dev vs event-hub-prod)
   // is selected by FirestoreConfig based on ENV.

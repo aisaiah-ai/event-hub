@@ -1,161 +1,206 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/analytics_aggregates.dart';
 import '../../../services/attendance_export_service.dart';
 import '../../../services/checkin_analytics_service.dart';
+import '../../../services/dashboard_layout_service.dart';
+import '../../../widgets/rolling_counter.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import 'widgets/last_updated_with_timezone.dart';
 
 /// Real-time check-in analytics dashboard. Pure Session Architecture.
 /// Reads ONLY from analytics/global and sessions/*/analytics/summary.
-/// No attendance collection scans. Scalable for 3,000+ attendees.
+/// Executive light theme. Scalable for 3,000+ attendees.
 class CheckinDashboardScreen extends StatefulWidget {
   const CheckinDashboardScreen({
     super.key,
     required this.eventId,
     this.eventTitle,
+    this.eventVenue,
   });
 
   final String eventId;
   final String? eventTitle;
+  final String? eventVenue;
 
   @override
   State<CheckinDashboardScreen> createState() => _CheckinDashboardScreenState();
 }
 
 class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
-  AggregationLevel _aggregationLevel = AggregationLevel.perSession;
+  static const AggregationLevel _kDefaultExportLevel = AggregationLevel.entireEvent;
   bool _isExporting = false;
+  bool _isEditLayout = false;
+  List<String>? _localDashboardOrder;
+  late final CheckinAnalyticsService _analyticsService;
+  late final DashboardLayoutService _layoutService;
+  late final Stream<GlobalAnalytics> _globalStream;
+  late final Stream<List<SessionCheckinStat>> _sessionStream;
+  late final Stream<({
+    List<({String name, DateTime timestamp})> registrations,
+    List<({String name, DateTime timestamp})> checkins,
+  })> _first3Stream;
+  late final Stream<List<String>> _layoutStream;
 
   String get _eventSlug => widget.eventId.replaceAll('-', '_');
 
   @override
+  void initState() {
+    super.initState();
+    _analyticsService = CheckinAnalyticsService();
+    _layoutService = DashboardLayoutService();
+    _globalStream = _analyticsService.watchGlobalAnalytics(widget.eventId);
+    _sessionStream = _analyticsService.watchSessionCheckins(widget.eventId);
+    _first3Stream = _analyticsService.watchFirst3Data(widget.eventId);
+    _layoutStream = _layoutService.watchDashboardOrder(widget.eventId);
+  }
+
+  Future<void> _onRefresh() async {
+    _analyticsService.triggerRefresh();
+    await Future.delayed(const Duration(milliseconds: 400));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final analyticsService = CheckinAnalyticsService();
+    final analyticsService = _analyticsService;
+    final layoutService = _layoutService;
     final exportService = AttendanceExportService();
 
     return EventPageScaffold(
       event: null,
       eventSlug: widget.eventId.contains('nlc') ? 'nlc' : null,
-      appBar: AppBar(
-        title: Text(widget.eventTitle ?? 'Check-In Dashboard'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.navy,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top row: metrics + controls
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: StreamBuilder<GlobalAnalytics>(
-                      stream: analyticsService.watchGlobalAnalytics(widget.eventId),
-                      builder: (context, snapshot) {
-                        debugPrint('[Dashboard] GlobalAnalytics: connectionState=${snapshot.connectionState} hasError=${snapshot.hasError} error=${snapshot.error}');
-                        final global = snapshot.data ?? const GlobalAnalytics();
-                        debugPrint('[Dashboard] GlobalAnalytics: totalCheckins=${global.totalCheckins} unique=${global.totalUniqueAttendees}');
-                        return _MetricsCards(global: global);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  // Right: aggregation + export
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _AggregationDropdown(
-                        value: _aggregationLevel,
-                        onChanged: (v) =>
-                            setState(() => _aggregationLevel = v),
-                      ),
-                      const SizedBox(height: 12),
-                      _ExportButton(
-                        isExporting: _isExporting,
-                        onExport: (type) => _runExport(
-                          context,
-                          type,
-                          exportService,
-                          analyticsService,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              // Session table
-              StreamBuilder<List<SessionCheckinStat>>(
-                stream: analyticsService.watchSessionCheckins(widget.eventId),
-                builder: (context, snapshot) {
-                  debugPrint('[Dashboard] SessionCheckins: connectionState=${snapshot.connectionState} hasError=${snapshot.hasError} error=${snapshot.error} eventId=${widget.eventId}');
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                        child: Padding(
-                            padding: EdgeInsets.all(32),
-                            child: CircularProgressIndicator()));
-                  }
-                  if (snapshot.hasError) {
-                    debugPrint('[Dashboard] SessionCheckins ERROR: ${snapshot.error}');
-                    return Text(
-                      'Failed to load session analytics: ${snapshot.error}',
-                      style: GoogleFonts.inter(color: Colors.red.shade400),
-                    );
-                  }
-                  final sessions = snapshot.data ?? const [];
-                  debugPrint('[Dashboard] SessionCheckins: ${sessions.length} sessions, counts=${sessions.map((s) => '${s.sessionId}:${s.checkInCount}').toList()}');
-                  return StreamBuilder<GlobalAnalytics>(
-                    stream: analyticsService.watchGlobalAnalytics(widget.eventId),
-                    builder: (context, sumSnap) {
-                      final global = sumSnap.data ?? const GlobalAnalytics();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _Top5AndTimeline(global: global),
-                          const SizedBox(height: 24),
-                          _SessionTable(
-                            sessions: sessions,
-                            aggregationLevel: _aggregationLevel,
-                            totalCheckins: global.totalCheckins,
-                            hourlyCheckins: global.hourlyCheckins,
-                          ),
-                        ],
-                      );
-                    },
+      bodyMaxWidth: 1200,
+      overlayOpacity: 0.65,
+      appBar: null,
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: StreamBuilder<GlobalAnalytics>(
+          stream: _globalStream,
+          builder: (context, snapshot) {
+            final global = snapshot.data ?? const GlobalAnalytics();
+            final lastUpdated = global.lastUpdated ?? DateTime.now();
+            return StreamBuilder<List<SessionCheckinStat>>(
+              stream: _sessionStream,
+              builder: (context, sessSnap) {
+                // Show loading only when we have no data (initial load). Keep content during refresh.
+                if (!sessSnap.hasData && sessSnap.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(64),
+                    child: Center(child: CircularProgressIndicator()),
                   );
-                },
-              ),
-            ],
-          ),
+                }
+                if (sessSnap.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Failed to load: ${sessSnap.error}',
+                      style: TextStyle(color: Colors.red.shade700),
+                    ),
+                  );
+                }
+                final sessions = sessSnap.data ?? [];
+                final registrantCount = global.totalRegistrants;
+                return StreamBuilder<
+                    ({
+                      List<({String name, DateTime timestamp})> registrations,
+                      List<({String name, DateTime timestamp})> checkins,
+                    })>(
+                  stream: _first3Stream,
+                  builder: (context, first3Snap) {
+                    final first3 = first3Snap.data ?? (
+                      registrations: <({String name, DateTime timestamp})>[],
+                      checkins: <({String name, DateTime timestamp})>[],
+                    );
+                    return StreamBuilder<List<String>>(
+                      stream: _layoutStream,
+                      initialData: kDefaultDashboardOrder,
+                      builder: (context, orderSnap) {
+                        final streamOrder = orderSnap.data ?? kDefaultDashboardOrder;
+                        final order = _localDashboardOrder ?? streamOrder;
+                        return Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1200),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _DashboardHeader(
+                          eventId: widget.eventId,
+                          eventTitle: widget.eventTitle ?? 'NLC Dashboard',
+                          eventVenue: widget.eventVenue,
+                          lastUpdated: lastUpdated,
+                          isExporting: _isExporting,
+                          isEditLayout: _isEditLayout,
+                          onEditLayout: () => setState(() {
+                            _isEditLayout = !_isEditLayout;
+                            // Keep _localDashboardOrder after exit so layout persists when Firestore fails
+                          }),
+                          onExport: (type) => _runExport(
+                            context,
+                            type,
+                            exportService,
+                            analyticsService,
+                          ),
+                            ),
+                            const SizedBox(height: 32),
+                            _isEditLayout
+                                ? _ReorderableDashboardSections(
+                            order: order,
+                            global: global,
+                            sessions: sessions,
+                            registrantCount: registrantCount,
+                            first3: first3,
+                            onReorder: (newOrder) {
+                              setState(() => _localDashboardOrder = newOrder);
+                              layoutService.saveDashboardOrder(
+                                widget.eventId,
+                                newOrder,
+                              );
+                            },
+                                  )
+                                : _DashboardSectionsInOrder(
+                            order: order,
+                            global: global,
+                            sessions: sessions,
+                            registrantCount: registrantCount,
+                                    first3: first3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
         ),
       ),
     );
   }
 
-  void _runExport(
+  Future<void> _runExport(
     BuildContext context,
     String exportType,
     AttendanceExportService exportService,
     CheckinAnalyticsService analyticsService,
   ) async {
     setState(() => _isExporting = true);
-
     try {
       final summary = await analyticsService.getGlobalAnalytics(widget.eventId);
       final sessions = await analyticsService.fetchSessionStats(widget.eventId);
-
       bool ok = false;
       switch (exportType) {
         case 'raw':
@@ -164,12 +209,12 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
             eventSlug: _eventSlug,
           );
           break;
-        case 'aggregated':
+          case 'aggregated':
           ok = await exportService.exportAndDownloadAggregated(
             widget.eventId,
             sessionStats: sessions,
             global: summary,
-            level: _aggregationLevel,
+            level: _kDefaultExportLevel,
             eventSlug: _eventSlug,
           );
           break;
@@ -178,28 +223,23 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
             widget.eventId,
             sessionStats: sessions,
             global: summary,
-            level: _aggregationLevel,
+            level: _kDefaultExportLevel,
             eventSlug: _eventSlug,
           );
           break;
       }
-
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(ok ? 'Export started' : 'Export failed (check console)'),
+            content: Text(ok ? 'Export started' : 'Export failed'),
             backgroundColor: ok ? AppColors.statusCheckedIn : Colors.red,
           ),
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Export error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -208,29 +248,386 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
   }
 }
 
-class _MetricsCards extends StatelessWidget {
-  const _MetricsCards({required this.global});
+// --- Theme constants ---
 
+const Color _kGold = Color(0xFFD4A017);
+const Color _kNavy = Color(0xFF1C3D5A);
+const Color _kBlue = Color(0xFF2E6BE6);
+const Color _kMuted = Color(0xFF6B7280);
+const Color _kCardBg = Color(0xFFFAFAF9);
+
+/// Refined card: soft off-white, 16px radius, subtle shadow.
+BoxDecoration _lightCardDecoration() {
+  return BoxDecoration(
+    color: _kCardBg,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.04),
+        blurRadius: 16,
+        offset: const Offset(0, 6),
+      ),
+    ],
+  );
+}
+
+/// Metric tile: white, 16px radius, stronger shadow for depth.
+BoxDecoration _metricTileDecoration() {
+  return BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.08),
+        blurRadius: 20,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+}
+
+// --- Dashboard Header (inline, no app bar) ---
+
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({
+    required this.eventId,
+    required this.eventTitle,
+    this.eventVenue,
+    required this.lastUpdated,
+    required this.isExporting,
+    required this.isEditLayout,
+    required this.onEditLayout,
+    required this.onExport,
+  });
+
+  final String eventId;
+  final String eventTitle;
+  final String? eventVenue;
+  final DateTime lastUpdated;
+  final bool isExporting;
+  final bool isEditLayout;
+  final VoidCallback onEditLayout;
+  final void Function(String type) onExport;
+
+  String get _conferenceTitle {
+    if (eventTitle.isNotEmpty && eventTitle != 'Event') return eventTitle;
+    if (eventId.contains('nlc')) return 'National Leaders Conference';
+    return 'NLC Dashboard';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Text(
+            _conferenceTitle,
+            style: GoogleFonts.inter(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => Navigator.of(context).maybePop(),
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'NLC Dashboard',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              'NLC DASHBOARD',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withOpacity(0.95),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const Spacer(),
+        const _LiveIndicator(),
+        const SizedBox(width: 16),
+        LastUpdatedWithTimezone(
+          lastUpdated: lastUpdated,
+          fontSize: 13,
+          color: Colors.white.withOpacity(0.8),
+        ),
+        const SizedBox(width: 16),
+        TextButton.icon(
+          onPressed: () {
+            final uri = Uri(
+              path: '/admin/wallboard',
+              queryParameters: {
+                'eventId': eventId,
+                if (eventTitle.isNotEmpty) 'eventTitle': eventTitle,
+                if (eventVenue != null && eventVenue!.isNotEmpty) 'eventVenue': eventVenue!,
+              },
+            );
+            context.go(uri.toString());
+          },
+          icon: const Icon(Icons.tv, size: 18),
+          label: const Text('Wallboard Mode'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+        ),
+        const SizedBox(width: 8),
+        PopupMenuButton<String>(
+          icon: isExporting
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Icon(Icons.more_vert, color: Colors.white.withOpacity(0.9)),
+          tooltip: 'More options',
+          onSelected: (value) {
+            if (value == 'editLayout') {
+              onEditLayout();
+            } else {
+              onExport(value);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'editLayout',
+              child: Text(isEditLayout ? 'Done editing layout' : 'Edit layout'),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'excel',
+              child: Text('Export Summary (Excel)'),
+            ),
+            const PopupMenuItem(
+              value: 'raw',
+              child: Text('Export Raw Attendance (CSV)'),
+            ),
+            const PopupMenuItem(
+              value: 'aggregated',
+              child: Text('Export Aggregated (CSV)'),
+            ),
+          ],
+        ),
+      ],
+    ),
+      ],
+    );
+  }
+}
+
+Widget _buildDashboardSection(
+  String sectionId,
+  GlobalAnalytics global,
+  List<SessionCheckinStat> sessions, {
+  required int registrantCount,
+  required ({
+    List<({String name, DateTime timestamp})> registrations,
+    List<({String name, DateTime timestamp})> checkins,
+  }) first3,
+}) {
+  switch (sectionId) {
+    case 'metrics':
+      return _MetricsTiles(
+        global: global,
+        sessions: sessions,
+        registrantCount: registrantCount,
+      );
+    case 'top5':
+      return _Top5Row(global: global);
+    case 'sessionLeaderboard':
+      return _SessionLeaderboardSection(
+        sessions: sessions,
+        global: global,
+        mainCheckinSessionId: 'main-checkin',
+      );
+    case 'first3':
+      return _First3Section(first3: first3);
+    default:
+      return const SizedBox.shrink();
+  }
+}
+
+class _DashboardSectionsInOrder extends StatelessWidget {
+  const _DashboardSectionsInOrder({
+    required this.order,
+    required this.global,
+    required this.sessions,
+    required this.registrantCount,
+    required this.first3,
+  });
+
+  final List<String> order;
   final GlobalAnalytics global;
+  final List<SessionCheckinStat> sessions;
+  final int registrantCount;
+  final ({
+    List<({String name, DateTime timestamp})> registrations,
+    List<({String name, DateTime timestamp})> checkins,
+  }) first3;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final id in order) ...[
+          _buildDashboardSection(id, global, sessions, registrantCount: registrantCount, first3: first3),
+          const SizedBox(height: 32),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReorderableDashboardSections extends StatelessWidget {
+  const _ReorderableDashboardSections({
+    required this.order,
+    required this.global,
+    required this.sessions,
+    required this.registrantCount,
+    required this.first3,
+    required this.onReorder,
+  });
+
+  final List<String> order;
+  final GlobalAnalytics global;
+  final List<SessionCheckinStat> sessions;
+  final int registrantCount;
+  final ({
+    List<({String name, DateTime timestamp})> registrations,
+    List<({String name, DateTime timestamp})> checkins,
+  }) first3;
+  final void Function(List<String>) onReorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      onReorder: (oldIndex, newIndex) {
+        if (oldIndex < newIndex) newIndex--;
+        final updated = List<String>.from(order);
+        final item = updated.removeAt(oldIndex);
+        updated.insert(newIndex, item);
+        onReorder(updated);
+      },
+      children: [
+        for (var i = 0; i < order.length; i++)
+          Padding(
+            key: ValueKey(order[i]),
+            padding: const EdgeInsets.only(bottom: 32),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, right: 12),
+                  child: ReorderableDragStartListener(
+                    index: i,
+                    child: Icon(
+                      Icons.drag_handle,
+                      color: _kMuted,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _buildDashboardSection(
+                    order[i],
+                    global,
+                    sessions,
+                    registrantCount: registrantCount,
+                    first3: first3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _LiveIndicator extends StatefulWidget {
+  const _LiveIndicator();
+
+  @override
+  State<_LiveIndicator> createState() => _LiveIndicatorState();
+}
+
+class _LiveIndicatorState extends State<_LiveIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: _MetricCard(
-            label: 'Total Unique Attendees',
-            value: '${global.totalUniqueAttendees}',
-            icon: Icons.people_rounded,
-          ),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.statusCheckedIn.withOpacity(
+                  0.6 + 0.4 * _controller.value,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.statusCheckedIn.withOpacity(0.5),
+                    blurRadius: 6,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _MetricCard(
-            label: 'Total Check-Ins',
-            value: '${global.totalCheckins}',
-            icon: Icons.check_circle_rounded,
-            accent: AppColors.statusCheckedIn,
+        const SizedBox(width: 6),
+        Text(
+          'Live',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.statusCheckedIn,
           ),
         ),
       ],
@@ -238,56 +635,135 @@ class _MetricsCards extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    this.accent,
+// --- Metric Tiles (3 equal) ---
+
+class _MetricsTiles extends StatelessWidget {
+  const _MetricsTiles({
+    required this.global,
+    required this.sessions,
+    required this.registrantCount,
   });
 
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color? accent;
+  final GlobalAnalytics global;
+  final List<SessionCheckinStat> sessions;
+  final int registrantCount;
 
   @override
   Widget build(BuildContext context) {
-    final color = accent ?? AppColors.goldGradientEnd;
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+    const mainCheckinId = 'main-checkin';
+    final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
+    final mainCheckinCount = mainCheckin?.checkInCount ?? 0;
+    final sessionCheckins = global.totalCheckins - mainCheckinCount;
+
+    final tiles = [
+      _MetricTile(
+        icon: Icons.people_rounded,
+        label: 'Total Registrants',
+        value: registrantCount,
+        subtext: null,
+      ),
+      _MetricTile(
+        icon: Icons.check_circle_rounded,
+        label: 'Main Check-In Total',
+        value: mainCheckinCount,
+        subtext: 'Main Conference Entry',
+      ),
+      _MetricTile(
+        icon: Icons.bar_chart_rounded,
+        label: 'Session Check-Ins',
+        value: sessionCheckins,
+        subtext: 'Breakout Sessions Only',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 900) {
+          return Wrap(
+            spacing: 24,
+            runSpacing: 24,
+            children: tiles,
+          );
+        }
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: tiles[0]),
+            const SizedBox(width: 24),
+            Expanded(child: tiles[1]),
+            const SizedBox(width: 24),
+            Expanded(child: tiles[2]),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.subtext,
+  });
+
+  final IconData icon;
+  final String label;
+  final int value;
+  final String? subtext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _metricTileDecoration(),
+      child: SizedBox(
+        height: 170,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Icon(icon, color: color, size: 28),
+                Icon(icon, size: 28, color: _kGold),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     label,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary87,
+                      fontWeight: FontWeight.w600,
+                      color: _kNavy,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              color: Colors.black.withOpacity(0.08),
+            ),
+            RollingCounter(
+              value: value,
+              duration: const Duration(milliseconds: 1800),
+              exaggerated: true,
+              enableGlow: false,
               style: GoogleFonts.inter(
-                fontSize: 28,
+                fontSize: 42,
                 fontWeight: FontWeight.w700,
-                color: AppColors.navy,
+                color: _kNavy,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
             ),
+            if (subtext != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtext!,
+                style: GoogleFonts.inter(fontSize: 14, color: _kMuted),
+              ),
+            ],
           ],
         ),
       ),
@@ -295,34 +771,243 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _Top5AndTimeline extends StatelessWidget {
-  const _Top5AndTimeline({required this.global});
+/// First 3 Registrations + First 3 Check-Ins (side by side).
+class _First3Section extends StatelessWidget {
+  const _First3Section({
+    required this.first3,
+  });
+
+  final ({
+    List<({String name, DateTime timestamp})> registrations,
+    List<({String name, DateTime timestamp})> checkins,
+  }) first3;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 1000;
+        return isWide
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _First3RegistrationsCard(items: first3.registrations)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _First3CheckinsCard(items: first3.checkins)),
+                ],
+              )
+            : Column(
+                children: [
+                  _First3RegistrationsCard(items: first3.registrations),
+                  const SizedBox(height: 24),
+                  _First3CheckinsCard(items: first3.checkins),
+                ],
+              );
+      },
+    );
+  }
+}
+
+class _First3RegistrationsCard extends StatelessWidget {
+  const _First3RegistrationsCard({
+    required this.items,
+  });
+
+  final List<({String name, DateTime timestamp})> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _lightCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule_rounded, size: 20, color: _kGold),
+              const SizedBox(width: 8),
+              Text(
+                'First 3 Registrations',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _kNavy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...List.generate(3, (i) {
+            if (i >= items.length) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '—',
+                  style: GoogleFonts.inter(fontSize: 15, color: _kMuted),
+                ),
+              );
+            }
+            final r = items[i];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Text(
+                    '${i + 1}.',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _kNavy,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      r.name,
+                      style: GoogleFonts.inter(fontSize: 15, color: _kNavy),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    ' — ${DateFormat.MMMd().add_jm().format(r.timestamp)}',
+                    style: GoogleFonts.inter(fontSize: 13, color: _kMuted),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _First3CheckinsCard extends StatelessWidget {
+  const _First3CheckinsCard({
+    required this.items,
+  });
+
+  final List<({String name, DateTime timestamp})> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: _lightCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded, size: 20, color: _kGold),
+              const SizedBox(width: 8),
+              Text(
+                'First 3 Check-Ins',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _kNavy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...List.generate(3, (i) {
+            if (i >= items.length) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '—',
+                  style: GoogleFonts.inter(fontSize: 15, color: _kMuted),
+                ),
+              );
+            }
+            final c = items[i];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Text(
+                    '${i + 1}.',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _kNavy,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      c.name,
+                      style: GoogleFonts.inter(fontSize: 15, color: _kNavy),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    ' — ${DateFormat.MMMd().add_jm().format(c.timestamp)}',
+                    style: GoogleFonts.inter(fontSize: 13, color: _kMuted),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+
+// --- Top 5 Row ---
+
+class _Top5Row extends StatelessWidget {
+  const _Top5Row({required this.global});
 
   final GlobalAnalytics global;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _Top5Card(
-            title: 'Top 5 Regions',
-            entries: global.top5Regions,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _Top5Card(
-            title: 'Top 5 Ministries',
-            entries: global.top5Ministries,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _TimelineCard(global: global),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 1000;
+        return isWide
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _Top5Card(
+                      title: 'Top 5 Regions',
+                      data: global.regionCounts,
+                      total: global.totalCheckins,
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: _Top5Card(
+                      title: 'Top 5 Ministries',
+                      data: global.ministryCounts,
+                      total: global.totalCheckins,
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  _Top5Card(
+                    title: 'Top 5 Regions',
+                    data: global.regionCounts,
+                    total: global.totalCheckins,
+                  ),
+                  const SizedBox(height: 24),
+                  _Top5Card(
+                    title: 'Top 5 Ministries',
+                    data: global.ministryCounts,
+                    total: global.totalCheckins,
+                  ),
+                ],
+              );
+      },
     );
   }
 }
@@ -330,504 +1015,303 @@ class _Top5AndTimeline extends StatelessWidget {
 class _Top5Card extends StatelessWidget {
   const _Top5Card({
     required this.title,
-    required this.entries,
+    required this.data,
+    required this.total,
   });
 
   final String title;
-  final List<MapEntry<String, int>> entries;
+  final Map<String, int> data;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.navy,
-              ),
+    final sorted = data.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top5 = sorted.take(5).toList();
+    final maxVal = top5.isNotEmpty ? top5.first.value : 1;
+
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: _lightCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
             ),
-            const SizedBox(height: 12),
-            if (entries.isEmpty)
-              Text(
-                'No data yet',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.textPrimary87.withValues(alpha: 0.6),
-                ),
-              )
-            else
-              ...entries.asMap().entries.map((e) {
-                final i = e.key;
-                final entry = e.value;
-                final maxCount = entries.isNotEmpty
-                    ? entries.map((x) => x.value).reduce((a, b) => a > b ? a : b)
-                    : 1;
-                final pct = maxCount > 0 ? (entry.value / maxCount) : 0.0;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.goldGradientEnd.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${i + 1}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.navy,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              entry.key,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.navy,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            '${entry.value}',
+          ),
+          const SizedBox(height: 24),
+          if (top5.isEmpty)
+            Text(
+              'No data yet',
+              style: GoogleFonts.inter(color: _kMuted, fontSize: 14),
+            )
+          else
+            ...top5.asMap().entries.map((e) {
+              final idx = e.key;
+              final entry = e.value;
+              final pct = entry.value / maxVal;
+              final pctTotal = total > 0
+                  ? (entry.value / total * 100).toStringAsFixed(0)
+                  : '0';
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            entry.key,
                             style: GoogleFonts.inter(
                               fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.goldGradientEnd,
+                              color: _kNavy,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SizedBox(
-                            width: constraints.maxWidth * pct.clamp(0.0, 1.0),
-                            height: 4,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.goldGradientEnd.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                        ),
+                        Text(
+                          '$pctTotal%',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _kMuted,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimelineCard extends StatelessWidget {
-  const _TimelineCard({required this.global});
-
-  final GlobalAnalytics global;
-
-  @override
-  Widget build(BuildContext context) {
-    final earliestCheckin = global.earliestCheckin;
-    final earliestReg = global.earliestRegistration;
-    final peakKey = global.peakHourKey;
-
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Timeline Intelligence',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.navy,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _TimelineRow(
-              label: 'Earliest Check-in',
-              value: earliestCheckin != null && earliestCheckin.registrantId.isNotEmpty
-                  ? DateFormat.yMd().add_jm().format(earliestCheckin.timestamp)
-                  : '—',
-            ),
-            _TimelineRow(
-              label: 'Earliest Registration',
-              value: earliestReg != null && earliestReg.registrantId.isNotEmpty
-                  ? DateFormat.yMd().add_jm().format(earliestReg.timestamp)
-                  : '—',
-            ),
-            _TimelineRow(
-              label: 'Peak Hour',
-              value: peakKey != null ? _formatPeakKey(peakKey) : '—',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatPeakKey(String key) {
-    if (key.length >= 13) {
-      final date = key.substring(0, 10);
-      final hour = key.length > 11 ? key.substring(11) : '';
-      return '$date ${hour.padLeft(2, '0')}:00';
-    }
-    return key;
-  }
-}
-
-class _TimelineRow extends StatelessWidget {
-  const _TimelineRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 4,
-            child: Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textPrimary87,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 6,
-            child: Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.navy,
-              ),
-            ),
-          ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      minHeight: 8,
+                      backgroundColor: _kBlue.withOpacity(0.15),
+                      valueColor: const AlwaysStoppedAnimation<Color>(_kBlue),
+                    ),
+                  ),
+                  if (idx < top5.length - 1)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14, bottom: 4),
+                      child: Divider(
+                        height: 1,
+                        color: Colors.black.withOpacity(0.06),
+                      ),
+                    ),
+                ],
+              );
+            }),
         ],
       ),
     );
   }
 }
 
-class _AggregationDropdown extends StatelessWidget {
-  const _AggregationDropdown({
-    required this.value,
-    required this.onChanged,
-  });
+// --- Session Leaderboard ---
 
-  final AggregationLevel value;
-  final void Function(AggregationLevel) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 200,
-      child: DropdownButtonFormField<AggregationLevel>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: 'Aggregation',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-        items: const [
-          DropdownMenuItem(
-              value: AggregationLevel.perSession,
-              child: Text('Per Session')),
-          DropdownMenuItem(
-              value: AggregationLevel.perDay,
-              child: Text('Per Day')),
-          DropdownMenuItem(
-              value: AggregationLevel.entireEvent,
-              child: Text('Entire Event')),
-          DropdownMenuItem(
-              value: AggregationLevel.custom,
-              child: Text('Custom')),
-        ],
-        onChanged: (v) => onChanged(v ?? AggregationLevel.perSession),
-      ),
-    );
-  }
-}
-
-class _ExportButton extends StatelessWidget {
-  const _ExportButton({
-    required this.isExporting,
-    required this.onExport,
-  });
-
-  final bool isExporting;
-  final void Function(String type) onExport;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'Export',
-      onSelected: (v) {
-        // ignore: unnecessary_null_comparison
-        if (v != null) onExport(v);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.goldGradientEnd,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isExporting)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            else
-              const Icon(Icons.download_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'Export',
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'raw', child: Text('All Attendance (Raw)')),
-        const PopupMenuItem(
-            value: 'aggregated', child: Text('Aggregated Report')),
-        const PopupMenuItem(value: 'excel', child: Text('Excel (Both)')),
-      ],
-    );
-  }
-}
-
-class _SessionTable extends StatelessWidget {
-  const _SessionTable({
+class _SessionLeaderboardSection extends StatelessWidget {
+  const _SessionLeaderboardSection({
     required this.sessions,
-    required this.aggregationLevel,
-    required this.totalCheckins,
-    this.hourlyCheckins = const {},
+    required this.global,
+    required this.mainCheckinSessionId,
   });
 
   final List<SessionCheckinStat> sessions;
-  final AggregationLevel aggregationLevel;
-  final int totalCheckins;
-  final Map<String, int> hourlyCheckins;
+  final GlobalAnalytics global;
+  final String mainCheckinSessionId;
 
   @override
   Widget build(BuildContext context) {
-    if (aggregationLevel == AggregationLevel.entireEvent) {
-      return const SizedBox.shrink();
-    }
+    final excludedMain = sessions
+        .where((s) => s.sessionId != mainCheckinSessionId)
+        .toList();
+    final sorted = excludedMain
+      ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
+    final mainCheckinCount = sessions
+        .where((s) => s.sessionId == mainCheckinSessionId)
+        .map((s) => s.checkInCount)
+        .firstOrNull ?? 0;
+    final total = global.totalCheckins - mainCheckinCount;
+    final maxCount = sorted.isNotEmpty ? sorted.first.checkInCount : 1;
 
-    List<_TableRow> rows;
-    if (aggregationLevel == AggregationLevel.perDay) {
-      if (hourlyCheckins.isNotEmpty) {
-        final byDay = <String, int>{};
-        for (final e in hourlyCheckins.entries) {
-          final dateKey = e.key.length >= 10 ? e.key.substring(0, 10) : e.key;
-          byDay[dateKey] = (byDay[dateKey] ?? 0) + e.value;
-        }
-        final sortedDays = byDay.keys.toList()..sort();
-        rows = sortedDays
-            .map((day) {
-              final dayTotal = byDay[day]!;
-              final pct = totalCheckins > 0 ? (dayTotal / totalCheckins) * 100 : 0.0;
-              return _TableRow(session: day, attendance: dayTotal, percentOfTotal: pct);
-            })
-            .toList();
-      } else {
-        final byDay = <String, List<SessionCheckinStat>>{};
-        for (final s in sessions) {
-          final key = s.startAt != null
-              ? DateFormat('yyyy-MM-dd').format(s.startAt!)
-              : 'Unknown';
-          byDay.putIfAbsent(key, () => []).add(s);
-        }
-        final sortedDays = byDay.keys.toList()..sort();
-        rows = sortedDays
-            .map((day) {
-              final sess = byDay[day]!;
-              final dayTotal = sess.fold<int>(0, (a, x) => a + x.checkInCount);
-              final pct = totalCheckins > 0 ? (dayTotal / totalCheckins) * 100 : 0.0;
-              return _TableRow(session: day, attendance: dayTotal, percentOfTotal: pct);
-            })
-            .toList();
-      }
-    } else {
-      rows = sessions
-          .map((s) {
-            final pct = totalCheckins > 0
-                ? (s.checkInCount / totalCheckins) * 100
-                : 0.0;
-            return _TableRow(
-              session: s.name,
-              attendance: s.checkInCount,
-              percentOfTotal: pct,
-            );
-          })
-          .toList();
-    }
-
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Session Attendance',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.navy,
-              ),
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: _lightCardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Session Leaderboard',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
             ),
           ),
-          if (rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'No sessions found.',
-                style: GoogleFonts.inter(color: AppColors.textPrimary87),
-              ),
+          const SizedBox(height: 24),
+          if (sorted.isEmpty)
+            Text(
+              'No sessions yet',
+              style: GoogleFonts.inter(color: _kMuted, fontSize: 14),
             )
           else
-            Table(
-              columnWidths: const {
-                0: FlexColumnWidth(3),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-              },
-              children: [
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: AppColors.goldGradientEnd.withValues(alpha: 0.15),
-                  ),
-                  children: [
-                    _TableHeader('Session'),
-                    _TableHeader('Attendance'),
-                    _TableHeader('% of Total'),
-                  ],
+            ...sorted.asMap().entries.map((e) {
+              final i = e.key;
+              final s = e.value;
+              final isTop = i == 0;
+              final pct = total > 0 ? (s.checkInCount / total) * 100 : 0.0;
+              final barPct = maxCount > 0 ? (s.checkInCount / maxCount) : 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _SessionLeaderboardRow(
+                  rank: i + 1,
+                  sessionName: s.name,
+                  count: s.checkInCount,
+                  percent: pct,
+                  barValue: barPct,
+                  isTop: isTop,
+                  isActive: s.isActive,
                 ),
-                ...rows.map(
-                  (r) => TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          r.session,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.navy,
-                          ),
-                        ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionLeaderboardRow extends StatefulWidget {
+  const _SessionLeaderboardRow({
+    required this.rank,
+    required this.sessionName,
+    required this.count,
+    required this.percent,
+    required this.barValue,
+    required this.isTop,
+    this.isActive = false,
+  });
+
+  final int rank;
+  final String sessionName;
+  final int count;
+  final double percent;
+  final double barValue;
+  final bool isTop;
+  final bool isActive;
+
+  @override
+  State<_SessionLeaderboardRow> createState() => _SessionLeaderboardRowState();
+}
+
+class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: EdgeInsets.all(_hover ? 8 : 4),
+        decoration: BoxDecoration(
+          color: _hover ? _kGold.withOpacity(0.06) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    '${widget.rank}.',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _kNavy,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    widget.sessionName,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: _kNavy,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (widget.isActive)
+                  Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.statusCheckedIn.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'LIVE',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.statusCheckedIn,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          '${r.attendance}',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.goldGradientEnd,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          '${r.percentOfTotal.toStringAsFixed(1)}%',
-                          style: GoogleFonts.inter(
-                            color: AppColors.textPrimary87,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ),
+                SizedBox(
+                  width: 56,
+                  child: Text(
+                    NumberFormat.decimalPattern().format(widget.count),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _kGold,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    '${widget.percent.toStringAsFixed(1)}%',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: _kMuted,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                    textAlign: TextAlign.right,
                   ),
                 ),
               ],
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TableRow {
-  const _TableRow({
-    required this.session,
-    required this.attendance,
-    required this.percentOfTotal,
-  });
-  final String session;
-  final int attendance;
-  final double percentOfTotal;
-}
-
-class _TableHeader extends StatelessWidget {
-  const _TableHeader(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.navy,
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: widget.barValue.clamp(0.0, 1.0),
+                minHeight: 8,
+                backgroundColor: _kGold.withOpacity(0.15),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  widget.isTop ? _kGold : _kGold.withOpacity(0.5),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -310,6 +310,7 @@ export const onRegistrantCreate = functions.firestore
     const data = snap.data();
 
     const statsRef = db.doc(`events/${eventId}/stats/overview`);
+    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
     const registeredAt = getRegisteredAt(data);
 
     await db.runTransaction(async (tx) => {
@@ -342,6 +343,10 @@ export const onRegistrantCreate = functions.firestore
       }
 
       tx.set(statsRef, updates, { merge: true });
+      tx.set(globalAnalyticsRef, {
+        totalRegistrants: admin.firestore.FieldValue.increment(1),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
     });
 
     return null;
@@ -584,6 +589,7 @@ export const backfillAnalytics = functions.https.onCall(async (data, context) =>
   await globalRef.set({
     totalUniqueAttendees: seenRegistrants.size,
     totalCheckins,
+    totalRegistrants: registrantsSnap.size,
     regionCounts: globalRegionCounts,
     ministryCounts: globalMinistryCounts,
     hourlyCheckins: globalHourlyCheckins,

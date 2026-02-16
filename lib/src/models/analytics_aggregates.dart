@@ -60,6 +60,7 @@ class GlobalAnalytics {
   const GlobalAnalytics({
     this.totalUniqueAttendees = 0,
     this.totalCheckins = 0,
+    this.totalRegistrants = 0,
     this.lastUpdated,
     this.earliestCheckin,
     this.earliestRegistration,
@@ -70,6 +71,8 @@ class GlobalAnalytics {
 
   final int totalUniqueAttendees;
   final int totalCheckins;
+  /// Pre-computed count of registrants (events/{eventId}/registrants). Updated by backfill + onRegistrantCreate.
+  final int totalRegistrants;
   final DateTime? lastUpdated;
   final EarliestCheckin? earliestCheckin;
   final EarliestRegistration? earliestRegistration;
@@ -102,6 +105,30 @@ class GlobalAnalytics {
     return list.take(n).toList();
   }
 
+  GlobalAnalytics copyWith({
+    int? totalUniqueAttendees,
+    int? totalCheckins,
+    int? totalRegistrants,
+    DateTime? lastUpdated,
+    EarliestCheckin? earliestCheckin,
+    EarliestRegistration? earliestRegistration,
+    Map<String, int>? regionCounts,
+    Map<String, int>? ministryCounts,
+    Map<String, int>? hourlyCheckins,
+  }) {
+    return GlobalAnalytics(
+      totalUniqueAttendees: totalUniqueAttendees ?? this.totalUniqueAttendees,
+      totalCheckins: totalCheckins ?? this.totalCheckins,
+      totalRegistrants: totalRegistrants ?? this.totalRegistrants,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      earliestCheckin: earliestCheckin ?? this.earliestCheckin,
+      earliestRegistration: earliestRegistration ?? this.earliestRegistration,
+      regionCounts: regionCounts ?? this.regionCounts,
+      ministryCounts: ministryCounts ?? this.ministryCounts,
+      hourlyCheckins: hourlyCheckins ?? this.hourlyCheckins,
+    );
+  }
+
   factory GlobalAnalytics.fromFirestore(Map<String, dynamic>? json) {
     if (json == null) return const GlobalAnalytics();
     final lastUpdatedTs = json['lastUpdated'];
@@ -117,6 +144,7 @@ class GlobalAnalytics {
     return GlobalAnalytics(
       totalUniqueAttendees: (json['totalUniqueAttendees'] as num?)?.toInt() ?? 0,
       totalCheckins: (json['totalCheckins'] as num?)?.toInt() ?? 0,
+      totalRegistrants: (json['totalRegistrants'] as num?)?.toInt() ?? 0,
       lastUpdated: lastUpdatedTs is Timestamp ? lastUpdatedTs.toDate() : null,
       earliestCheckin: ec != null ? EarliestCheckin.fromFirestore(ec) : null,
       earliestRegistration: er != null ? EarliestRegistration.fromFirestore(er) : null,

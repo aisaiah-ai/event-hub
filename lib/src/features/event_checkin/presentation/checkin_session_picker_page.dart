@@ -41,6 +41,28 @@ class CheckinSessionPickerPage extends StatelessWidget {
                 LocationBlock(
                   venue: event.locationName,
                   address: event.address,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  iconColor: AppColors.goldIconContainer,
+                  venueStyle: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                  addressStyle: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.textPrimary87,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.betweenSections),
                 Text(
@@ -56,18 +78,21 @@ class CheckinSessionPickerPage extends StatelessWidget {
                   session: NlcSessions.genderIdeology,
                   slug: NlcSessions.genderIdeologySlug,
                   eventSlug: eventSlug,
+                  decoration: _sessionCardDecoration,
                 ),
                 const SizedBox(height: AppSpacing.betweenSecondaryCards),
                 _SessionCard(
                   session: NlcSessions.contraceptionIvfAbortion,
                   slug: NlcSessions.contraceptionIvfAbortionSlug,
                   eventSlug: eventSlug,
+                  decoration: _sessionCardDecoration,
                 ),
                 const SizedBox(height: AppSpacing.betweenSecondaryCards),
                 _SessionCard(
                   session: NlcSessions.immigration,
                   slug: NlcSessions.immigrationSlug,
                   eventSlug: eventSlug,
+                  decoration: _sessionCardDecoration,
                 ),
                 const SizedBox(height: AppSpacing.footerTop),
                 const FooterCredits(),
@@ -81,19 +106,45 @@ class CheckinSessionPickerPage extends StatelessWidget {
   }
 }
 
+BoxDecoration get _sessionCardDecoration => BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 16,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+
 class _SessionCard extends StatelessWidget {
   const _SessionCard({
     required this.session,
     required this.slug,
     required this.eventSlug,
+    this.decoration,
   });
 
   final Session session;
   final String slug;
   final String eventSlug;
+  final BoxDecoration? decoration;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveDecoration = decoration ?? BoxDecoration(
+      color: AppColors.surfaceCard,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.25),
+          blurRadius: 16,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -101,17 +152,7 @@ class _SessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: effectiveDecoration,
           child: Row(
             children: [
               Container(
@@ -121,7 +162,7 @@ class _SessionCard extends StatelessWidget {
                   color: AppColors.goldIconContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.qr_code_scanner,
                   color: AppColors.navy,
                   size: 24,
@@ -138,7 +179,11 @@ class _SessionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.navy.withValues(alpha: 0.6)),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppColors.navy.withValues(alpha: 0.6),
+              ),
             ],
           ),
         ),

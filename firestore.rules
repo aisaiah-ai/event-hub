@@ -77,7 +77,7 @@ service cloud.firestore {
           allow update, delete: if false;
         }
 
-        // Session analytics: Cloud Functions only write; read for check-in dashboard.
+        // Session analytics: Cloud Functions only write; read for NLC dashboard.
         match /analytics/{docId} {
           allow read: if true;
           allow write: if false;
@@ -94,7 +94,7 @@ service cloud.firestore {
         }
       }
 
-      // Global analytics: Cloud Functions only write; read for check-in dashboard.
+      // Global analytics: Cloud Functions only write; read for NLC dashboard.
       match /analytics/{docId} {
         allow read: if true;
         allow write: if false;
@@ -115,6 +115,11 @@ service cloud.firestore {
       match /admins/{email} {
         allow read: if isAdmin(eventId);
         allow write: if isAdmin(eventId);
+      }
+
+      // Dashboard/wallboard layout preferences. Staff can read/write.
+      match /settings/{docId} {
+        allow read, write: if isStaff(eventId);
       }
     }
   }

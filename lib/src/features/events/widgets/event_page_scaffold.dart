@@ -13,6 +13,12 @@ class EventPageScaffold extends StatelessWidget {
     this.eventSlug,
     this.body,
     this.appBar,
+    /// Override max width for body (e.g. 1200 for dashboard). Default 520 for NLC.
+    this.bodyMaxWidth,
+    /// Override overlay opacity for NLC background (e.g. 0.55 for dashboard readability).
+    this.overlayOpacity,
+    /// Use light executive background (no image/overlay). For analytics dashboard.
+    this.useLightBackground = false,
   });
 
   final EventModel? event;
@@ -20,12 +26,33 @@ class EventPageScaffold extends StatelessWidget {
   final String? eventSlug;
   final Widget? body;
   final PreferredSizeWidget? appBar;
+  final double? bodyMaxWidth;
+  final double? overlayOpacity;
+  final bool useLightBackground;
 
   @override
   Widget build(BuildContext context) {
+    if (useLightBackground) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: appBar,
+        body: body != null
+            ? Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: bodyMaxWidth ?? 1200),
+                  child: body,
+                ),
+              )
+            : const SizedBox.shrink(),
+      );
+    }
+
     final primary = event?.primaryColor ?? EventTokens.primaryBlue;
     final bgUrl = _effectiveBackgroundImageUrl();
     final useNlcLocalAsset = bgUrl == EventPageScaffold.nlcBackgroundAsset;
+
+    final overlay = overlayOpacity ?? 0.45;
+    final maxW = bodyMaxWidth ?? 520.0;
 
     return Scaffold(
       backgroundColor: bgUrl != null ? Colors.transparent : primary,
@@ -42,13 +69,13 @@ class EventPageScaffold extends StatelessWidget {
                 ),
                 Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(0.45),
+                    color: Colors.black.withOpacity(overlay),
                   ),
                 ),
                 SafeArea(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
+                      constraints: BoxConstraints(maxWidth: maxW),
                       child: body ?? const SizedBox.shrink(),
                     ),
                   ),

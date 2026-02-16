@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart';
@@ -102,10 +104,12 @@ class AttendanceExportService {
     'Value',
   ];
 
-  /// Export raw attendance. Scans attendance collections, joins with registrants.
+  /// Export raw attendance. Scans attendance for ALL sessions (including those without order).
   /// Uses batched pagination for >5000 docs.
   Future<String> exportRawCsv(String eventId, {String eventSlug = 'nlc-2026'}) async {
-    final sessions = await _sessionService.getSessionsOrderedByOrder(eventId);
+    final allSessions = await _sessionService.listSessions(eventId);
+    final sessions = allSessions.toList()
+      ..sort((a, b) => (a.order ?? 999).compareTo(b.order ?? 999));
     final sessionNames = {for (final s in sessions) s.id: s.displayName};
     final rows = <List<String>>[_rawHeaders];
 
@@ -343,15 +347,24 @@ class AttendanceExportService {
     final rawRows = rawRowsParsed.map(toStringList).toList();
     final rawData = rawRows.length > 1 ? rawRows.sublist(1) : <List<String>>[];
 
-    final bytes = createAttendanceExcelFull(
-      summaryRows: summaryRows,
-      regionRows: regionRows,
-      ministryRows: ministryRows,
-      hourlyRows: hourlyRows,
-      sessionRows: sessionRows,
-      rawRows: rawData,
-      rawHeaders: _rawHeaders,
-    );
+    Uint8List bytes;
+    try {
+      bytes = createAttendanceExcelFull(
+        summaryRows: summaryRows,
+        regionRows: regionRows,
+        ministryRows: ministryRows,
+        hourlyRows: hourlyRows,
+        sessionRows: sessionRows,
+        rawRows: rawData,
+        rawHeaders: _rawHeaders,
+      );
+    } catch (e, st) {
+      assert(false, 'Excel export failed: $e\n$st');
+      rethrow;
+    }
+    if (bytes.isEmpty) {
+      throw StateError('Excel encode produced empty file');
+    }
     final filename =
         csvFilename(eventSlug, 'attendance').replaceAll('.csv', '.xlsx');
     return downloadBytes(filename, bytes);

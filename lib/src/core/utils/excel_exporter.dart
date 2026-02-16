@@ -14,13 +14,19 @@ Uint8List createAttendanceExcelFull({
   required List<String> rawHeaders,
 }) {
   final excel = Excel.createExcel();
-  _writeRows(excel['Summary'], summaryRows);
-  _writeRows(excel['Regions'], regionRows);
-  _writeRows(excel['Ministries'], ministryRows);
-  _writeRows(excel['Hourly'], hourlyRows);
-  _writeRows(excel['Sessions'], sessionRows);
-  _writeRows(excel['Raw Attendance'], [rawHeaders, ...rawRows]);
-  return Uint8List.fromList(excel.encode() ?? []);
+  // Use appendRow to ensure sheets are created and data is written correctly
+  _appendAllRows(excel, 'Summary', summaryRows);
+  _appendAllRows(excel, 'Regions', regionRows);
+  _appendAllRows(excel, 'Ministries', ministryRows);
+  _appendAllRows(excel, 'Hourly', hourlyRows);
+  _appendAllRows(excel, 'Sessions', sessionRows);
+  _appendAllRows(excel, 'Raw Attendance', [rawHeaders, ...rawRows]);
+
+  final encoded = excel.encode();
+  if (encoded == null || encoded.isEmpty) {
+    throw StateError('Excel encode returned empty or null');
+  }
+  return Uint8List.fromList(encoded);
 }
 
 /// Generate Excel file with Sheet 1: Aggregated, Sheet 2: Raw Attendance.
@@ -32,22 +38,20 @@ Uint8List createAttendanceExcel({
   required List<String> rawHeaders,
 }) {
   final excel = Excel.createExcel();
-  final aggSheet = excel['Aggregated'];
-  _writeRows(aggSheet, [aggregatedHeaders, ...aggregatedRows]);
+  _appendAllRows(excel, 'Aggregated', [aggregatedHeaders, ...aggregatedRows]);
+  _appendAllRows(excel, 'Raw Attendance', [rawHeaders, ...rawRows]);
 
-  final rawSheet = excel['Raw Attendance'];
-  _writeRows(rawSheet, [rawHeaders, ...rawRows]);
-
-  return Uint8List.fromList(excel.encode() ?? []);
+  final encoded = excel.encode();
+  if (encoded == null || encoded.isEmpty) {
+    throw StateError('Excel encode returned empty or null');
+  }
+  return Uint8List.fromList(encoded);
 }
 
-void _writeRows(Sheet sheet, List<List<String>> rows) {
-  for (var r = 0; r < rows.length; r++) {
-    final row = rows[r];
-    for (var c = 0; c < row.length; c++) {
-      final cell = sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r));
-      cell.value = TextCellValue(row[c]);
-    }
+void _appendAllRows(Excel excel, String sheetName, List<List<String>> rows) {
+  final sheet = excel[sheetName];
+  for (final row in rows) {
+    final cellValues = row.map<CellValue?>((s) => TextCellValue(s.toString())).toList();
+    sheet.appendRow(cellValues);
   }
 }
