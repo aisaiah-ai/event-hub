@@ -191,15 +191,13 @@ Stores CSV header → schema key mappings for reuse.
 
 ---
 
-## 8. Event & Session Check-In
+## 8. Check-In (Session-Only)
 
-**Event check-in:** Updates `registrant.eventAttendance` (checkedIn, checkedInAt, checkedInBy).
+**Authoritative detail:** `docs/CHECKIN_DESIGN.md`.
 
-**Session check-in:**
-- Requires `eventAttendance.checkedIn == true`
-- Writes to `sessions/{sessionId}/attendance/{registrantId}`
+**All check-in** (including main/arrival): Writes only to `sessions/{sessionId}/attendance/{registrantId}`. Main check-in uses session ID `main-checkin`. No event-level check-in; no `events/{eventId}/checkins` collection. Badge and status are scoped to the selected session only.
 
-**Manual session check-in:** Create registrant if missing (walk-in flow).
+**Manual session check-in:** Create registrant if missing (walk-in), then write attendance doc for the session.
 
 ---
 

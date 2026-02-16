@@ -196,6 +196,13 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 _ActionTile(
+                  icon: Icons.analytics_rounded,
+                  label: 'Analytics Dashboard',
+                  subtitle: 'Live check-in stats',
+                  onTap: () =>
+                      context.go('/admin/dashboard?eventId=$eventId'),
+                ),
+                _ActionTile(
                   icon: Icons.dashboard_customize_rounded,
                   label: 'Schema Editor',
                   subtitle: 'Define registration fields',

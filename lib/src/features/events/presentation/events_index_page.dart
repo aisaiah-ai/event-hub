@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/environment.dart';
 import '../data/event_repository.dart';
 import '../event_tokens.dart';
 
@@ -27,6 +28,12 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
   }
 
   Future<void> _redirectOrShow() async {
+    // Dev: default to NLC check-in. Prod: use active event (RSVP).
+    if (Environment.isDev) {
+      if (!mounted) return;
+      context.go('/events/nlc/checkin');
+      return;
+    }
     try {
       final event = await _repo.getActiveEvent();
       if (!mounted) return;

@@ -28,8 +28,9 @@ A generic Event Hub platform in Flutter supporting dynamic registration schemas,
 
 3. **Run**
    ```bash
-   flutter run
+   flutter run -d chrome
    ```
+   In dev, the app opens at `/events/nlc/checkin`. If direct URLs (e.g. `/events/nlc/checkin`) return 404, use the root URL `http://localhost:PORT/` or run `./tools/serve_web.sh` after building.
 
 ## Routes
 

@@ -1,0 +1,23 @@
+---
+description: Read and update the dev journal to avoid repeating Firestore/check-in/permission fixes
+globs: lib/**/*.dart,firestore.rules,firestore.*.rules,docs/FIRESTORE*.md,docs/TROUBLESHOOTING*.md
+alwaysApply: true
+---
+
+# Journal recall — Firestore / check-in / permissions
+
+Before making changes that touch Firestore, check-in, permissions, or database config:
+
+1. **Read `docs/JOURNAL.md`** (at least the latest 1–2 dated sections). Check "What was tried" and "Outcome / still broken" so you do not repeat a fix that already failed.
+
+2. **Recall:** The app uses **named databases only** (`event-hub-dev`, `event-hub-prod`). Permission-denied on event-hub-dev has been recurring; possible causes logged in the journal (rules not deployed to named DB, missing event/session docs in that DB, rule evaluation when event doc missing).
+
+After making a change that affects Firestore, check-in, or permissions:
+
+3. **Append to `docs/JOURNAL.md`** a new `## YYYY-MM-DD` entry at the bottom with:
+   - **What was done** (code/config change)
+   - **What was tried** (what we were fixing)
+   - **Outcome / still broken** (did it work; same or new error; note DB and path if relevant)
+   - **Next time (recall)** (one-line reminder)
+
+This avoids going in circles on the same permission or "document doesn't exist" errors.

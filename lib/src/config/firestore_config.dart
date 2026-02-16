@@ -3,12 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../../config/environment.dart';
 
-/// Environment: dev uses event-hub-dev, prod uses event-hub-prod.
-/// Database selection is controlled by [Environment.env] only (--dart-define=ENV).
+// ignore: avoid_print
+void _log(String msg) => print('[FirestoreConfig] $msg');
+
+/// Uses the default Firestore database.
 enum AppEnvironment { dev, prod }
 
-/// Central Firestore configuration. Use [databaseId] when creating
-/// FirebaseFirestore.instanceFor() for the named database.
+/// Central Firestore configuration. Uses the default Firestore database.
 class FirestoreConfig {
   FirestoreConfig._();
 
@@ -18,28 +19,27 @@ class FirestoreConfig {
   /// Current environment.
   static AppEnvironment get environment => _env;
 
-  /// Database ID: 'event-hub-dev' for dev, 'event-hub-prod' for prod.
-  static String get databaseId =>
-      _env == AppEnvironment.dev ? 'event-hub-dev' : 'event-hub-prod';
+  /// Default Firestore database.
+  static String get databaseId => '(default)';
 
   /// Whether Firestore is available (named database exists).
   static bool get isAvailable => _instance != null;
 
-  /// Firestore instance, or null if named database doesn't exist yet.
+  /// Firestore instance for the default database.
   static FirebaseFirestore? get instanceOrNull {
     if (_instance != null) return _instance;
     try {
-      _instance = FirebaseFirestore.instanceFor(
-        app: Firebase.app(),
-        databaseId: databaseId,
-      );
+      final app = Firebase.app();
+      _instance = FirebaseFirestore.instanceFor(app: app);
+      _log('Connected: project=${app.options.projectId}, database=$databaseId');
       return _instance;
-    } catch (_) {
+    } catch (e) {
+      _log('Init failed: $e');
       return null;
     }
   }
 
-  /// Firestore instance. Throws if not available.
+  /// Firestore instance for the default database. Throws if not available.
   static FirebaseFirestore get instance => instanceOrNull!;
 
   /// Initialize config from Environment. Call from main() before runApp.
@@ -51,5 +51,8 @@ class FirestoreConfig {
   static void init(AppEnvironment env) {
     _env = env;
     _instance = null; // Reset so next [instanceOrNull] uses new databaseId
+    // Explicit debug log to verify which database we are targeting
+    _log('Initializing config for ENV: ${env.name.toUpperCase()}');
+    _log('Targeting Database ID: $databaseId');
   }
 }

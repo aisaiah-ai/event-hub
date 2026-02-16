@@ -25,10 +25,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -45,6 +42,15 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBebTX3WQA-8nKP84dVo8zOUq6Zbtv100w',
+    appId: '1:834534025096:ios:153d4456cf41887c9cbc3d',
+    messagingSenderId: '834534025096',
+    projectId: 'aisaiah-event-hub',
+    storageBucket: 'aisaiah-event-hub.firebasestorage.app',
+    iosBundleId: 'com.eventhub.eventHub',
+  );
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyDEcxBJLcsLKPtduEMwjvbqJJP15BbslZw',

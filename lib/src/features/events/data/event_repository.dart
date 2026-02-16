@@ -13,6 +13,22 @@ class EventRepository {
 
   static const String _eventsCollection = 'events';
 
+  /// Fetch event by ID.
+  Future<EventModel?> getEventById(String eventId) async {
+    final fs = _firestore;
+    if (fs == null) return null;
+    try {
+      final snap = await fs
+          .collection(_eventsCollection)
+          .doc(eventId)
+          .get();
+      if (snap.exists && snap.data() != null) {
+        return EventModel.fromFirestore(snap);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Fetch event by slug from events collection.
   /// In debug mode, returns fallback for march-cluster-2026 if not in Firestore or on permission error.
   Future<EventModel?> getEventBySlug(String slug) async {
@@ -31,17 +47,36 @@ class EventRepository {
         return EventModel.fromFirestore(snapshot.docs.first);
       }
     } catch (e) {
-      if (slug == 'march-cluster-2026') {
-        return _marchCluster2026Fallback;
-      }
+      if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
+      if (slug == 'nlc') return _nlcFallback;
       rethrow;
     }
 
-    if (slug == 'march-cluster-2026') {
-      return _marchCluster2026Fallback;
-    }
+    if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
+    if (slug == 'nlc') return _nlcFallback;
     return null;
   }
+
+  static final EventModel _nlcFallback = EventModel(
+    id: 'nlc-2026',
+    slug: 'nlc',
+    name: 'National Leaders Conference',
+    startDate: DateTime(2026, 1, 1),
+    endDate: DateTime(2026, 1, 1),
+    locationName: 'Hyatt Regency Valencia | Grand Ballroom',
+    address: '24500 Town Center Dr., Valencia, CA 91355',
+    isActive: true,
+    allowRsvp: false,
+    allowCheckin: true,
+    metadata: {
+      'selfCheckinEnabled': true,
+      'sessionsEnabled': true,
+    },
+    logoUrl: 'assets/checkin/IntheOne.svg',
+    backgroundImageUrl: 'assets/images/nlc_background.png',
+    backgroundPatternUrl: 'assets/checkin/mossaic.svg',
+    organizationName: 'Couples for Christ',
+  );
 
   static final EventModel _marchCluster2026Fallback = EventModel(
     id: 'march-cluster-2026',

@@ -36,11 +36,14 @@ dependencies:
   google_fonts: ^6.2.1
   cloud_firestore: ^5.6.2
   firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
   go_router: ^14.6.2
   csv: ^6.0.0
   crypto: ^3.0.3
   intl: ^0.19.0
   flutter_svg: ^2.0.10+1
+  firebase_app_check: ^0.3.2+10
+  spreadsheet_decoder: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +71,9 @@ flutter:
     - assets/checkin/BG.svg
     - assets/checkin/IntheOne.svg
     - assets/checkin/mossaic.svg
+    - assets/checkin/background2.svg
+    - assets/images/nlc_background.png
+    - tools/sample_nlc_registrants.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

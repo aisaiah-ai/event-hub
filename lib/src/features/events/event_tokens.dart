@@ -10,6 +10,8 @@ class EventTokens {
   static const Color textPrimary = Color(0xFF1C1C1C);
   static const Color textOffWhite = Color(0xFFE8E8E8);
   static const Color textMuted = Color(0xFFB0B0B0);
+  /// Light grey for secondary buttons (Search, Manual).
+  static const Color buttonSecondary = Color(0xFFD4D4D4);
 
   static const double radiusLarge = 16;
   static const double radiusMedium = 12;

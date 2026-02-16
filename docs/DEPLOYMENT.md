@@ -172,7 +172,7 @@ Add DNS records as instructed by Firebase.
 
 ## 8. Firestore rules and indexes
 
-- Rules: `firestore.rules` (deployed with `firebase deploy` or via CI)
+- Rules: `firestore.rules` (deployed via scripts — dev/prod separated)
 - Indexes: `firestore.indexes.json`
 
-The GitHub Action deploys Hosting; Firestore rules and indexes are deployed separately via `firebase deploy --only firestore` (or add a step to the workflow if needed).
+Use `./scripts/deploy-firestore-dev.sh` for dev, `./scripts/deploy-firestore-prod.sh` for prod. See **docs/FIRESTORE_DEPLOY.md**. The GitHub Action deploys Hosting; Firestore rules are deployed separately via these scripts (or add a step to the workflow if needed).

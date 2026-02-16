@@ -1,0 +1,30 @@
+---
+description: How to deploy Firestore rules so they actually apply to the database the app uses
+globs: firestore.rules,firebase.json,docs/**/FIRESTORE*.md
+alwaysApply: false
+---
+
+# Deploying Firestore Rules
+
+## Critical: Target the database
+
+This project has **multiple** Firestore databases in `firebase.json`: `(default)` and `event-hub-dev`.
+
+- **`firebase deploy --only firestore:rules`** does **not** reliably update the **(default)** database. The Console may still show old rules.
+- **Always deploy to the database the app uses explicitly:**
+  - If app uses **(default):**  
+    `firebase deploy --only firestore:(default)`
+  - If app uses **event-hub-dev:**  
+    `firebase deploy --only firestore:event-hub-dev`
+- See JOURNAL.md for which database the app currently uses.
+
+## After changing rules
+
+1. Run the command above (with the correct database name in parentheses).
+2. **Verify:** Open Firebase Console → Firestore → select that database → **Rules** tab. Confirm the rules text matches `firestore.rules` (e.g. includes `match /sessions/{sessionId}` and `match /attendance/{registrantId}` if you added them). Do not assume "Deploy complete!" means (default) was updated.
+3. If the Console still shows old rules, the deploy did not apply to that database — use the explicit target and try again.
+
+## Do not
+
+- Say "rules are deployed" without having run `firebase deploy --only firestore:(default)` (or the relevant database) and/or without verifying in the Console.
+- Rely on `firebase deploy --only firestore:rules` when the app uses (default); it can leave (default) rules unchanged.

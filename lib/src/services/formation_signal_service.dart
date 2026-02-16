@@ -6,6 +6,9 @@ import 'registrant_service.dart';
 import 'schema_service.dart';
 import 'session_service.dart';
 
+// ignore: avoid_print
+void _log(String msg) => print('[FormationSignalService] $msg');
+
 /// Generates and persists formation signals from registration, attendance, and schema.
 class FormationSignalService {
   FormationSignalService({
@@ -83,9 +86,17 @@ class FormationSignalService {
       updatedAt: DateTime.now(),
     );
 
-    await _firestore
-        .doc(_signalPath(eventId, registrantId))
-        .set(signal.toJson());
+    final path = _signalPath(eventId, registrantId);
+    try {
+      await _firestore.doc(path).set(signal.toJson());
+    } catch (e, st) {
+      _log('generateForRegistrant FAILED');
+      _log('  path: $path');
+      _log('  database: ${FirestoreConfig.databaseId}');
+      _log('  error: $e');
+      _log('  stack: $st');
+      rethrow;
+    }
   }
 
   /// Get formation signal for a registrant.

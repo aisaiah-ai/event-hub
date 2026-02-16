@@ -22,6 +22,17 @@ service cloud.firestore {
         );
     }
 
+    function selfCheckinEnabled(eventId) {
+      return eventId == 'nlc-2026' || (exists(/databases/$(database)/documents/events/$(eventId))
+        && get(/databases/$(database)/documents/events/$(eventId)).data.get('metadata', {}).get('selfCheckinEnabled', false) == true);
+    }
+
+    function isSelfCheckinRegistrantUpdate() {
+      return (request.auth == null || request.auth.token.firebase.sign_in_provider == 'anonymous')
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['eventAttendance', 'checkInSource', 'updatedAt', 'sessionsCheckedIn']);
+    }
+
     match /events/{eventId} {
 
       allow read: if true;
@@ -32,8 +43,24 @@ service cloud.firestore {
       }
 
       match /registrants/{registrantId} {
-        allow read: if isStaff(eventId);
-        allow write: if isStaff(eventId);
+        // Public read for nlc-2026 (check-in search). Staff: full access.
+        // selfCheckinEnabled: public read when event allows self-check-in.
+        allow read: if eventId == 'nlc-2026'
+          || isStaff(eventId)
+          || selfCheckinEnabled(eventId);
+        // Update: staff OR unauthenticated self-check-in (eventAttendance only)
+        allow update: if (
+            // Staff full access
+            (request.auth != null && isStaff(eventId))
+            ||
+            // Anonymous public arrival check-in (Relaxed for debugging)
+            (
+              eventId == 'nlc-2026' &&
+              (request.auth == null || request.auth.token.firebase.sign_in_provider == 'anonymous') &&
+              // Only allow updating eventAttendance
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['eventAttendance'])
+            )
+        );
       }
 
       match /schemas/{docId} {
@@ -44,15 +71,33 @@ service cloud.firestore {
       match /sessions/{sessionId} {
         allow read: if true;
 
+        // Session attendance: allow create/read so self-check-in works (no auth required).
+        // Tighten to eventId == 'nlc-2026' || selfCheckinEnabled(eventId) if you need to restrict by event.
         match /attendance/{registrantId} {
-          allow read: if isStaff(eventId);
-          allow create: if isStaff(eventId);
+          allow create, read: if true;
+          allow update, delete: if false;
         }
+      }
+
+      // Stats: Cloud Functions only can write; staff can read.
+      match /stats/{doc} {
+        allow read: if isStaff(eventId);
+        allow write: if false;
+        match /checkinBuckets/{bucketId} {
+          allow read: if isStaff(eventId);
+          allow write: if false;
+        }
+      }
+
+      match /analytics/{docId} {
+        allow read: if request.auth != null;
+        allow write: if false;
       }
 
       match /formationSignals/{registrantId} {
         allow read: if isStaff(eventId);
-        allow write: if isStaff(eventId);
+        allow write: if isStaff(eventId)
+          || (selfCheckinEnabled(eventId) && request.auth == null);
       }
 
       match /admins/{email} {

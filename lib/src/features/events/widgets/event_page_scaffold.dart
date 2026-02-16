@@ -7,64 +7,143 @@ import '../event_tokens.dart';
 /// Scaffold for event pages with dynamic branding: background and logo.
 /// Uses [EventModel] branding when provided, otherwise defaults.
 class EventPageScaffold extends StatelessWidget {
-  const EventPageScaffold({super.key, this.event, this.body, this.appBar});
+  const EventPageScaffold({
+    super.key,
+    this.event,
+    this.eventSlug,
+    this.body,
+    this.appBar,
+  });
 
   final EventModel? event;
+  /// Route param (e.g. 'nlc') used for background fallback when event is loading.
+  final String? eventSlug;
   final Widget? body;
   final PreferredSizeWidget? appBar;
 
   @override
   Widget build(BuildContext context) {
     final primary = event?.primaryColor ?? EventTokens.primaryBlue;
+    final bgUrl = _effectiveBackgroundImageUrl();
+    final useNlcLocalAsset = bgUrl == EventPageScaffold.nlcBackgroundAsset;
 
     return Scaffold(
-      backgroundColor: primary,
+      backgroundColor: bgUrl != null ? Colors.transparent : primary,
       appBar: appBar,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [_buildBackground(primary), body ?? const SizedBox.shrink()],
-      ),
+      body: useNlcLocalAsset
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    EventPageScaffold.nlcBackgroundAsset,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.45),
+                  ),
+                ),
+                SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: body ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Stack(
+              fit: StackFit.expand,
+              children: [_buildBackground(primary), body ?? const SizedBox.shrink()],
+            ),
     );
   }
 
+  /// NLC 2026: local asset only (weekend-safe). No network images.
+  static const String nlcBackgroundAsset = 'assets/images/nlc_background.png';
+
+  String? _effectiveBackgroundImageUrl() {
+    var url = event?.backgroundImageUrl;
+    if (url != null && url.isNotEmpty) {
+      if (url.contains('background2.svg')) return nlcBackgroundAsset;
+      return url;
+    }
+    final slug = event?.slug ?? eventSlug;
+    if (slug == 'nlc' ||
+        slug == 'nlc-2026' ||
+        (event?.name.toLowerCase().contains('national leaders conference') ?? false))
+      return nlcBackgroundAsset;
+    return null;
+  }
+
   Widget _buildBackground(Color primary) {
+    final bgUrl = _effectiveBackgroundImageUrl();
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Gradient base
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.lerp(primary, Colors.white, 0.08) ?? primary,
-                primary,
-                Color.lerp(primary, Colors.black, 0.15) ?? primary,
-              ],
+        // Gradient base (skip when using full background image)
+        if (bgUrl == null)
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(primary, Colors.white, 0.08) ?? primary,
+                  primary,
+                  Color.lerp(primary, Colors.black, 0.15) ?? primary,
+                ],
+              ),
             ),
           ),
-        ),
-        // Optional full background image
-        if (event?.backgroundImageUrl != null &&
-            event!.backgroundImageUrl!.isNotEmpty)
-          _buildBackgroundImage(event!.backgroundImageUrl!),
-        // Pattern overlay (event-specific or default CFC mosaic)
-        _buildPatternOverlay(
-          event?.backgroundPatternUrl ?? 'assets/checkin/mossaic.svg',
-        ),
+        // Optional full background image (NLC fallback when slug is 'nlc')
+        if (bgUrl case final url?)
+          _buildBackgroundImage(url),
+        // Pattern overlay (skip when using full background image; it often has its own pattern)
+        if (bgUrl == null)
+          _buildPatternOverlay(
+            event?.backgroundPatternUrl ?? 'assets/checkin/mossaic.svg',
+          ),
       ],
     );
   }
 
   Widget _buildBackgroundImage(String url) {
-    if (_isAssetPath(url)) {
-      return Image.asset(url, fit: BoxFit.cover);
+    if (url.toLowerCase().endsWith('.svg')) {
+      if (_isAssetPath(url)) {
+        return Positioned.fill(
+          child: SvgPicture.asset(
+            url,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        );
+      }
+      return Positioned.fill(
+        child: SvgPicture.network(
+          url,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          placeholderBuilder: (_) => const SizedBox.expand(),
+        ),
+      );
     }
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (_, e, st) => const SizedBox.expand(),
+    if (_isAssetPath(url)) {
+      return Positioned.fill(
+        child: Image.asset(url, fit: BoxFit.cover),
+      );
+    }
+    return Positioned.fill(
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, e, st) => const SizedBox.expand(),
+      ),
     );
   }
 

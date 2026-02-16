@@ -44,6 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Firebase deploy backup (scripts restore firebase.json)
+firebase.json.bak
+
 # Terraform
 infra/**/.terraform/
 infra/**/*.tfstate

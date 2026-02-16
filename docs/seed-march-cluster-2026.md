@@ -13,7 +13,7 @@ The app uses the **event-hub-prod** named database. If it doesn't exist, the app
 3. Choose **Create database** (not "Create database in Firestore Native")
 4. Database ID: **event-hub-prod**
 5. Location: same as your project (e.g. `us-central1`)
-6. Finish. Then deploy rules: `firebase deploy --only firestore`
+6. Finish. Then deploy rules: `./scripts/deploy-firestore-dev.sh` (dev) or `./scripts/deploy-firestore-prod.sh` (prod). See docs/FIRESTORE_DEPLOY.md.
 
 ---
 
@@ -22,10 +22,10 @@ The app uses the **event-hub-prod** named database. If it doesn't exist, the app
 If you see `cloud_firestore/permission-denied`, deploy the Firestore rules:
 
 ```bash
-firebase deploy --only firestore
+./scripts/deploy-firestore-dev.sh
 ```
 
-This deploys rules to all databases (default, event-hub-dev, event-hub-prod). The rules allow:
+This deploys rules to **event-hub-dev** only (prod untouched). Use `./scripts/deploy-firestore-prod.sh` for prod. The rules allow:
 - **Public read** on `events` collection (for landing/RSVP pages)
 - **Public create** on `events/{eventId}/rsvps` (for RSVP submissions)
 

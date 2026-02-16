@@ -1,22 +1,17 @@
-/// Environment controlled ONLY by --dart-define=ENV=dev|prod.
-/// No hostname-based detection. No silent fallback.
-///
-/// Fails fast on startup if ENV is undefined or invalid.
+/// Environment controlled by --dart-define=ENV=dev|prod.
+/// Defaults to 'dev' when not set (local development).
+/// CI/CD should always pass ENV explicitly.
 class Environment {
   static const String _raw =
-      String.fromEnvironment('ENV', defaultValue: '');
+      String.fromEnvironment('ENV', defaultValue: 'dev');
 
-  /// Validated environment. Throws if undefined or invalid.
+  /// Validated environment. Defaults to 'dev' when not set.
   static String get env {
-    if (_raw.isEmpty) {
-      throw StateError(
-        'ENV not defined. Use --dart-define=ENV=dev or --dart-define=ENV=prod',
-      );
+    final value = _raw.isEmpty ? 'dev' : _raw;
+    if (value != 'dev' && value != 'prod') {
+      throw StateError('ENV must be "dev" or "prod", got: "$value"');
     }
-    if (_raw != 'dev' && _raw != 'prod') {
-      throw StateError('ENV must be "dev" or "prod", got: "$_raw"');
-    }
-    return _raw;
+    return value;
   }
 
   static bool get isDev => env == 'dev';

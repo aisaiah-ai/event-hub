@@ -130,13 +130,6 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
 
   Future<void> _checkIn(Registrant r) async {
     try {
-      if (!r.eventAttendance.checkedIn) {
-        await _registrantService.checkInEvent(
-          widget.eventId,
-          r.id,
-          widget.checkedInBy,
-        );
-      }
       await _sessionService.checkInSession(
         widget.eventId,
         widget.sessionId,

@@ -153,4 +153,11 @@ class EventModel {
 
   /// RSVP deadline from metadata (e.g. "March 10").
   String? get rsvpDeadlineText => metadata['rsvpDeadline'] as String?;
+
+  /// Self-check-in enabled (public QR/search/manual at venue).
+  bool get selfCheckinEnabled =>
+      metadata['selfCheckinEnabled'] as bool? ?? allowCheckin;
+
+  /// Multiple sessions for check-in (e.g. Day 1, Day 2).
+  bool get sessionsEnabled => metadata['sessionsEnabled'] as bool? ?? false;
 }

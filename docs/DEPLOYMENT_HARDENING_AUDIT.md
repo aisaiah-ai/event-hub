@@ -40,6 +40,13 @@
 - **Single Firebase project**: The app uses one Firebase project (`aisaiah-event-hub`) with two named Firestore databases (`event-hub-dev`, `event-hub-prod`). ENV selects the database. No separate `firebase_options_dev.dart` / `firebase_options_prod.dart`.
 - **host_utils**: Used only for routing (rsvp.aisaiah.org → short RSVP URL). Never used for ENV or Firebase.
 
+## Firestore Deploy Separation (Added)
+
+- **firebase.json** defaults to dev only (`event-hub-dev`). `firebase deploy --only firestore:rules` deploys to dev only.
+- **scripts/deploy-firestore-dev.sh** — deploy rules to dev (safe for local development).
+- **scripts/deploy-firestore-prod.sh** — deploy rules to prod (explicit, use with care).
+- See **docs/FIRESTORE_DEPLOY.md** for details.
+
 ## Remaining Risks
 
 1. **Build without ENV**: `flutter build web --release` (no `--dart-define`) compiles successfully. The app throws at **runtime** when loaded. CI always passes ENV, so production builds are safe. Local builds without ENV will fail when run.

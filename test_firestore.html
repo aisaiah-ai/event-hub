@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firestore Test</title>
+</head>
+<body>
+  <p>Open DevTools Console. Check for OK or FAIL.</p>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+    import { getFirestore, collection, query, limit, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+    const config = {
+      apiKey: 'AIzaSyDEcxBJLcsLKPtduEMwjvbqJJP15BbslZw',
+      projectId: 'aisaiah-event-hub',
+      authDomain: 'aisaiah-event-hub.firebaseapp.com',
+      storageBucket: 'aisaiah-event-hub.firebasestorage.app',
+    };
+    const app = initializeApp(config);
+    const db = getFirestore(app);
+
+    const registrantsRef = collection(db, 'events', 'nlc-2026', 'registrants');
+    getDocs(query(registrantsRef, limit(1)))
+      .then(snap => {
+        console.log('OK:', snap.size, 'docs');
+        document.body.innerHTML += '<p style="color:green">OK: ' + snap.size + ' docs</p>';
+      })
+      .catch(e => {
+        console.error('FAIL:', e);
+        document.body.innerHTML += '<p style="color:red">FAIL: ' + e.message + '</p>';
+      });
+  </script>
+</body>
+</html>

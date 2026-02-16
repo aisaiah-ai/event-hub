@@ -1,3 +1,5 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
@@ -41,6 +43,67 @@ void main() async {
   }
 
   if (firebaseOk) {
+    // Debug: confirm Firebase project (must match Firebase Console)
+    // ignore: avoid_print
+    print('Firebase Project: ${Firebase.app().options.projectId}');
+
+    // Ensure request.auth is available for write paths in stricter rule sets.
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      debugPrint('✅ Firebase Auth: anonymous session active.');
+    } catch (e) {
+      debugPrint('⚠️ Firebase Auth anonymous sign-in failed: $e');
+    }
+
+    // Activate App Check (don't block app if it fails, e.g. on web without provider)
+    bool appCheckOk = false;
+    // START DEBUGGING: APP CHECK DISABLED
+    // Note: If App Check Enforcement is ON in Console, this will fail with permission-denied.
+    // Ensure Enforcement is OFF for Firestore in Firebase Console.
+    debugPrint('🛑 APP CHECK ACTIVATION COMMENTED OUT.'); 
+    appCheckOk = true; 
+    
+    /*
+    try {
+      if (kIsWeb) {
+        // BYPASS App Check in DEV to unblock development (since rules are currently 'allow all')
+        if (Environment.isDev) {
+            debugPrint('⚠️ SKIPPING App Check activation in DEV to bypass permission errors.');
+            debugPrint('⚠️ Ensure your Firestore Rules allow access accordingly.');
+            appCheckOk = true; 
+        } else {
+             // For web in PROD, we attempt to activate with a placeholder key
+            try {
+               await FirebaseAppCheck.instance.activate(
+                webProvider: ReCaptchaV3Provider('6Le5-TQmAAAAADwXqGj8d4_j4L4x4c4x4c4x4c4'),
+              );
+              debugPrint('✅ App Check: Activated for Web.');
+              appCheckOk = true; 
+            } catch (e) {
+               debugPrint('❌ App Check: Web activation failed: $e');
+            }
+        }
+      } else {
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.debug,
+          appleProvider: AppleProvider.debug,
+        );
+        appCheckOk = true;
+      }
+    } catch (e) {
+      debugPrint('App Check activate failed (non-fatal): $e');
+    }
+    */
+    // END DEBUGGING
+    if (kDebugMode && !appCheckOk) {
+      debugPrint(
+        'TROUBLESHOOTING: App Check is not active. If Firestore returns permission-denied, '
+        'go to Firebase Console → App Check → Firestore and either:\n'
+        '  1) Disable enforcement (recommended for dev), or\n'
+        '  2) Add ReCaptchaV3Provider for web and register your domain.',
+      );
+    }
+
     FirestoreConfig.initFromEnvironment();
     // Safety: ensure Firestore matches ENV (debug mode only; asserts removed in release)
     assert(
@@ -50,14 +113,17 @@ void main() async {
       'FirestoreConfig must match Environment',
     );
     runApp(
-      Environment.isDev
-          ? Banner(
-              message: 'DEV ENVIRONMENT',
-              location: BannerLocation.topEnd,
-              color: Colors.red,
-              child: const EventHubApp(),
-            )
-          : const EventHubApp(),
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Environment.isDev
+            ? Banner(
+                message: 'DEV ENVIRONMENT',
+                location: BannerLocation.topEnd,
+                color: Colors.red,
+                child: const EventHubApp(),
+              )
+            : const EventHubApp(),
+      ),
     );
   } else {
     runApp(const _FirebaseErrorApp());

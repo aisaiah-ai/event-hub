@@ -64,6 +64,10 @@ class RegistrantFlags {
 }
 
 /// Registrant document stored at events/{eventId}/registrants/{registrantId}
+///
+/// Firestore shape must match Nlc2026Schema: eventAttendance, checkInSource,
+/// sessionsCheckedIn (sessionId -> Timestamp), updatedAt. Cloud Functions
+/// and check-in writes use these fields; fromFirestore reads them.
 class Registrant {
   const Registrant({
     required this.id,
@@ -76,6 +80,8 @@ class Registrant {
     this.updatedAt,
     this.eventAttendance = const EventAttendance(),
     this.flags = const RegistrantFlags(),
+    this.checkInSource,
+    this.sessionsCheckedIn = const {},
   });
 
   final String id;
@@ -88,6 +94,10 @@ class Registrant {
   final DateTime? updatedAt;
   final EventAttendance eventAttendance;
   final RegistrantFlags flags;
+  /// 'QR' | 'SEARCH' | 'MANUAL' — set by check-in flow.
+  final String? checkInSource;
+  /// sessionId -> check-in time (per NLC 2026 data model).
+  final Map<String, DateTime> sessionsCheckedIn;
 
   Map<String, dynamic> toJson() => {
     'profile': profile,
@@ -99,12 +109,25 @@ class Registrant {
     if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
     'eventAttendance': eventAttendance.toJson(),
     'flags': flags.toJson(),
+    if (checkInSource != null) 'checkInSource': checkInSource,
+    if (sessionsCheckedIn.isNotEmpty)
+      'sessionsCheckedIn': Map.fromEntries(
+        sessionsCheckedIn.entries.map(
+          (e) => MapEntry(e.key, Timestamp.fromDate(e.value)),
+        ),
+      ),
   };
 
   factory Registrant.fromFirestore(String id, Map<String, dynamic> json) {
     final registeredAt = json['registeredAt'];
     final createdAt = json['createdAt'];
     final updatedAt = json['updatedAt'];
+    final sessionsRaw = json['sessionsCheckedIn'] as Map<String, dynamic>? ?? {};
+    final sessionsCheckedIn = <String, DateTime>{};
+    for (final e in sessionsRaw.entries) {
+      final v = e.value;
+      if (v is Timestamp) sessionsCheckedIn[e.key] = v.toDate();
+    }
     return Registrant(
       id: id,
       profile: Map<String, dynamic>.from(json['profile'] as Map? ?? {}),
@@ -118,6 +141,8 @@ class Registrant {
         json['eventAttendance'] as Map<String, dynamic>?,
       ),
       flags: RegistrantFlags.fromJson(json['flags'] as Map<String, dynamic>?),
+      checkInSource: json['checkInSource'] as String?,
+      sessionsCheckedIn: sessionsCheckedIn,
     );
   }
 
