@@ -62,11 +62,17 @@ Requires `gcloud auth application-default login`. This creates the event doc, 4 
 - **Registrants update:** Staff **or** unauthenticated when `selfCheckinEnabled(eventId)` (see §5 below)
 - **Other collections:** Unchanged (RSVP, sessions, checkins, etc.)
 
-**Deployed:**
-- **event-hub-dev** and **(default):** `firebase deploy --only firestore:rules` (uses `firebase.json`; both databases use `firestore.rules`).
-- **event-hub-prod:** `firebase deploy --config firebase.prod.json --only firestore:rules`.
+**Deployed:** Use explicit database targets (required when multiple databases exist):
 
-**Why event-hub-dev was denying:** Rules on **event-hub-dev** were not updated by CLI deploys (Console showed different/stricter rules). **If event-hub-dev still returns permission-denied after deploy:** paste rules manually: Firebase Console → Firestore → database **event-hub-dev** → Rules tab → paste contents of `firestore.rules` → Publish. See `docs/FIRESTORE_DEV_TROUBLESHOOTING.md` for step-by-step. **firebase.prod.json** now includes event-hub-dev so `firebase deploy --only firestore:rules --config firebase.prod.json` deploys to (default), event-hub-dev, and event-hub-prod.
+```bash
+# Dev
+./scripts/deploy-firestore-dev.sh   # runs: firestore:(default) + firestore:event-hub-dev
+
+# Prod
+./scripts/deploy-firestore-prod.sh  # runs: (default), event-hub-dev, event-hub-prod
+```
+
+**Root cause (fixed):** `firebase deploy --only firestore:rules` does not reliably deploy to all databases. Scripts now use `firebase deploy --only 'firestore:(default)'` and `firebase deploy --only 'firestore:event-hub-dev'` to target each database explicitly. See `.cursor/rules/firestore-rules-deploy.mdc`.
 
 ### 2. Project ID check
 

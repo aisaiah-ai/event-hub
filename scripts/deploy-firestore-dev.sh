@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Deploy Firestore rules to DEV databases: (default) and event-hub-dev.
-# Uses firebase.json which targets both. For event-hub-dev only, use firebase.dev.json.
+# Must target each database explicitly — firestore:rules alone can skip databases.
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo "→ Deploying Firestore rules to (default) and event-hub-dev..."
-firebase deploy --only firestore:rules
+echo "→ Deploying rules to (default)..."
+firebase deploy --only 'firestore:(default)'
 
-echo "→ Deploying to event-hub-dev explicitly (in case main config skipped it)..."
-firebase deploy --only firestore:rules --config firebase.dev.json
+echo "→ Deploying rules to event-hub-dev..."
+firebase deploy --only 'firestore:event-hub-dev'
 
 echo "✔ Dev deploy complete. Prod unchanged."

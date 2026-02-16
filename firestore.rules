@@ -72,10 +72,15 @@ service cloud.firestore {
         allow read: if true;
 
         // Session attendance: allow create/read so self-check-in works (no auth required).
-        // Tighten to eventId == 'nlc-2026' || selfCheckinEnabled(eventId) if you need to restrict by event.
         match /attendance/{registrantId} {
           allow create, read: if true;
           allow update, delete: if false;
+        }
+
+        // Session analytics: Cloud Functions only write; read for check-in dashboard.
+        match /analytics/{docId} {
+          allow read: if true;
+          allow write: if false;
         }
       }
 
@@ -89,7 +94,14 @@ service cloud.firestore {
         }
       }
 
+      // Global analytics: Cloud Functions only write; read for check-in dashboard.
       match /analytics/{docId} {
+        allow read: if true;
+        allow write: if false;
+      }
+
+      // Attendee index: Cloud Functions only write; authenticated read.
+      match /attendeeIndex/{registrantId} {
         allow read: if request.auth != null;
         allow write: if false;
       }

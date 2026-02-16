@@ -21,8 +21,8 @@ import 'screens/home_screen.dart';
 import 'features/debug/presentation/connection_test_screen.dart';
 import 'utils/host_utils.dart';
 
-/// Event ID for development. In production, derive from route or auth.
-const defaultEventId = 'nlc-2025';
+/// Event ID for development. Must match seeded data (nlc-2026).
+const defaultEventId = 'nlc-2026';
 
 /// Default event slug for rsvp.aisaiah.org root.
 const _defaultRsvpEventSlug = 'march-cluster-2026';

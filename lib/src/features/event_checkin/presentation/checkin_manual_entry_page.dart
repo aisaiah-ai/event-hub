@@ -10,6 +10,8 @@ import '../../events/data/event_repository.dart';
 import '../../events/event_tokens.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import '../data/checkin_repository.dart';
+import 'theme/checkin_theme.dart';
+import 'widgets/conference_header.dart';
 
 /// Manual check-in for walk-ins: create minimal registrant then session check-in.
 class CheckinManualEntryPage extends StatefulWidget {
@@ -140,12 +142,12 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: EventTokens.textOffWhite),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Enter Manually',
-          style: TextStyle(color: EventTokens.textOffWhite),
+          style: TextStyle(color: Colors.white),
         ),
       ),
       body: SingleChildScrollView(
@@ -153,6 +155,14 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            ConferenceHeader(logoUrl: _event?.logoUrl),
+            const SizedBox(height: AppSpacing.afterHeader),
+            Text(
+              'Enter Manually',
+              style: AppTypography.subtitle(context),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.belowSubtitle),
             _buildField('First name *', _firstNameController),
             const SizedBox(height: EventTokens.spacingM),
             _buildField('Last name *', _lastNameController),
@@ -196,13 +206,14 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
         ),
       ),
-      style: const TextStyle(color: EventTokens.textOffWhite),
+      style: const TextStyle(color: Colors.white),
     );
   }
 }

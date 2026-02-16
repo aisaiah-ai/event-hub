@@ -30,7 +30,7 @@ class FirestoreConfig {
     if (_instance != null) return _instance;
     try {
       final app = Firebase.app();
-      _instance = FirebaseFirestore.instanceFor(app: app);
+      _instance = FirebaseFirestore.instanceFor(app: app, databaseId: databaseId);
       _log('Connected: project=${app.options.projectId}, database=$databaseId');
       return _instance;
     } catch (e) {

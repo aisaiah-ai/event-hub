@@ -168,6 +168,90 @@
 
 ---
 
+## 2026-02-15 — Dashboard refactor: Pure Session Architecture, analytics, export
+
+**What was done**
+- Added analytics data model: `events/{eventId}/analytics/global`, `events/{eventId}/sessions/{sessionId}/analytics/summary`, `events/{eventId}/attendeeIndex/{registrantId}`.
+- Cloud Function `onAttendanceCreate` now writes to new analytics docs using `FieldValue.increment(1)`; creates attendeeIndex for first-time attendees.
+- Dashboard reads only from analytics docs (no attendance scan). Redesigned with metric cards, session table, aggregation dropdown, export button.
+- CSV/Excel export: raw attendance (scans collections) and aggregated (from analytics). Batched pagination for raw export.
+- Firestore rules: `analytics/*`, `sessions/*/analytics/*`, `attendeeIndex/*` — read if auth, write if false (Cloud Functions only).
+- Callable `backfillAnalytics` for one-time migration of existing attendance into analytics docs.
+
+**What was tried**
+- Production-grade dashboard for 3,000+ attendees; scalable counters; no client-side aggregation.
+
+**Outcome / still broken**
+- Implementation complete. Deploy Cloud Functions and Firestore rules. Run `backfillAnalytics` for existing events with attendance data.
+
+**Next time (recall)**
+- Dashboard uses analytics docs only. If counts show 0 for events with attendance, run `backfillAnalytics` callable (admin only).
+
+---
+
+## 2026-02-15 — Analytics v2: Top Regions, Ministries, Timeline, Aggregation
+
+**What was done**
+- Extended `analytics/global` schema: `earliestCheckin`, `earliestRegistration`, `regionCounts`, `ministryCounts`, `hourlyCheckins` (YYYY-MM-DD-HH).
+- Extended `sessions/*/analytics/summary`: `regionCounts`, `ministryCounts`.
+- Cloud Function `onAttendanceCreate`: reads registrant for region/ministry; updates regionCounts, ministryCounts, hourlyCheckins; updates earliestCheckin when earlier.
+- `backfillAnalytics` callable: scans registrants for earliestRegistration; rebuilds all new fields.
+- Dashboard: Top 5 Regions, Top 5 Ministries (ranked list + horizontal bar); Timeline Intelligence (earliest check-in, earliest registration, peak hour); perDay aggregation uses hourlyCheckins when available.
+- Export: Excel now has 6 sheets (Summary, Regions, Ministries, Hourly, Sessions, Raw); aggregated CSV includes timeline metrics for entireEvent.
+
+**What was tried**
+- Production analytics upgrade without attendance scans on dashboard load.
+
+**Outcome / still broken**
+- Implementation complete. Deploy Cloud Functions. Run `backfillAnalytics` to populate new fields for existing data.
+
+**Next time (recall)**
+- Analytics v2 adds region/ministry/hourly. Run backfillAnalytics after deploy to populate.
+
+---
+
+## 2026-02-16 — Firestore rules deploy: fix root cause (explicit database targeting)
+
+**What was wrong**
+- `firebase deploy --only firestore:rules` does **not** reliably update rules when multiple Firestore databases exist in `firebase.json`. CLI may report success but Console shows old rules. User had to paste manually every time.
+
+**What was done**
+- **Deploy scripts now target each database explicitly:**
+  - `firebase deploy --only 'firestore:(default)'`
+  - `firebase deploy --only 'firestore:event-hub-dev'`
+  - `firebase deploy --only 'firestore:event-hub-prod'` (for prod)
+- **Updated scripts:**
+  - `deploy-firestore-dev.sh`: runs both (default) and event-hub-dev explicitly
+  - `deploy-firestore-prod.sh`: runs all three databases explicitly
+  - `deploy-firestore-rules-event-hub-dev.sh`: uses `firestore:event-hub-dev` instead of `firestore:rules --config firebase.dev.json`
+- `.cursor/rules/firestore-rules-deploy.mdc`: documents correct deploy; manual paste is fallback only.
+- `print-firestore-rules-for-paste.sh`: still available for auth/network failures.
+
+**Outcome**
+- Ran `./scripts/deploy-firestore-dev.sh`; both (default) and event-hub-dev reported "released rules" and "deployed indexes... successfully for X database". Rules now deploy reliably via CLI.
+
+**Next time (recall)**
+- Use `./scripts/deploy-firestore-dev.sh` (or prod script). Do not rely on `firebase deploy --only firestore:rules` alone; it can skip databases. Each database must be targeted explicitly.
+
+---
+
+## 2026-02-16 — Dashboard showed 0: wrong eventId (nlc-2025 vs nlc-2026)
+
+**What was wrong**
+- Dashboard queried `events/nlc-2025/analytics/global` and `events/nlc-2025/sessions` — 0 sessions, analytics doc doesn't exist.
+- All seeded data (registrants, attendance, analytics) lives in **nlc-2026**.
+
+**Root cause**
+- `app_router.dart` had `const defaultEventId = 'nlc-2025'`. Admin routes (dashboard, home, etc.) use this when no `eventId` query param is passed.
+
+**Fix**
+- Changed `defaultEventId` to `'nlc-2026'` so dashboard and admin screens target the correct event.
+
+**Next time (recall)**
+- defaultEventId must match the event where data exists (nlc-2026). Check logs for `eventId=` when debugging "0 results" — wrong eventId is a common cause.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

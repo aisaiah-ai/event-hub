@@ -17,8 +17,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "→ Deploying Firestore rules to PROD (event-hub-prod) only..."
+echo "→ Deploying Firestore rules to PROD databases..."
 cp firebase.json "$BACKUP"
 cp "$PROD_CONFIG" firebase.json
-firebase deploy --only firestore:rules
+firebase deploy --only 'firestore:(default)'
+firebase deploy --only 'firestore:event-hub-dev'
+firebase deploy --only 'firestore:event-hub-prod'
 echo "✔ Prod deploy complete."

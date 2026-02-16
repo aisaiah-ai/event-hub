@@ -50,7 +50,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.backfillStats = exports.onAttendanceCreate = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
+exports.backfillAnalytics = exports.backfillStats = exports.onAttendanceCreate = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -91,6 +91,15 @@ function normalizeRegionOther(text) {
         .replace(/\s+/g, " ") || "(empty)";
 }
 const safe = (s) => s.replace(/\./g, "_");
+/** Hour bucket: YYYY-MM-DD-HH */
+function hourBucket(ts) {
+    const d = ts.toDate();
+    const y = d.getFullYear();
+    const M = String(d.getMonth() + 1).padStart(2, "0");
+    const d_ = String(d.getDate()).padStart(2, "0");
+    const H = String(d.getHours()).padStart(2, "0");
+    return `${y}-${M}-${d_}-${H}`;
+}
 /** Bucket ID: yyyyMMddHHmm */
 function bucketId(ts) {
     const d = ts.toDate();
@@ -326,33 +335,93 @@ exports.onRegistrantCreate = functions.firestore
 });
 /**
  * onAttendanceCreate: sessions/{sessionId}/attendance/{registrantId} onCreate
- * Session-only check-in (registrant already event-checked-in). Increment sessionTotals, firstSessionCheckIn.
+ * Pure Session Architecture: updates scalable analytics counters.
+ * 1. Increment session analytics/summary attendanceCount, regionCounts, ministryCounts
+ * 2. Increment global analytics totalCheckins, regionCounts, ministryCounts, hourlyCheckins
+ * 3. If attendeeIndex does NOT exist: create it and increment totalUniqueAttendees
+ * 4. Update earliestCheckin if earlier
+ * Also keeps stats/overview for legacy dashboard compatibility.
  */
 exports.onAttendanceCreate = functions.firestore
     .document("events/{eventId}/sessions/{sessionId}/attendance/{registrantId}")
     .onCreate(async (snap, context) => {
-    var _a;
+    var _a, _b;
     const eventId = context.params.eventId;
     const sessionId = context.params.sessionId;
     const registrantId = context.params.registrantId;
     const data = snap.data();
     const checkedInAt = data === null || data === void 0 ? void 0 : data.checkedInAt;
-    const statsRef = db.doc(`events/${eventId}/stats/overview`);
+    const ts = checkedInAt !== null && checkedInAt !== void 0 ? checkedInAt : admin.firestore.Timestamp.now();
     const registrantRef = db.doc(`events/${eventId}/registrants/${registrantId}`);
     const registrantSnap = await registrantRef.get();
     const r = registrantSnap.data();
-    const rSessions = ((_a = r === null || r === void 0 ? void 0 : r.sessionsCheckedIn) !== null && _a !== void 0 ? _a : {});
-    if (rSessions[sessionId] != null) {
-        return null;
-    }
+    const region = (_a = getString(r, "region", "regionMembership")) !== null && _a !== void 0 ? _a : "Unknown";
+    const ministry = (_b = getString(r, "ministryMembership", "ministry")) !== null && _b !== void 0 ? _b : "Unknown";
+    const statsRef = db.doc(`events/${eventId}/stats/overview`);
+    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
+    const sessionAnalyticsRef = db.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
+    const attendeeIndexRef = db.doc(`events/${eventId}/attendeeIndex/${registrantId}`);
     await db.runTransaction(async (tx) => {
-        var _a, _b;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
+        const attendeeIndexSnap = await tx.get(attendeeIndexRef);
+        const isNewUniqueAttendee = !attendeeIndexSnap.exists;
+        const globalSnap = await tx.get(globalAnalyticsRef);
+        const global = (_a = globalSnap.data()) !== null && _a !== void 0 ? _a : {};
+        const sessionSnap = await tx.get(sessionAnalyticsRef);
+        const sessionData = (_b = sessionSnap.data()) !== null && _b !== void 0 ? _b : {};
+        const regionKey = safe(region);
+        const ministryKey = safe(ministry);
+        const hourKey = hourBucket(ts);
+        const globalRegionCounts = Object.assign({}, (global.regionCounts || {}));
+        const globalMinistryCounts = Object.assign({}, (global.ministryCounts || {}));
+        const globalHourlyCheckins = Object.assign({}, (global.hourlyCheckins || {}));
+        globalRegionCounts[regionKey] = ((_c = globalRegionCounts[regionKey]) !== null && _c !== void 0 ? _c : 0) + 1;
+        globalMinistryCounts[ministryKey] = ((_d = globalMinistryCounts[ministryKey]) !== null && _d !== void 0 ? _d : 0) + 1;
+        globalHourlyCheckins[hourKey] = ((_e = globalHourlyCheckins[hourKey]) !== null && _e !== void 0 ? _e : 0) + 1;
+        const sessionRegionCounts = Object.assign({}, (sessionData.regionCounts || {}));
+        const sessionMinistryCounts = Object.assign({}, (sessionData.ministryCounts || {}));
+        sessionRegionCounts[regionKey] = ((_f = sessionRegionCounts[regionKey]) !== null && _f !== void 0 ? _f : 0) + 1;
+        sessionMinistryCounts[ministryKey] = ((_g = sessionMinistryCounts[ministryKey]) !== null && _g !== void 0 ? _g : 0) + 1;
+        const existingEarliest = global.earliestCheckin;
+        const existingTs = (_m = (_l = (_k = (_j = (_h = existingEarliest === null || existingEarliest === void 0 ? void 0 : existingEarliest.timestamp) === null || _h === void 0 ? void 0 : _h.toDate) === null || _j === void 0 ? void 0 : _j.call(_h)) === null || _k === void 0 ? void 0 : _k.getTime) === null || _l === void 0 ? void 0 : _l.call(_k)) !== null && _m !== void 0 ? _m : Infinity;
+        const newTs = (_r = (_q = (_p = (_o = ts.toDate) === null || _o === void 0 ? void 0 : _o.call(ts)) === null || _p === void 0 ? void 0 : _p.getTime) === null || _q === void 0 ? void 0 : _q.call(_p)) !== null && _r !== void 0 ? _r : 0;
+        const shouldUpdateEarliest = newTs < existingTs || !existingEarliest;
+        const globalUpdates = {
+            totalCheckins: admin.firestore.FieldValue.increment(1),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            regionCounts: globalRegionCounts,
+            ministryCounts: globalMinistryCounts,
+            hourlyCheckins: globalHourlyCheckins,
+        };
+        if (isNewUniqueAttendee) {
+            globalUpdates.totalUniqueAttendees = admin.firestore.FieldValue.increment(1);
+        }
+        if (shouldUpdateEarliest) {
+            globalUpdates.earliestCheckin = {
+                registrantId,
+                sessionId,
+                timestamp: ts,
+            };
+        }
+        tx.set(globalAnalyticsRef, globalUpdates, { merge: true });
+        tx.set(sessionAnalyticsRef, {
+            attendanceCount: admin.firestore.FieldValue.increment(1),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            regionCounts: sessionRegionCounts,
+            ministryCounts: sessionMinistryCounts,
+        }, { merge: true });
+        if (isNewUniqueAttendee) {
+            tx.set(attendeeIndexRef, {
+                firstSession: sessionId,
+                firstCheckinTime: ts,
+            });
+        }
         const statsSnap = await tx.get(statsRef);
-        const stats = (_a = statsSnap.data()) !== null && _a !== void 0 ? _a : {};
+        const stats = (_s = statsSnap.data()) !== null && _s !== void 0 ? _s : {};
         const sessionTotals = Object.assign({}, (stats.sessionTotals || {}));
         const firstSessionCheckIn = Object.assign({}, (stats.firstSessionCheckIn || {}));
         const sk = safe(sessionId);
-        sessionTotals[sk] = ((_b = sessionTotals[sk]) !== null && _b !== void 0 ? _b : 0) + 1;
+        sessionTotals[sk] = ((_t = sessionTotals[sk]) !== null && _t !== void 0 ? _t : 0) + 1;
         if (!firstSessionCheckIn[sk] && checkedInAt) {
             firstSessionCheckIn[sk] = { at: checkedInAt, registrantId };
         }
@@ -375,6 +444,120 @@ exports.backfillStats = functions.https.onCall(async (data, context) => {
     }
     await ensureStatsDoc(eventId);
     return { ok: true, eventId };
+});
+/**
+ * Callable: backfill analytics docs (global, session summary, attendeeIndex).
+ * Rebuilds: totalCheckins, totalUniqueAttendees, regionCounts, ministryCounts,
+ * hourlyCheckins, earliestCheckin, session summaries.
+ * Scans registrants for earliestRegistration.
+ * Admin only. Run once for existing data.
+ */
+exports.backfillAnalytics = functions.https.onCall(async (data, context) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4;
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Must be authenticated");
+    }
+    const eventId = data === null || data === void 0 ? void 0 : data.eventId;
+    if (!eventId) {
+        throw new functions.https.HttpsError("invalid-argument", "eventId required");
+    }
+    const email = (_b = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.token) === null || _b === void 0 ? void 0 : _b.email;
+    if (!email) {
+        throw new functions.https.HttpsError("permission-denied", "No email");
+    }
+    const adminsRef = db.doc(`events/${eventId}/admins/${email}`);
+    const adminSnap = await adminsRef.get();
+    const isAdmin = adminSnap.exists && (((_c = adminSnap.data()) === null || _c === void 0 ? void 0 : _c.role) === "ADMIN" || ((_d = adminSnap.data()) === null || _d === void 0 ? void 0 : _d.role) === "STAFF");
+    if (!isAdmin) {
+        throw new functions.https.HttpsError("permission-denied", "Only admin can run backfillAnalytics");
+    }
+    const globalRegionCounts = {};
+    const globalMinistryCounts = {};
+    const globalHourlyCheckins = {};
+    let earliestCheckin = null;
+    const sessionData = {};
+    const seenRegistrants = new Set();
+    const sessionsSnap = await db.collection(`events/${eventId}/sessions`).get();
+    for (const sessionDoc of sessionsSnap.docs) {
+        const sessionId = sessionDoc.id;
+        if (!sessionData[sessionId]) {
+            sessionData[sessionId] = { attendance: 0, regionCounts: {}, ministryCounts: {} };
+        }
+        const sd = sessionData[sessionId];
+        const attendanceSnap = await db
+            .collection(`events/${eventId}/sessions/${sessionId}/attendance`)
+            .get();
+        for (const attDoc of attendanceSnap.docs) {
+            const registrantId = attDoc.id;
+            const attData = attDoc.data();
+            const checkedInAt = attData === null || attData === void 0 ? void 0 : attData.checkedInAt;
+            const ts = checkedInAt !== null && checkedInAt !== void 0 ? checkedInAt : admin.firestore.Timestamp.now();
+            const isNew = !seenRegistrants.has(registrantId);
+            if (isNew)
+                seenRegistrants.add(registrantId);
+            sd.attendance++;
+            const registrantSnap = await db.doc(`events/${eventId}/registrants/${registrantId}`).get();
+            const r = registrantSnap.data();
+            const region = (_e = getString(r, "region", "regionMembership")) !== null && _e !== void 0 ? _e : "Unknown";
+            const ministry = (_f = getString(r, "ministryMembership", "ministry")) !== null && _f !== void 0 ? _f : "Unknown";
+            const rk = safe(region);
+            const mk = safe(ministry);
+            const hk = hourBucket(ts);
+            globalRegionCounts[rk] = ((_g = globalRegionCounts[rk]) !== null && _g !== void 0 ? _g : 0) + 1;
+            globalMinistryCounts[mk] = ((_h = globalMinistryCounts[mk]) !== null && _h !== void 0 ? _h : 0) + 1;
+            globalHourlyCheckins[hk] = ((_j = globalHourlyCheckins[hk]) !== null && _j !== void 0 ? _j : 0) + 1;
+            sd.regionCounts[rk] = ((_k = sd.regionCounts[rk]) !== null && _k !== void 0 ? _k : 0) + 1;
+            sd.ministryCounts[mk] = ((_l = sd.ministryCounts[mk]) !== null && _l !== void 0 ? _l : 0) + 1;
+            const existingTs = (_r = (_q = (_p = (_o = (_m = earliestCheckin === null || earliestCheckin === void 0 ? void 0 : earliestCheckin.timestamp) === null || _m === void 0 ? void 0 : _m.toDate) === null || _o === void 0 ? void 0 : _o.call(_m)) === null || _p === void 0 ? void 0 : _p.getTime) === null || _q === void 0 ? void 0 : _q.call(_p)) !== null && _r !== void 0 ? _r : Infinity;
+            const newTs = (_v = (_u = (_t = (_s = ts.toDate) === null || _s === void 0 ? void 0 : _s.call(ts)) === null || _t === void 0 ? void 0 : _t.getTime) === null || _u === void 0 ? void 0 : _u.call(_t)) !== null && _v !== void 0 ? _v : 0;
+            if (newTs < existingTs || !earliestCheckin) {
+                earliestCheckin = { registrantId, sessionId, timestamp: ts };
+            }
+            if (isNew) {
+                await db.doc(`events/${eventId}/attendeeIndex/${registrantId}`).set({
+                    firstSession: sessionId,
+                    firstCheckinTime: ts,
+                }, { merge: true });
+            }
+        }
+        await db.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`).set({
+            attendanceCount: sd.attendance,
+            regionCounts: sd.regionCounts,
+            ministryCounts: sd.ministryCounts,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    }
+    let earliestRegistration = null;
+    const registrantsSnap = await db.collection(`events/${eventId}/registrants`).get();
+    for (const doc of registrantsSnap.docs) {
+        const regAt = getRegisteredAt(doc.data());
+        if (regAt) {
+            const existingTs = (_0 = (_z = (_y = (_x = (_w = earliestRegistration === null || earliestRegistration === void 0 ? void 0 : earliestRegistration.timestamp) === null || _w === void 0 ? void 0 : _w.toDate) === null || _x === void 0 ? void 0 : _x.call(_w)) === null || _y === void 0 ? void 0 : _y.getTime) === null || _z === void 0 ? void 0 : _z.call(_y)) !== null && _0 !== void 0 ? _0 : Infinity;
+            const newTs = (_4 = (_3 = (_2 = (_1 = regAt.toDate) === null || _1 === void 0 ? void 0 : _1.call(regAt)) === null || _2 === void 0 ? void 0 : _2.getTime) === null || _3 === void 0 ? void 0 : _3.call(_2)) !== null && _4 !== void 0 ? _4 : 0;
+            if (newTs < existingTs || !earliestRegistration) {
+                earliestRegistration = { registrantId: doc.id, timestamp: regAt };
+            }
+        }
+    }
+    const totalCheckins = Object.values(sessionData).reduce((a, s) => a + s.attendance, 0);
+    const globalRef = db.doc(`events/${eventId}/analytics/global`);
+    await globalRef.set({
+        totalUniqueAttendees: seenRegistrants.size,
+        totalCheckins,
+        regionCounts: globalRegionCounts,
+        ministryCounts: globalMinistryCounts,
+        hourlyCheckins: globalHourlyCheckins,
+        earliestCheckin: earliestCheckin !== null && earliestCheckin !== void 0 ? earliestCheckin : null,
+        earliestRegistration: earliestRegistration !== null && earliestRegistration !== void 0 ? earliestRegistration : null,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return {
+        ok: true,
+        eventId,
+        totalUniqueAttendees: seenRegistrants.size,
+        totalCheckins,
+        sessionsProcessed: sessionsSnap.size,
+    };
 });
 __exportStar(require("./checkinAnalytics"), exports);
 //# sourceMappingURL=index.js.map
