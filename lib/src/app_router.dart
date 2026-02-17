@@ -18,7 +18,6 @@ import 'screens/admin/registrant_new_screen.dart';
 import 'screens/admin/schema_editor_screen.dart';
 import 'models/role_override.dart';
 import 'screens/home_screen.dart';
-import 'features/debug/presentation/connection_test_screen.dart';
 import 'utils/host_utils.dart';
 
 /// Event ID for development. Must match seeded data (nlc-2026).
@@ -266,10 +265,6 @@ GoRouter createAppRouter() {
               state.uri.queryParameters['eventId'] ?? defaultEventId;
           return ImportRegistrantsScreen(eventId: eventId);
         },
-      ),
-      GoRoute(
-        path: '/debug/connection-test',
-        builder: (context, state) => const ConnectionTestScreen(),
       ),
     ],
   );
