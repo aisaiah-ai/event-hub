@@ -18,7 +18,6 @@ import 'screens/admin/registrant_new_screen.dart';
 import 'screens/admin/schema_editor_screen.dart';
 import 'models/role_override.dart';
 import 'screens/home_screen.dart';
-import 'utils/host_utils.dart';
 
 /// Event ID for development. Must match seeded data (nlc-2026).
 const defaultEventId = 'nlc-2026';
@@ -35,8 +34,13 @@ DateTime? _parseEventDate(String? s) {
 }
 
 String get _initialLocation {
-  if (isNlcLanding) return '/events/nlc/checkin';
-  if (isRsvpSubdomain) return '/';
+  final host = Uri.base.host;
+  if (host == 'nlc.aisaiah.org' ||
+      host == 'localhost' ||
+      host == '127.0.0.1') {
+    return '/events/nlc/checkin';
+  }
+  if (host == 'rsvp.aisaiah.org') return '/';
   return '/admin/dashboard';
 }
 
@@ -48,8 +52,13 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/',
         redirect: (context, state) {
-          if (isRsvpSubdomain) return null;
-          if (isNlcLanding) return '/events/nlc/checkin';
+          final host = Uri.base.host;
+          if (host == 'rsvp.aisaiah.org') return null;
+          if (host == 'nlc.aisaiah.org' ||
+              host == 'localhost' ||
+              host == '127.0.0.1') {
+            return '/events/nlc/checkin';
+          }
           return '/admin/dashboard';
         },
         builder: (context, state) => EventRsvpPage(

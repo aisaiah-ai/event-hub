@@ -41,9 +41,12 @@ class AppSpacing {
 class AppTypography {
   AppTypography._();
 
+  /// 10% smaller than original 34 for better fit on mobile.
+  static const double headerTitleFontSize = 30.6;
+
   static TextStyle headerTitle(BuildContext context) =>
       GoogleFonts.playfairDisplay(
-        fontSize: 34,
+        fontSize: headerTitleFontSize,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
         color: AppColors.white,
@@ -51,7 +54,7 @@ class AppTypography {
 
   static TextStyle headerTitleGold(BuildContext context) =>
       GoogleFonts.playfairDisplay(
-        fontSize: 34,
+        fontSize: headerTitleFontSize,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.2,
         color: AppColors.gold,
