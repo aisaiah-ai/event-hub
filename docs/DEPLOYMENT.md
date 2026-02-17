@@ -1,17 +1,28 @@
 # Event Hub Deployment Guide
 
-CI/CD and infrastructure for Event Hub (Firebase Hosting + Firestore).
+CI/CD and infrastructure for Event Hub (Cloudflare Pages + Firestore).
 
-## Environments
+## Environments (Cloudflare Pages)
 
-| Environment | Branch | Firebase Project | Domain |
-|-------------|--------|------------------|--------|
-| DEV | `dev` | aisaiah-events-dev | events-dev.aisaiah.org |
-| PROD | `main` | aisaiah-events-prod | events.aisaiah.org |
+| Branch | ENV  | Pages project    | Domain (typical)   |
+|--------|------|------------------|--------------------|
+| `dev`  | dev  | event-hub-dev    | *.pages.dev        |
+| `main` | prod | event-hub        | rsvp.aisaiah.org   |
+| `nlc`  | prod | event-hub-nlc    | nlc.aisaiah.org    |
+
+Pushing to **nlc** deploys the same app (prod build) to a separate project so **rsvp.aisaiah.org** is not updated.
+
+### One-time setup: nlc.aisaiah.org
+
+1. In **Cloudflare Dashboard** → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** (or create project).
+2. Create a project named **event-hub-nlc** (or use **Create project** without Git — we deploy via CLI from the `nlc` branch).
+3. In that project go to **Custom domains** → **Set up a custom domain** → add **nlc.aisaiah.org**.
+4. Add the CNAME record Cloudflare shows (e.g. `nlc` → `event-hub-nlc.pages.dev`) in your aisaiah.org DNS.
+5. From the repo: create branch `nlc`, push it (e.g. `git push origin dev:nlc`). The Deploy workflow will build and deploy to **event-hub-nlc**; nlc.aisaiah.org will serve that deployment.
 
 ---
 
-## 1. How CI/CD Works
+## 1. How CI/CD Works (legacy / reference)
 
 ### Branch-based deployment
 

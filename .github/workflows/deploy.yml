@@ -6,6 +6,7 @@ on:
     branches:
       - dev
       - main
+      - nlc
 
 jobs:
   deploy-web:
@@ -27,6 +28,9 @@ jobs:
           elif [ "$BRANCH" = "dev" ]; then
             echo "ENV=dev" >> $GITHUB_OUTPUT
             echo "PROJECT=event-hub-dev" >> $GITHUB_OUTPUT
+          elif [ "$BRANCH" = "nlc" ]; then
+            echo "ENV=prod" >> $GITHUB_OUTPUT
+            echo "PROJECT=event-hub-nlc" >> $GITHUB_OUTPUT
           else
             echo "Unsupported branch: $BRANCH"
             exit 1
