@@ -14,11 +14,13 @@ Pushing to **nlc** deploys the same app (prod build) to a separate project so **
 
 ### One-time setup: nlc.aisaiah.org
 
-1. In **Cloudflare Dashboard** → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** (or create project).
-2. Create a project named **event-hub-nlc** (or use **Create project** without Git — we deploy via CLI from the `nlc` branch).
-3. In that project go to **Custom domains** → **Set up a custom domain** → add **nlc.aisaiah.org**.
-4. Add the CNAME record Cloudflare shows (e.g. `nlc` → `event-hub-nlc.pages.dev`) in your aisaiah.org DNS.
-5. From the repo: create branch `nlc`, push it (e.g. `git push origin dev:nlc`). The Deploy workflow will build and deploy to **event-hub-nlc**; nlc.aisaiah.org will serve that deployment.
+Create the Pages project in Cloudflare **without** connecting a Git repo — we use **GitHub Actions** to build and deploy (wrangler uploads the build to this project).
+
+1. **Cloudflare Dashboard** → **Workers & Pages** → **Create** → **Pages** → choose **Create project** (direct upload), not “Connect to Git”.
+2. Name the project **event-hub-nlc**.
+3. In that project: **Custom domains** → **Set up a custom domain** → add **nlc.aisaiah.org**.
+4. Add the CNAME Cloudflare shows (e.g. `nlc` → `event-hub-nlc.pages.dev`) in your aisaiah.org DNS.
+5. **Deploys**: Push to the **nlc** branch on GitHub (e.g. `git push origin dev:nlc`). The **Deploy** workflow in GitHub Actions builds and runs `wrangler pages deploy` to upload to **event-hub-nlc**. Check **Actions** on GitHub to see if the deploy succeeded.
 
 ---
 
