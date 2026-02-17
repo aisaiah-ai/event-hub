@@ -57,6 +57,8 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy build/web --project-name=${{ steps.env.outputs.PROJECT }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          packageManager: npm
+          wranglerVersion: "3.91.0"
 
   build-ios:
     name: Build iOS
