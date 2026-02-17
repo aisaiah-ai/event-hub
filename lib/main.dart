@@ -1,4 +1,3 @@
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:timezone/data/latest_10y.dart' as tz_data;
@@ -101,6 +100,7 @@ void main() async {
     }
     */
     // END DEBUGGING
+    // ignore: dead_code - appCheckOk is true while App Check is disabled; re-enable block to use
     if (kDebugMode && !appCheckOk) {
       debugPrint(
         'TROUBLESHOOTING: App Check is not active. If Firestore returns permission-denied, '

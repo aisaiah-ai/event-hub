@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 import '../config/firestore_config.dart';
 import '../models/registrant.dart';
@@ -100,7 +99,7 @@ class RegistrantService {
     final path = _registrantsPath(eventId);
     final dbId = FirestoreConfig.databaseId;
     try {
-      final snap = await _firestore.collection(path).limit(1).get();
+      await _firestore.collection(path).limit(1).get();
       _log('checkRegistrantReadPermission: ok, db=$dbId');
       return FirestoreRegistrantReadStatus(
         ok: true,

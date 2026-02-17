@@ -15,14 +15,11 @@ class SessionService {
     RegistrantService? registrantService,
     FormationSignalService? formationSignalService,
   }) : _firestore = firestore ?? FirestoreConfig.instance,
-       _registrantService =
-           registrantService ?? RegistrantService(firestore: firestore),
        _formationSignalService =
            formationSignalService ??
            FormationSignalService(firestore: firestore);
 
   final FirebaseFirestore _firestore;
-  final RegistrantService _registrantService;
   final FormationSignalService _formationSignalService;
 
   String _sessionsPath(String eventId) => 'events/$eventId/sessions';

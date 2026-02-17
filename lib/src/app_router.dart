@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 
-import '../../config/environment.dart';
 import 'features/checkin/checkin_screen.dart';
 import 'features/event_checkin/presentation/checkin_dashboard_screen.dart';
 import 'features/event_checkin/presentation/wallboard_screen.dart';

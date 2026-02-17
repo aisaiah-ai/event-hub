@@ -47,6 +47,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze
+        run: flutter analyze lib
+
       - name: Build Web
         run: flutter build web --release --dart-define=ENV=${{ steps.env.outputs.ENV }}
 
