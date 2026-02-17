@@ -57,6 +57,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
   bool _loadingSessions = true;
   /// True when event is nlc-2026 and sessions collection is empty (run initializeNlc2026).
   bool _eventNotInitialized = false;
+  /// Recent check-ins for the current session (name + timestamp).
+  List<({String name, DateTime timestamp})> _recentCheckins = [];
 
   @override
   void initState() {
@@ -67,6 +69,16 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
     );
     _repo = widget.repository ?? CheckinRepository();
     _loadSessions();
+    _loadRecentCheckins();
+  }
+
+  Future<void> _loadRecentCheckins() async {
+    final list = await _repo.getRecentCheckins(
+      widget.event.id,
+      _effectiveSessionId,
+      limit: 10,
+    );
+    if (mounted) setState(() => _recentCheckins = list);
   }
 
   static const List<Session> _defaultSessionFallback = [
@@ -246,6 +258,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
                         backgroundColor: AppColors.surfaceCard,
                         isPrimary: false,
                       ),
+                      const SizedBox(height: AppSpacing.betweenSections),
+                      _buildRecentCheckinsLog(),
                       const SizedBox(height: AppSpacing.footerTop),
                       const FooterCredits(),
                       const SizedBox(height: AppSpacing.betweenSections),
@@ -310,6 +324,72 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
             letterSpacing: 1.2,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecentCheckinsLog() {
+    if (_recentCheckins.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final timeFormat = (DateTime dt) =>
+        '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.goldGradientEnd.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history, size: 20, color: AppColors.goldGradientEnd),
+              const SizedBox(width: 8),
+              Text(
+                'Recent check-ins',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.navy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._recentCheckins.take(10).map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Text(
+                      timeFormat(e.timestamp),
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textPrimary87.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        e.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
       ),
     );
   }
@@ -508,6 +588,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
         source: 'self',
         method: method,
       );
+      if (!mounted) return;
+      await _loadRecentCheckins();
       if (!mounted) return;
       final registrant = await _repo.getRegistrant(widget.event.id, registrantId);
       final name = registrant != null ? _displayName(registrant) : 'Guest';

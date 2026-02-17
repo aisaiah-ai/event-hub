@@ -86,6 +86,48 @@ class CheckinRepository {
     );
   }
 
+  /// Recent check-ins for this session (name + time), most recent first. For the check-in page log.
+  Future<List<({String name, DateTime timestamp})>> getRecentCheckins(
+    String eventId,
+    String sessionId, {
+    int limit = 10,
+  }) async {
+    try {
+      final attSnap = await _firestore
+          .collection('events')
+          .doc(eventId)
+          .collection('sessions')
+          .doc(sessionId)
+          .collection('attendance')
+          .orderBy('checkedInAt', descending: true)
+          .limit(limit)
+          .get();
+      final results = <({String name, DateTime timestamp})>[];
+      for (final d in attSnap.docs) {
+        final data = d.data();
+        final ts = data['checkedInAt'];
+        final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
+        final reg = await _registrantService.getRegistrant(eventId, d.id);
+        final name = reg != null
+            ? (reg.profile['name'] ?? reg.profile['firstName'] ?? reg.answers['name'] ?? reg.answers['firstName'])
+                ?.toString()
+                .trim()
+            : null;
+        final first = reg?.profile['firstName'] ?? reg?.answers['firstName'];
+        final last = reg?.profile['lastName'] ?? reg?.answers['lastName'];
+        final displayName = (name != null && name.isNotEmpty)
+            ? name
+            : (first != null || last != null)
+                ? '${first ?? ''} ${last ?? ''}'.trim()
+                : 'Guest';
+        results.add((name: displayName.isEmpty ? 'Guest' : displayName, timestamp: dt));
+      }
+      return results;
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Active sessions for session selector.
   Future<List<Session>> getActiveSessions(String eventId) async {
     return _sessionService.getActiveSessions(eventId);
