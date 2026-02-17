@@ -65,6 +65,11 @@ class CheckinSessionPickerPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.betweenSections),
+                _ConferenceCheckinCard(
+                  eventSlug: eventSlug,
+                  decoration: _sessionCardDecoration,
+                ),
+                const SizedBox(height: AppSpacing.betweenSecondaryCards),
                 Text(
                   'Select your session',
                   style: GoogleFonts.inter(
@@ -117,6 +122,76 @@ BoxDecoration get _sessionCardDecoration => BoxDecoration(
         ),
       ],
     );
+
+class _ConferenceCheckinCard extends StatelessWidget {
+  const _ConferenceCheckinCard({
+    required this.eventSlug,
+    this.decoration,
+  });
+
+  final String eventSlug;
+  final BoxDecoration? decoration;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveDecoration = decoration ?? BoxDecoration(
+      color: AppColors.surfaceCard,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.25),
+          blurRadius: 16,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.go('/events/$eventSlug/main-checkin'),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: effectiveDecoration,
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.goldIconContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.qr_code_scanner,
+                  color: AppColors.navy,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Conference Check-In',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppColors.navy.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _SessionCard extends StatelessWidget {
   const _SessionCard({

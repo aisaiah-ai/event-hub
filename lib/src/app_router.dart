@@ -34,15 +34,22 @@ DateTime? _parseEventDate(String? s) {
   return DateTime.tryParse(s);
 }
 
+String get _initialLocation {
+  if (isNlcLanding) return '/events/nlc/checkin';
+  if (isRsvpSubdomain) return '/';
+  return '/admin/dashboard';
+}
+
 GoRouter createAppRouter() {
   return GoRouter(
-    initialLocation: '/admin/dashboard',
+    initialLocation: _initialLocation,
     routes: [
-      // rsvp.aisaiah.org: / shows RSVP. Otherwise / -> dashboard
+      // rsvp.aisaiah.org: / shows RSVP. nlc.aisaiah.org: / -> session picker. Otherwise / -> dashboard
       GoRoute(
         path: '/',
         redirect: (context, state) {
           if (isRsvpSubdomain) return null;
+          if (isNlcLanding) return '/events/nlc/checkin';
           return '/admin/dashboard';
         },
         builder: (context, state) => EventRsvpPage(
