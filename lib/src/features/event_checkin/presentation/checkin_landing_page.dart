@@ -332,7 +332,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
     if (_recentCheckins.isEmpty) {
       return const SizedBox.shrink();
     }
-    final timeFormat = (DateTime dt) =>
+    String formatTime(DateTime dt) =>
         '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -368,7 +368,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
                 child: Row(
                   children: [
                     Text(
-                      timeFormat(e.timestamp),
+                      formatTime(e.timestamp),
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         color: AppColors.textPrimary87.withValues(alpha: 0.8),
