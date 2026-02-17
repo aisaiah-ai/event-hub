@@ -59,7 +59,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm install -g wrangler@3
-          wrangler pages deploy build/web --project-name=${{ steps.env.outputs.PROJECT }}
+          # Deploy from inside build/web so wrangler does not scan repo root
+          # (avoids parsing functions/node_modules/event-target-shim and similar)
+          cd build/web && wrangler pages deploy . --project-name=${{ steps.env.outputs.PROJECT }}
 
   build-ios:
     name: Build iOS
