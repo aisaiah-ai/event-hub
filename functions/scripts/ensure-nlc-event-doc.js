@@ -35,6 +35,7 @@ const EVENT_ID = 'nlc-2026';
 // ----- 1. Event document (all required fields) -----
 const EVENT_DATA = {
   name: 'National Leaders Conference 2026',
+  slug: 'nlc-2026',
   venue: 'Hyatt Regency Valencia',
   createdAt: admin.firestore.FieldValue.serverTimestamp(),
   isActive: true,

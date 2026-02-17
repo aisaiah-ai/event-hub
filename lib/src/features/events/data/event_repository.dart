@@ -46,14 +46,20 @@ class EventRepository {
       if (snapshot.docs.isNotEmpty) {
         return EventModel.fromFirestore(snapshot.docs.first);
       }
+      // NLC: event doc is at events/nlc-2026; slug query may miss if slug field differs
+      if (slug == 'nlc-2026') {
+        final byId = await getEventById('nlc-2026');
+        if (byId != null) return byId;
+        return _nlcFallback;
+      }
     } catch (e) {
       if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
-      if (slug == 'nlc') return _nlcFallback;
+      if (slug == 'nlc' || slug == 'nlc-2026') return _nlcFallback;
       rethrow;
     }
 
     if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
-    if (slug == 'nlc') return _nlcFallback;
+    if (slug == 'nlc' || slug == 'nlc-2026') return _nlcFallback;
     return null;
   }
 

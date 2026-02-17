@@ -86,13 +86,7 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
             }
           },
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report, color: EventTokens.textOffWhite),
-            tooltip: 'Debug Connection',
-            onPressed: () => context.push('/debug/connection-test'),
-          ),
-        ],
+        actions: const [],
       ),
       body: _loading
           ? const Center(
