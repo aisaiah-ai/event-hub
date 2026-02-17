@@ -22,6 +22,25 @@ Create the Pages project in Cloudflare **without** connecting a Git repo — we 
 4. Add the CNAME Cloudflare shows (e.g. `nlc` → `event-hub-nlc.pages.dev`) in your aisaiah.org DNS.
 5. **Deploys**: Push to the **nlc** branch on GitHub (e.g. `git push origin dev:nlc`). The **Deploy** workflow in GitHub Actions builds and runs `wrangler pages deploy` to upload to **event-hub-nlc**. Check **Actions** on GitHub to see if the deploy succeeded.
 
+### Restrict the Google / Firebase Web API key
+
+Google may warn that your **Web API key** (in `lib/firebase_options.dart`) is publicly accessible. For Firebase web apps the key must stay in the client; the fix is to **restrict** it so it only works from your domains.
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → select project **AIsaiah Event Hub** (aisaiah-event-hub).
+2. **APIs & Services** → **Credentials** → find the **Web client** API key (the one used in `firebase_options.dart` for `web`).
+3. Click the key → **Application restrictions**:
+   - Choose **HTTP referrers (web sites)**.
+   - Add referrers (one per line), e.g.:
+     - `https://nlc.aisaiah.org/*`
+     - `https://rsvp.aisaiah.org/*`
+     - `https://*.event-hub.pages.dev/*`
+     - `https://*.event-hub-dev.pages.dev/*`
+     - `https://*.event-hub-nlc.pages.dev/*`
+     - `http://localhost:*/*`
+     - `http://127.0.0.1:*/*`
+4. Under **API restrictions**, choose **Restrict key** and select only the APIs your app uses (e.g. Firebase Authentication, Firestore), or leave unrestricted if you rely on referrer restrictions only.
+5. **Save**. After a short delay, the key will only work from those origins.
+
 ---
 
 ## 1. How CI/CD Works (legacy / reference)
