@@ -20,17 +20,18 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+/** Look up string from registrant doc: top-level, profile, or answers. Keys tried in order. */
 function getString(
   data: admin.firestore.DocumentData | undefined,
   ...keys: string[]
 ): string | null {
   if (!data) return null;
   const d = data as Record<string, unknown>;
+  const profile = (d.profile as Record<string, unknown>) || {};
+  const answers = (d.answers as Record<string, unknown>) || {};
   for (const key of keys) {
-    const profile = (d.profile as Record<string, unknown>) || {};
-    const answers = (d.answers as Record<string, unknown>) || {};
     const v = d[key] ?? profile[key] ?? answers[key];
-    if (v != null && typeof v === "string" && v.trim()) return (v as string).trim();
+    if (v != null && typeof v === "string" && (v as string).trim()) return (v as string).trim();
   }
   return null;
 }
@@ -60,14 +61,16 @@ function normalizeRegionOther(text: string): string {
 
 const safe = (s: string) => s.replace(/\./g, "_");
 
-/** Hour bucket: YYYY-MM-DD-HH */
-function hourBucket(ts: admin.firestore.Timestamp): string {
+/** 15-minute bucket: YYYY-MM-DD-HH-mm (mm = 00, 15, 30, 45). Used for check-in trend graph. */
+function quarterHourBucket(ts: admin.firestore.Timestamp): string {
   const d = ts.toDate();
   const y = d.getFullYear();
   const M = String(d.getMonth() + 1).padStart(2, "0");
   const d_ = String(d.getDate()).padStart(2, "0");
   const H = String(d.getHours()).padStart(2, "0");
-  return `${y}-${M}-${d_}-${H}`;
+  const min15 = Math.floor(d.getMinutes() / 15) * 15;
+  const mm = String(min15).padStart(2, "0");
+  return `${y}-${M}-${d_}-${H}-${mm}`;
 }
 
 /** Bucket ID: yyyyMMddHHmm */
@@ -206,9 +209,9 @@ export const onRegistrantCheckIn = functions.firestore
       const statsSnap = await tx.get(statsRef);
       const stats = statsSnap.exists ? (statsSnap.data() ?? {}) : {};
 
-      const region = getString(after, "region", "regionMembership") ?? "Unknown";
+      const region = getString(after, "region", "regionMembership", "Region") ?? "Unknown";
       const regionOther = getString(after, "regionOtherText", "regionOther");
-      const ministry = getString(after, "ministryMembership", "ministry") ?? "Unknown";
+      const ministry = getString(after, "ministryMembership", "ministry", "Ministry") ?? "Unknown";
       const service = getString(after, "service") ?? "Unknown";
       const earlyBird = isEarlyBird(after);
 
@@ -375,8 +378,9 @@ export const onAttendanceCreate = functions.firestore
     const registrantRef = db.doc(`events/${eventId}/registrants/${registrantId}`);
     const registrantSnap = await registrantRef.get();
     const r = registrantSnap.data();
-    const region = getString(r, "region", "regionMembership") ?? "Unknown";
-    const ministry = getString(r, "ministryMembership", "ministry") ?? "Unknown";
+    // Region/ministry from registration: try common keys (top-level, profile, answers).
+    const region = getString(r, "region", "regionMembership", "Region") ?? "Unknown";
+    const ministry = getString(r, "ministryMembership", "ministry", "Ministry") ?? "Unknown";
 
     const statsRef = db.doc(`events/${eventId}/stats/overview`);
     const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
@@ -394,7 +398,7 @@ export const onAttendanceCreate = functions.firestore
 
       const regionKey = safe(region);
       const ministryKey = safe(ministry);
-      const hourKey = hourBucket(ts);
+      const hourKey = quarterHourBucket(ts);
 
       const globalRegionCounts = { ...(global.regionCounts as Record<string, number> || {}) };
       const globalMinistryCounts = { ...(global.ministryCounts as Record<string, number> || {}) };
@@ -537,11 +541,11 @@ export const backfillAnalytics = functions.https.onCall(async (data, context) =>
 
       const registrantSnap = await db.doc(`events/${eventId}/registrants/${registrantId}`).get();
       const r = registrantSnap.data();
-      const region = getString(r, "region", "regionMembership") ?? "Unknown";
-      const ministry = getString(r, "ministryMembership", "ministry") ?? "Unknown";
+      const region = getString(r, "region", "regionMembership", "Region") ?? "Unknown";
+      const ministry = getString(r, "ministryMembership", "ministry", "Ministry") ?? "Unknown";
       const rk = safe(region);
       const mk = safe(ministry);
-      const hk = hourBucket(ts);
+      const hk = quarterHourBucket(ts);
 
       globalRegionCounts[rk] = (globalRegionCounts[rk] ?? 0) + 1;
       globalMinistryCounts[mk] = (globalMinistryCounts[mk] ?? 0) + 1;

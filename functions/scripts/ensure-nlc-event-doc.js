@@ -5,6 +5,7 @@
  * 1. events/nlc-2026 — event doc (name, venue, createdAt, isActive, metadata)
  * 2. events/nlc-2026/sessions/{id} — main-checkin only (name, location, order, isActive)
  * 3. events/nlc-2026/stats/overview — stats doc (all fields required for analytics)
+ * 4. events/nlc-2026/analytics/global — dashboard doc (hourlyCheckins, regionCounts, etc.; Cloud Function updates on check-in)
  *
  * Database: event-hub-dev (default for script), event-hub-prod, or (default).
  * When app uses (default) in dev (useEventHubDevInDev=false), run with --database=(default) so check-in works.
@@ -26,7 +27,7 @@ const db = admin.firestore();
 const dbArg = process.argv.find((a) => a.startsWith('--database='));
 const databaseId = dbArg
   ? dbArg.replace(/^--database=/, '').trim()
-  : 'event-hub-dev';
+  : '(default)';
 if (databaseId !== '(default)') {
   db.settings({ databaseId });
 }
@@ -66,6 +67,17 @@ const STATS_OVERVIEW = {
   updatedAt: admin.firestore.FieldValue.serverTimestamp(),
 };
 
+// ----- 4. Analytics global (dashboard reads this; Cloud Function updates on check-in) -----
+const ANALYTICS_GLOBAL = {
+  totalCheckins: 0,
+  totalUniqueAttendees: 0,
+  totalRegistrants: 0,
+  regionCounts: {},
+  ministryCounts: {},
+  hourlyCheckins: {},
+  lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+};
+
 async function run() {
   const batch = db.batch();
 
@@ -85,11 +97,15 @@ async function run() {
   const statsRef = db.doc(`events/${EVENT_ID}/stats/overview`);
   batch.set(statsRef, STATS_OVERVIEW, { merge: true });
 
+  const analyticsGlobalRef = db.doc(`events/${EVENT_ID}/analytics/global`);
+  batch.set(analyticsGlobalRef, ANALYTICS_GLOBAL, { merge: true });
+
   await batch.commit();
   console.log('OK: database=' + databaseId);
   console.log('OK: events/' + EVENT_ID + ' (event doc with name, venue, createdAt, isActive, metadata)');
   console.log('OK: events/' + EVENT_ID + '/sessions (main-checkin only)');
   console.log('OK: events/' + EVENT_ID + '/stats/overview (full stats structure)');
+  console.log('OK: events/' + EVENT_ID + '/analytics/global (check-in trend and Top 5 updated by Cloud Function)');
 }
 
 run().then(() => process.exit(0)).catch((err) => {

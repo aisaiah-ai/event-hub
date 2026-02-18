@@ -10,6 +10,7 @@ import '../../../services/dashboard_layout_service.dart';
 import '../../../widgets/rolling_counter.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import 'widgets/hourly_trend_chart.dart';
 import 'widgets/last_updated_with_timezone.dart';
 
 /// Real-time check-in analytics dashboard. Pure Session Architecture.
@@ -452,6 +453,8 @@ Widget _buildDashboardSection(
         sessions: sessions,
         registrantCount: registrantCount,
       );
+    case 'graph':
+      return _DashboardTrendSection(global: global);
     case 'top5':
       return _Top5Row(global: global);
     case 'sessionLeaderboard':
@@ -623,11 +626,12 @@ class _LiveIndicatorState extends State<_LiveIndicator>
         ),
         const SizedBox(width: 6),
         Text(
-          'Live',
+          'LIVE',
           style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
             color: AppColors.statusCheckedIn,
+            letterSpacing: 0.8,
           ),
         ),
       ],
@@ -652,14 +656,17 @@ class _MetricsTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     const mainCheckinId = 'main-checkin';
     final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
-    final mainCheckinCount = mainCheckin?.checkInCount ?? 0;
-    final sessionCheckins = global.totalCheckins - mainCheckinCount;
+    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
+    // Sum breakout sessions only (avoids negative when global.totalCheckins is stale)
+    final sessionCheckins = sessions
+        .where((s) => s.sessionId != mainCheckinId)
+        .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
 
     final tiles = [
       _MetricTile(
         icon: Icons.people_rounded,
         label: 'Total Registrants',
-        value: registrantCount,
+        value: registrantCount.clamp(0, 0x7FFFFFFF),
         subtext: null,
       ),
       _MetricTile(
@@ -746,7 +753,7 @@ class _MetricTile extends StatelessWidget {
               color: Colors.black.withOpacity(0.08),
             ),
             RollingCounter(
-              value: value,
+              value: value.clamp(0, 0x7FFFFFFF),
               duration: const Duration(milliseconds: 1800),
               exaggerated: true,
               enableGlow: false,
@@ -961,6 +968,48 @@ class _First3CheckinsCard extends StatelessWidget {
 
 // --- Top 5 Row ---
 
+class _DashboardTrendSection extends StatelessWidget {
+  const _DashboardTrendSection({required this.global});
+
+  final GlobalAnalytics global;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: _lightCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Check-In Trend',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: _kNavy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Hourly Attendance Progress',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: _kMuted,
+            ),
+          ),
+          const SizedBox(height: 24),
+          HourlyTrendChart(
+            hourlyCheckins: global.hourlyCheckins,
+            height: 320,
+            lineColor: _kGold,
+            emptyMessage: 'No check-in data yet',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Top5Row extends StatelessWidget {
   const _Top5Row({required this.global});
 
@@ -1023,12 +1072,16 @@ class _Top5Card extends StatelessWidget {
   final Map<String, int> data;
   final int total;
 
+  static int _nonNegative(int v) => v.clamp(0, 0x7FFFFFFF);
+
   @override
   Widget build(BuildContext context) {
     final sorted = data.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) => _nonNegative(b.value).compareTo(_nonNegative(a.value)));
     final top5 = sorted.take(5).toList();
-    final maxVal = top5.isNotEmpty ? top5.first.value : 1;
+    final maxVal = top5.isNotEmpty ? _nonNegative(top5.first.value) : 1;
+    // Use sum of this card's data so % never exceeds 100% (avoids 394% when totalCheckins is out of sync)
+    final sumOfData = data.values.fold<int>(0, (a, b) => a + _nonNegative(b));
 
     return Container(
       padding: const EdgeInsets.all(32),
@@ -1055,10 +1108,14 @@ class _Top5Card extends StatelessWidget {
             ...top5.asMap().entries.map((e) {
               final idx = e.key;
               final entry = e.value;
-              final pct = entry.value / maxVal;
-              final pctTotal = total > 0
-                  ? (entry.value / total * 100).toStringAsFixed(0)
+              final val = _nonNegative(entry.value);
+              final pct = maxVal > 0 ? (val / maxVal) : 0.0;
+              final pctNum = sumOfData > 0 ? (val / sumOfData * 100) : 0.0;
+              final pctTotal = sumOfData > 0
+                  ? (val / sumOfData * 100).toStringAsFixed(0)
                   : '0';
+              // Only show bar when displayed % is non-zero (avoids bar at "0%")
+              final showBar = val > 0 && pctNum >= 0.5;
               return Column(
                 children: [
                   Padding(
@@ -1087,15 +1144,18 @@ class _Top5Card extends StatelessWidget {
                       ],
                     ),
                   ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: pct,
-                      minHeight: 8,
-                      backgroundColor: _kBlue.withOpacity(0.15),
-                      valueColor: const AlwaysStoppedAnimation<Color>(_kBlue),
-                    ),
-                  ),
+                  if (showBar)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: pct.clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: _kBlue.withOpacity(0.15),
+                        valueColor: const AlwaysStoppedAnimation<Color>(_kBlue),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 8),
                   if (idx < top5.length - 1)
                     Padding(
                       padding: const EdgeInsets.only(top: 14, bottom: 4),
@@ -1133,12 +1193,8 @@ class _SessionLeaderboardSection extends StatelessWidget {
         .toList();
     final sorted = excludedMain
       ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
-    final mainCheckinCount = sessions
-        .where((s) => s.sessionId == mainCheckinSessionId)
-        .map((s) => s.checkInCount)
-        .firstOrNull ?? 0;
-    final total = global.totalCheckins - mainCheckinCount;
-    final maxCount = sorted.isNotEmpty ? sorted.first.checkInCount : 1;
+    final total = excludedMain.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
+    final maxCount = sorted.isNotEmpty ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF)) : 1;
 
     return SizedBox(
       width: double.infinity,
@@ -1167,16 +1223,17 @@ class _SessionLeaderboardSection extends StatelessWidget {
               final i = e.key;
               final s = e.value;
               final isTop = i == 0;
-              final pct = total > 0 ? (s.checkInCount / total) * 100 : 0.0;
-              final barPct = maxCount > 0 ? (s.checkInCount / maxCount) : 0.0;
+              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+              final pct = total > 0 ? (count / total) * 100 : 0.0;
+              final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _SessionLeaderboardRow(
                   rank: i + 1,
                   sessionName: s.name,
-                  count: s.checkInCount,
+                  count: count,
                   percent: pct,
-                  barValue: barPct,
+                  barValue: barPct.clamp(0.0, 1.0),
                   isTop: isTop,
                   isActive: s.isActive,
                 ),
@@ -1274,7 +1331,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 SizedBox(
                   width: 56,
                   child: Text(
-                    NumberFormat.decimalPattern().format(widget.count),
+                    NumberFormat.decimalPattern().format(widget.count.clamp(0, 0x7FFFFFFF)),
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1288,7 +1345,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 SizedBox(
                   width: 48,
                   child: Text(
-                    '${widget.percent.toStringAsFixed(1)}%',
+                    '${widget.percent.clamp(0.0, 100.0).toStringAsFixed(1)}%',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: _kMuted,
@@ -1300,17 +1357,20 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
               ],
             ),
             const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: widget.barValue.clamp(0.0, 1.0),
-                minHeight: 8,
-                backgroundColor: _kGold.withOpacity(0.15),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  widget.isTop ? _kGold : _kGold.withOpacity(0.5),
+            if (widget.count > 0)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: widget.barValue.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: _kGold.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    widget.isTop ? _kGold : _kGold.withOpacity(0.5),
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(height: 8),
           ],
         ),
       ),

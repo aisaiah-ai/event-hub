@@ -4,7 +4,10 @@ import '../../../events/widgets/event_page_scaffold.dart';
 import '../theme/checkin_theme.dart';
 
 /// Header: "NATIONAL LEADERS" / "CONFERENCE 2026" (2026 in gold).
+/// Logo defaults to empower.png when logoUrl is null.
 class ConferenceHeader extends StatelessWidget {
+  static const String defaultLogoPath = 'assets/checkin/empower.png';
+
   const ConferenceHeader({
     super.key,
     this.logoUrl,
@@ -14,14 +17,16 @@ class ConferenceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveLogoUrl = logoUrl != null && logoUrl!.isNotEmpty
+        ? logoUrl!
+        : defaultLogoPath;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (logoUrl != null && logoUrl!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.iconTextSpacing),
-            child: EventLogo(logoUrl: logoUrl, size: 192),
-          ),
+        Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.iconTextSpacing),
+          child: EventLogo(logoUrl: effectiveLogoUrl, size: 192),
+        ),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

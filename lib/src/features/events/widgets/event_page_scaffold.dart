@@ -210,7 +210,7 @@ class EventLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = logoUrl ?? 'assets/checkin/IntheOne.svg';
+    final url = logoUrl ?? 'assets/checkin/empower.png';
     if (url.isEmpty) return const SizedBox.shrink();
 
     if (_isAssetPath(url)) {

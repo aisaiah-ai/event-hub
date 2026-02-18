@@ -73,7 +73,7 @@ flutter:
 
   assets:
     - assets/checkin/BG.svg
-    - assets/checkin/IntheOne.svg
+    - assets/checkin/empower.png
     - assets/checkin/mossaic.svg
     - assets/checkin/background2.svg
     - assets/images/nlc_background.png

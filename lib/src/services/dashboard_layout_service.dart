@@ -6,11 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/firestore_config.dart';
 
 /// Section IDs for dashboard. Order in list = display order.
+/// Default: metric tiles (total registrants, etc.) → session leaderboard → first 3 → top 5 regions → check-in trend.
 const List<String> kDefaultDashboardOrder = [
   'metrics',
   'sessionLeaderboard',
-  'top5',
   'first3',
+  'top5',
+  'graph',
 ];
 
 /// Section IDs for wallboard. Metrics, Leaderboard, Trend only.
@@ -23,6 +25,7 @@ const List<String> kDefaultWallboardOrder = [
 /// Human-readable labels for section IDs.
 const Map<String, String> kDashboardSectionLabels = {
   'metrics': 'Metric Tiles',
+  'graph': 'Check-In Trend',
   'sessionLeaderboard': 'Session Leaderboard',
   'top5': 'Top 5 Regions & Ministries',
   'first3': 'First 3 Registrations & Check-Ins',

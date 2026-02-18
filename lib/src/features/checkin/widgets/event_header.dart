@@ -6,7 +6,7 @@ import '../checkin_tokens.dart';
 class EventHeaderWidget extends StatelessWidget {
   const EventHeaderWidget({
     super.key,
-    this.emblemPath = 'assets/checkin/IntheOne.svg',
+    this.emblemPath = 'assets/checkin/empower.png',
     this.organization = 'Couples for Christ',
     this.title = 'National Leaders Conference',
     this.subtitle = '',
@@ -30,7 +30,9 @@ class EventHeaderWidget extends StatelessWidget {
           SizedBox(
             height: CheckinTokens.emblemHeight,
             width: CheckinTokens.emblemHeight,
-            child: SvgPicture.asset(emblemPath, fit: BoxFit.contain),
+            child: emblemPath.toLowerCase().endsWith('.png')
+                ? Image.asset(emblemPath, fit: BoxFit.contain)
+                : SvgPicture.asset(emblemPath, fit: BoxFit.contain),
           ),
           const SizedBox(width: CheckinTokens.spacingM),
           Expanded(

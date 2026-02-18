@@ -60,7 +60,7 @@ To use Firestore (and for production), add this document to your `events` collec
     "rsvpDeadline": "March 10"
   },
   "branding": {
-    "logoUrl": "assets/checkin/IntheOne.svg",
+    "logoUrl": "assets/checkin/empower.png",
     "backgroundPatternUrl": "assets/checkin/mossaic.svg",
     "organizationName": "Couples for Christ"
   }

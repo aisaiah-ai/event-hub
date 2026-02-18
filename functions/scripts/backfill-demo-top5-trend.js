@@ -1,12 +1,12 @@
 /**
- * Backfill analytics docs from existing attendance.
- * Use after seeding attendance when onAttendanceCreate didn't run (or to fix stale analytics).
+ * Demo-only backfill: updates only Top 5 Regions, Top 5 Ministries, and Check-In Trend.
+ * Writes only regionCounts, ministryCounts, hourlyCheckins (and lastUpdated) to
+ * events/nlc-2026/analytics/global. Does not touch session summaries, attendeeIndex,
+ * totalCheckins, earliestCheckin, etc. Use after the gradual check-in demo script.
  *
- * Match the app's database. App uses (default).
+ * App uses (default). Run from functions/ with same database:
  *
- * Run:
- *   cd functions && node scripts/backfill-analytics-dev.js --dev
- *   cd functions && node scripts/backfill-analytics-dev.js "--database=(default)" --dev
+ *   node scripts/backfill-demo-top5-trend.js "--database=(default)" --dev
  *
  * Requires: gcloud auth application-default login
  */
@@ -32,7 +32,6 @@ if (!admin.apps.length) {
   admin.initializeApp({ projectId });
 }
 
-// Use default Firestore when databaseId is (default); getFirestore('(default)') can be ambiguous in some SDKs.
 const db = databaseId === '(default)' ? getFirestore() : getFirestore(databaseId);
 const EVENT_ID = 'nlc-2026';
 
@@ -47,15 +46,9 @@ function getString(data, ...keys) {
   return null;
 }
 
-function getRegisteredAt(data) {
-  if (!data) return null;
-  const v = data.registeredAt ?? data.createdAt;
-  return v && typeof v?.toDate === 'function' ? v : null;
-}
-
 const safe = (s) => String(s).replace(/\./g, '_');
 
-/** 15-minute bucket: YYYY-MM-DD-HH-mm (mm = 00, 15, 30, 45). Matches Cloud Function. */
+/** 15-minute bucket: YYYY-MM-DD-HH-mm. Matches Cloud Function and chart parser. */
 function quarterHourBucket(ts) {
   const d = ts.toDate();
   const y = d.getFullYear();
@@ -68,41 +61,34 @@ function quarterHourBucket(ts) {
 }
 
 async function run() {
-  console.log('Backfilling analytics (DEV) database=' + databaseId + ' event=' + EVENT_ID);
+  console.log('Backfill demo (Top 5 + trend only) database=' + databaseId + ' event=' + EVENT_ID);
 
   const globalRegionCounts = {};
   const globalMinistryCounts = {};
   const globalHourlyCheckins = {};
-  let earliestCheckin = null;
-  const sessionData = {};
-  const seenRegistrants = new Set();
 
   const sessionsSnap = await db.collection(`events/${EVENT_ID}/sessions`).get();
   if (sessionsSnap.empty) {
-    console.error('No sessions found at events/' + EVENT_ID + '/sessions. Run bootstrap first: node scripts/ensure-nlc-event-doc.js "--database=(default)"');
+    console.error('No sessions found. Run bootstrap first: node scripts/ensure-nlc-event-doc.js "--database=(default)"');
     process.exit(1);
   }
+  console.log('  Sessions found: ' + sessionsSnap.docs.map((d) => d.id).join(', '));
 
+  let totalAttendance = 0;
   for (const sessionDoc of sessionsSnap.docs) {
     const sessionId = sessionDoc.id;
-    if (!sessionData[sessionId]) {
-      sessionData[sessionId] = { attendance: 0, regionCounts: {}, ministryCounts: {} };
-    }
-    const sd = sessionData[sessionId];
-
     const attendanceSnap = await db
       .collection(`events/${EVENT_ID}/sessions/${sessionId}/attendance`)
       .get();
+    if (attendanceSnap.size > 0) {
+      console.log('  Attendance in ' + sessionId + ': ' + attendanceSnap.size + ' docs');
+    }
 
     for (const attDoc of attendanceSnap.docs) {
       const registrantId = attDoc.id;
       const attData = attDoc.data();
       const checkedInAt = attData?.checkedInAt;
       const ts = checkedInAt ?? admin.firestore.Timestamp.now();
-      const isNew = !seenRegistrants.has(registrantId);
-      if (isNew) seenRegistrants.add(registrantId);
-
-      sd.attendance++;
 
       const registrantSnap = await db.doc(`events/${EVENT_ID}/registrants/${registrantId}`).get();
       const r = registrantSnap.data() || {};
@@ -115,69 +101,28 @@ async function run() {
       globalRegionCounts[rk] = (globalRegionCounts[rk] ?? 0) + 1;
       globalMinistryCounts[mk] = (globalMinistryCounts[mk] ?? 0) + 1;
       globalHourlyCheckins[hk] = (globalHourlyCheckins[hk] ?? 0) + 1;
-      sd.regionCounts[rk] = (sd.regionCounts[rk] ?? 0) + 1;
-      sd.ministryCounts[mk] = (sd.ministryCounts[mk] ?? 0) + 1;
-
-      const existingTs = earliestCheckin?.timestamp?.toDate?.()?.getTime?.() ?? Infinity;
-      const newTs = ts.toDate?.()?.getTime?.() ?? 0;
-      if (newTs < existingTs || !earliestCheckin) {
-        earliestCheckin = { registrantId, sessionId, timestamp: ts };
-      }
-
-      if (isNew) {
-        await db.doc(`events/${EVENT_ID}/attendeeIndex/${registrantId}`).set({
-          firstSession: sessionId,
-          firstCheckinTime: ts,
-        }, { merge: true });
-      }
-    }
-
-    await db.doc(`events/${EVENT_ID}/sessions/${sessionId}/analytics/summary`).set({
-      attendanceCount: sd.attendance,
-      regionCounts: sd.regionCounts,
-      ministryCounts: sd.ministryCounts,
-      lastUpdated: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    console.log('  Session', sessionId + ':', sd.attendance, 'attendance');
-  }
-
-  let earliestRegistration = null;
-  const registrantsSnap = await db.collection(`events/${EVENT_ID}/registrants`).get();
-  for (const doc of registrantsSnap.docs) {
-    const regAt = getRegisteredAt(doc.data());
-    if (regAt) {
-      const existingTs = earliestRegistration?.timestamp?.toDate?.()?.getTime?.() ?? Infinity;
-      const newTs = regAt.toDate?.()?.getTime?.() ?? 0;
-      if (newTs < existingTs || !earliestRegistration) {
-        earliestRegistration = { registrantId: doc.id, timestamp: regAt };
-      }
+      totalAttendance++;
     }
   }
 
-  const totalCheckins = Object.values(sessionData).reduce((a, s) => a + s.attendance, 0);
   const rcKeys = Object.keys(globalRegionCounts).length;
   const mcKeys = Object.keys(globalMinistryCounts).length;
   const hcKeys = Object.keys(globalHourlyCheckins).length;
 
   await db.doc(`events/${EVENT_ID}/analytics/global`).set({
-    totalUniqueAttendees: seenRegistrants.size,
-    totalCheckins,
     regionCounts: globalRegionCounts,
     ministryCounts: globalMinistryCounts,
     hourlyCheckins: globalHourlyCheckins,
-    earliestCheckin: earliestCheckin ?? null,
-    earliestRegistration: earliestRegistration ?? null,
     lastUpdated: FieldValue.serverTimestamp(),
   }, { merge: true });
 
-  console.log('Done. analytics/global updated in database=' + databaseId);
-  console.log('  totalCheckins=' + totalCheckins + ', uniqueAttendees=' + seenRegistrants.size);
+  console.log('Done. Updated only Top 5 + Check-In Trend in analytics/global');
+  console.log('  attendance processed: ' + totalAttendance);
   console.log('  regionCounts (Top 5 Regions): ' + rcKeys + ' keys');
   console.log('  ministryCounts (Top 5 Ministries): ' + mcKeys + ' keys');
   console.log('  hourlyCheckins (Check-In Trend): ' + hcKeys + ' keys');
   if (rcKeys === 0 && mcKeys === 0 && hcKeys === 0) {
-    console.log('  >>> No attendance docs were found. Run the gradual check-in script first, then backfill.');
+    console.log('  >>> No attendance found. Run the gradual check-in script first, then this backfill.');
   }
 }
 

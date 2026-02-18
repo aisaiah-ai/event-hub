@@ -4,6 +4,17 @@
 
 ---
 
+## READ THIS FIRST — Don't get confused when building or troubleshooting
+
+**The app uses only the (default) Firestore database.**
+
+- **Code:** `lib/src/config/firestore_config.dart` — `databaseId` returns `'(default)'` with no dev/prod switch. The app always reads and writes to **(default)**.
+- **Demo and scripts:** All scripts (bootstrap, seed registrants, gradual check-in, backfill, inspect) must use `"--database=(default)"` so they read/write the same database the app uses.
+- **Cloud Functions:** They use `admin.firestore()` (default DB), i.e. **(default)**. Triggers run when docs are created in (default).
+- **When troubleshooting:** If the dashboard doesn't update, Top 5 is empty, or the check-in trend is empty, do **not** assume the app might be on event-hub-dev or another DB. The app is fixed to **(default)**. Fix the event-driven path (deploy functions, same DB for scripts) — don't rely on backfill as the normal flow.
+
+---
+
 ## How to use
 
 - **Recall:** Read the latest entries below before debugging. If the same error appears, check “What was tried” and “Outcome” so you don’t redo something that already failed.
@@ -479,6 +490,75 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 **Next time (recall)**
 - Rolling counters are UI-only; delta is computed locally (old vs new value).
+
+---
+
+## 2026-02-16 — Top 5 Regions / Ministries: seed mapping only, no fake data
+
+**What was done**
+- **Seed** (`lib/src/tools/seed_nlc_registrants.dart`): Added column mapping so CSV headers map to the keys the Cloud Function expects: `region`, `regionMembership`, `ministry`, `ministryMembership` (e.g. `region_membership` → `regionMembership`, `ministry_membership` → `ministryMembership`). **No** synthetic/demo values: region and ministry are stored only when the CSV actually has those columns; otherwise they stay absent and the function correctly uses "Unknown".
+- Removed an earlier mistake: code that assigned fake `_demoRegions` / `_demoMinistries` when the CSV lacked region/ministry was reverted so numbers always come from registrant data.
+- **Docs** (`docs/demo.md`): Updated to say Top 5 reflects real data only; CSV must include region/ministry (or equivalent); re-seed after adding those columns.
+
+**What was tried**
+- Fixing "Top 5 Regions and Top 5 Ministries not updating" when check-ins run. Cause: registrant docs had no `region`/`ministry` (or aliases), so the Cloud Function (`onAttendanceCreate`) always saw "Unknown". Fix is to ensure the seed writes those fields when the CSV provides them — not to invent data.
+
+**Outcome**
+- Top 5 will update with real distribution only when the registrant export/CSV includes region and ministry. If the CSV has no such columns, counts correctly show "Unknown"; no fabricated counts.
+
+**Next time (recall)**
+- Do not add sample/demo region or ministry values to the seed. Data must come from the registrant (CSV). For Top 5 to show variety, the CSV must have region/ministry columns and the seed maps them via `_toSchemaKey`.
+
+---
+
+## 2026-02-16 — Top 5 Regions/Ministries: read from registration (registrant doc), more key aliases
+
+**What was done**
+- **Cloud Function** (`functions/src/index.ts`): `getString` now tries additional keys so region/ministry are found regardless of how registration stores them: `"Region"` and `"Ministry"` (capitalized) in addition to `region`, `regionMembership`, `ministry`, `ministryMembership`. Applied in `onAttendanceCreate`, `onRegistrantCheckIn`, and backfill loop. Region/ministry are read from the **registrant** doc (`events/{eventId}/registrants/{id}`) at check-in time (top-level, `profile`, or `answers`).
+- **Backfill script** (`functions/scripts/backfill-analytics-dev.js`): Same key aliases for region/ministry so backfill stays in sync.
+- **Docs** (`docs/demo.md`): Added troubleshooting bullet for "Top 5 Regions / Ministries not updating": ensure registrant docs have region/ministry under one of the supported keys, Cloud Functions deployed, app and Functions use same DB (default); backfill if needed.
+
+**What was tried**
+- User said regions and ministries are from the registration database but they're not updating. The function already reads from the registrant doc; possible causes: (1) registration stores under different key names (e.g. "Region"), (2) Functions not deployed or wrong DB. Added key aliases and documented the flow.
+
+**Outcome**
+- Top 5 will update when: registrant docs in (default) have region/ministry in profile or answers under `region`/`regionMembership`/`Region` or `ministry`/`ministryMembership`/`Ministry`; Cloud Functions are deployed; each check-in triggers the function which reads the registrant and updates `analytics/global`.
+
+**Next time (recall)**
+- Top 5 Regions/Ministries source = registrant doc at check-in. If still not updating, verify in Firebase Console (default DB) that `events/nlc-2026/registrants/{id}` has `answers.region`/`answers.ministry` (or profile/top-level) and that `events/nlc-2026/analytics/global` has `regionCounts`/`ministryCounts` after a check-in.
+
+---
+
+## 2026-02-16 — Top 5 Regions and Check-In Trend not updating
+
+**What was done**
+- Bootstrap script `ensure-nlc-event-doc.js` default database changed from `event-hub-dev` to `(default)` so that running it without `--database=` creates event, sessions, stats/overview, and **analytics/global** in the same DB the app uses. App reads Top 5 and trend from `events/nlc-2026/analytics/global` only.
+- Documented below why Top 5 and trend can stay empty and how to fix.
+
+**What was tried**
+- User reported Top 5 regions and check-in trend still not updating. Cause: dashboard reads from `analytics/global`; that doc is updated **only** when an **attendance** doc is created (Cloud Function `onAttendanceCreate`). If bootstrap was run for a different DB (e.g. event-hub-dev) or Cloud Functions were not deployed, the app never sees updates.
+
+**Outcome / still broken**
+- If Top 5 or Check-In Trend stay empty: (1) **Deploy Cloud Functions** so `onAttendanceCreate` runs when attendance docs are created: `cd functions && npm run build && firebase deploy --only functions`. (2) **Create analytics/global in (default)** by running bootstrap for the app’s DB: `cd functions && node scripts/ensure-nlc-event-doc.js` (no arg = (default) now). (3) **Do at least one check-in** that creates an attendance doc (search → check in to main-checkin, or session check-in). (4) **Verify** in (default): `cd functions && node scripts/inspect-analytics-global.js "--database=(default)" --dev`. You should see `regionCounts`, `ministryCounts`, and `hourlyCheckins` with at least one entry after a check-in.
+
+**Next time (recall)**
+- Top 5 Regions and Check-In Trend are filled **only** by the Cloud Function `onAttendanceCreate` (trigger: `events/{eventId}/sessions/{sessionId}/attendance/{registrantId}` onCreate). App does **not** update analytics/global; the function does. Ensure functions are deployed and app + scripts use the same DB (default).
+
+---
+
+## 2026-02-17 — App default DB: use FirebaseFirestore.instance so Top 5 / trend show
+
+**What was done**
+- `FirestoreConfig.instanceOrNull` now uses `FirebaseFirestore.instance` instead of `Firestore.instanceFor(app, databaseId: '(default)')` so the app uses the same default Firestore database that Node scripts use when they call `getFirestore()` with no args. Demo doc: added step 5 (verify with inspect script, then hard refresh/restart app) and expanded troubleshooting for empty Top 5 / trend.
+
+**What was tried**
+- User reported backfill ran but Top 5 and Check-In Trend still not showing. Possible cause: app and scripts were not guaranteed to use the same default DB when one passed `databaseId: '(default)'` and the other used `getFirestore()`.
+
+**Outcome / still broken**
+- After this change, **restart the app** so it picks up the new Firestore instance. Then run demo + backfill; run `inspect-analytics-global.js` to confirm keys; hard refresh or restart again if needed.
+
+**Next time (recall)**
+- App uses `FirebaseFirestore.instance` for default DB. If Top 5 / trend stay empty after backfill, verify doc in Console (default DB), run inspect script, then restart the app.
 
 ---
 

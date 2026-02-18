@@ -55,14 +55,15 @@ const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
+/** Look up string from registrant doc: top-level, profile, or answers. Keys tried in order. */
 function getString(data, ...keys) {
     var _a, _b;
     if (!data)
         return null;
     const d = data;
+    const profile = d.profile || {};
+    const answers = d.answers || {};
     for (const key of keys) {
-        const profile = d.profile || {};
-        const answers = d.answers || {};
         const v = (_b = (_a = d[key]) !== null && _a !== void 0 ? _a : profile[key]) !== null && _b !== void 0 ? _b : answers[key];
         if (v != null && typeof v === "string" && v.trim())
             return v.trim();
@@ -91,14 +92,16 @@ function normalizeRegionOther(text) {
         .replace(/\s+/g, " ") || "(empty)";
 }
 const safe = (s) => s.replace(/\./g, "_");
-/** Hour bucket: YYYY-MM-DD-HH */
-function hourBucket(ts) {
+/** 15-minute bucket: YYYY-MM-DD-HH-mm (mm = 00, 15, 30, 45). Used for check-in trend graph. */
+function quarterHourBucket(ts) {
     const d = ts.toDate();
     const y = d.getFullYear();
     const M = String(d.getMonth() + 1).padStart(2, "0");
     const d_ = String(d.getDate()).padStart(2, "0");
     const H = String(d.getHours()).padStart(2, "0");
-    return `${y}-${M}-${d_}-${H}`;
+    const min15 = Math.floor(d.getMinutes() / 15) * 15;
+    const mm = String(min15).padStart(2, "0");
+    return `${y}-${M}-${d_}-${H}-${mm}`;
 }
 /** Bucket ID: yyyyMMddHHmm */
 function bucketId(ts) {
@@ -221,9 +224,9 @@ exports.onRegistrantCheckIn = functions.firestore
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
         const statsSnap = await tx.get(statsRef);
         const stats = statsSnap.exists ? ((_a = statsSnap.data()) !== null && _a !== void 0 ? _a : {}) : {};
-        const region = (_b = getString(after, "region", "regionMembership")) !== null && _b !== void 0 ? _b : "Unknown";
+        const region = (_b = getString(after, "region", "regionMembership", "Region")) !== null && _b !== void 0 ? _b : "Unknown";
         const regionOther = getString(after, "regionOtherText", "regionOther");
-        const ministry = (_c = getString(after, "ministryMembership", "ministry")) !== null && _c !== void 0 ? _c : "Unknown";
+        const ministry = (_c = getString(after, "ministryMembership", "ministry", "Ministry")) !== null && _c !== void 0 ? _c : "Unknown";
         const service = (_d = getString(after, "service")) !== null && _d !== void 0 ? _d : "Unknown";
         const earlyBird = isEarlyBird(after);
         const regionCounts = Object.assign({}, (stats.regionCounts || {}));
@@ -302,6 +305,7 @@ exports.onRegistrantCreate = functions.firestore
     const registrantId = context.params.registrantId;
     const data = snap.data();
     const statsRef = db.doc(`events/${eventId}/stats/overview`);
+    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
     const registeredAt = getRegisteredAt(data);
     await db.runTransaction(async (tx) => {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
@@ -330,6 +334,10 @@ exports.onRegistrantCreate = functions.firestore
             }
         }
         tx.set(statsRef, updates, { merge: true });
+        tx.set(globalAnalyticsRef, {
+            totalRegistrants: admin.firestore.FieldValue.increment(1),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
     });
     return null;
 });
@@ -355,8 +363,9 @@ exports.onAttendanceCreate = functions.firestore
     const registrantRef = db.doc(`events/${eventId}/registrants/${registrantId}`);
     const registrantSnap = await registrantRef.get();
     const r = registrantSnap.data();
-    const region = (_a = getString(r, "region", "regionMembership")) !== null && _a !== void 0 ? _a : "Unknown";
-    const ministry = (_b = getString(r, "ministryMembership", "ministry")) !== null && _b !== void 0 ? _b : "Unknown";
+    // Region/ministry from registration: try common keys (top-level, profile, answers).
+    const region = (_a = getString(r, "region", "regionMembership", "Region")) !== null && _a !== void 0 ? _a : "Unknown";
+    const ministry = (_b = getString(r, "ministryMembership", "ministry", "Ministry")) !== null && _b !== void 0 ? _b : "Unknown";
     const statsRef = db.doc(`events/${eventId}/stats/overview`);
     const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
     const sessionAnalyticsRef = db.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
@@ -371,7 +380,7 @@ exports.onAttendanceCreate = functions.firestore
         const sessionData = (_b = sessionSnap.data()) !== null && _b !== void 0 ? _b : {};
         const regionKey = safe(region);
         const ministryKey = safe(ministry);
-        const hourKey = hourBucket(ts);
+        const hourKey = quarterHourBucket(ts);
         const globalRegionCounts = Object.assign({}, (global.regionCounts || {}));
         const globalMinistryCounts = Object.assign({}, (global.ministryCounts || {}));
         const globalHourlyCheckins = Object.assign({}, (global.hourlyCheckins || {}));
@@ -498,11 +507,11 @@ exports.backfillAnalytics = functions.https.onCall(async (data, context) => {
             sd.attendance++;
             const registrantSnap = await db.doc(`events/${eventId}/registrants/${registrantId}`).get();
             const r = registrantSnap.data();
-            const region = (_e = getString(r, "region", "regionMembership")) !== null && _e !== void 0 ? _e : "Unknown";
-            const ministry = (_f = getString(r, "ministryMembership", "ministry")) !== null && _f !== void 0 ? _f : "Unknown";
+            const region = (_e = getString(r, "region", "regionMembership", "Region")) !== null && _e !== void 0 ? _e : "Unknown";
+            const ministry = (_f = getString(r, "ministryMembership", "ministry", "Ministry")) !== null && _f !== void 0 ? _f : "Unknown";
             const rk = safe(region);
             const mk = safe(ministry);
-            const hk = hourBucket(ts);
+            const hk = quarterHourBucket(ts);
             globalRegionCounts[rk] = ((_g = globalRegionCounts[rk]) !== null && _g !== void 0 ? _g : 0) + 1;
             globalMinistryCounts[mk] = ((_h = globalMinistryCounts[mk]) !== null && _h !== void 0 ? _h : 0) + 1;
             globalHourlyCheckins[hk] = ((_j = globalHourlyCheckins[hk]) !== null && _j !== void 0 ? _j : 0) + 1;
@@ -544,6 +553,7 @@ exports.backfillAnalytics = functions.https.onCall(async (data, context) => {
     await globalRef.set({
         totalUniqueAttendees: seenRegistrants.size,
         totalCheckins,
+        totalRegistrants: registrantsSnap.size,
         regionCounts: globalRegionCounts,
         ministryCounts: globalMinistryCounts,
         hourlyCheckins: globalHourlyCheckins,

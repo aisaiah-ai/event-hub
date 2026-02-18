@@ -71,6 +71,12 @@ String _toSchemaKey(String header) {
     'unit': 'unit',
     'role': 'role',
     'affiliation': 'unit',
+    'region': 'region',
+    'region_membership': 'regionMembership',
+    'regionmembership': 'regionMembership',
+    'ministry': 'ministry',
+    'ministry_membership': 'ministryMembership',
+    'ministrymembership': 'ministryMembership',
   };
   return map[n] ?? n;
 }

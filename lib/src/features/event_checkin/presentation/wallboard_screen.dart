@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +8,7 @@ import '../../../services/dashboard_layout_service.dart';
 import '../../../widgets/rolling_counter.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import 'widgets/hourly_trend_chart.dart';
 import 'widgets/last_updated_with_timezone.dart';
 
 /// Full-screen wallboard display mode for projectors, LED walls, lobby monitors.
@@ -264,11 +264,9 @@ Widget _buildWallboardSection(
   required int registrantCount,
 }) {
   const mainCheckinId = 'main-checkin';
-  final mainCheckinCount = sessions
-      .where((s) => s.sessionId == mainCheckinId)
-      .map((s) => s.checkInCount)
-      .firstOrNull ?? 0;
-  final totalExcludingMain = global.totalCheckins - mainCheckinCount;
+  final totalExcludingMain = sessions
+      .where((s) => s.sessionId != mainCheckinId)
+      .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
 
   switch (sectionId) {
     case 'metrics':
@@ -562,14 +560,16 @@ class _WallboardMetrics extends StatelessWidget {
   Widget build(BuildContext context) {
     const mainCheckinId = 'main-checkin';
     final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
-    final mainCheckinCount = mainCheckin?.checkInCount ?? 0;
-    final sessionCheckins = global.totalCheckins - mainCheckinCount;
+    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
+    final sessionCheckins = sessions
+        .where((s) => s.sessionId != mainCheckinId)
+        .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
 
     final tiles = [
       _WallboardMetricTile(
         icon: Icons.people_rounded,
         label: 'Total Registrants',
-        value: registrantCount,
+        value: registrantCount.clamp(0, 0x7FFFFFFF),
       ),
       _WallboardMetricTile(
         icon: Icons.check_circle_rounded,
@@ -624,6 +624,7 @@ class _WallboardMetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayValue = value.clamp(0, 0x7FFFFFFF);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _wbMetricTileDecoration(),
@@ -655,7 +656,7 @@ class _WallboardMetricTile extends StatelessWidget {
               color: Colors.black.withOpacity(0.08),
             ),
             RollingCounter(
-              value: value,
+              value: displayValue,
               duration: const Duration(milliseconds: 2200),
               exaggerated: true,
               enableGlow: true,
@@ -722,195 +723,14 @@ class _WallboardGraph extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          SizedBox(
+          HourlyTrendChart(
+            hourlyCheckins: global.hourlyCheckins,
             height: 380,
-            child: _WallboardLineChart(hourlyCheckins: global.hourlyCheckins),
+            lineColor: _kWbGold,
+            emptyMessage: 'No check-in data yet',
           ),
         ],
       ),
-    );
-  }
-}
-
-class _WallboardLineChart extends StatelessWidget {
-  const _WallboardLineChart({required this.hourlyCheckins});
-
-  final Map<String, int> hourlyCheckins;
-
-  List<_WbChartPoint> _parsePoints() {
-    final points = <_WbChartPoint>[];
-    for (final e in hourlyCheckins.entries) {
-      final key = e.key.trim();
-      if (key.length < 10) continue;
-
-      final dateStr = key.substring(0, 10);
-      final date = DateTime.tryParse(dateStr);
-      if (date == null) continue;
-
-      int hour = 0;
-      if (key.length >= 12) {
-        final hourPart = key.substring(10).replaceAll(RegExp(r'[^0-9]'), '');
-        hour = int.tryParse(hourPart) ?? 0;
-      }
-
-      points.add(_WbChartPoint(
-        DateTime(date.year, date.month, date.day, hour.clamp(0, 23)),
-        e.value,
-      ));
-    }
-    points.sort((a, b) => a.time.compareTo(b.time));
-    return points;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (hourlyCheckins.isEmpty) {
-      return Center(
-        child: Text(
-          'No check-in data yet',
-          style: GoogleFonts.inter(color: Colors.black54, fontSize: 18),
-        ),
-      );
-    }
-
-    final points = _parsePoints();
-
-    if (points.isEmpty) {
-      return Center(
-        child: Text(
-          'No hourly data (format: YYYY-MM-DD-HH)',
-          style: GoogleFonts.inter(color: Colors.black54, fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-
-    // Ensure at least 2 points for line chart (add leading zero when single hour)
-    List<_WbChartPoint> chartPoints = points.length >= 2
-        ? points
-        : [
-            _WbChartPoint(
-              points.first.time.subtract(const Duration(hours: 1)),
-              0,
-            ),
-            ...points,
-          ];
-    chartPoints.sort((a, b) => a.time.compareTo(b.time));
-
-    return _FlChartLineChart(points: chartPoints);
-  }
-}
-
-class _WbChartPoint {
-  _WbChartPoint(this.time, this.value);
-  final DateTime time;
-  final int value;
-}
-
-/// Line chart using fl_chart for reliable rendering across 1+ data points.
-class _FlChartLineChart extends StatelessWidget {
-  const _FlChartLineChart({required this.points});
-
-  final List<_WbChartPoint> points;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxVal = points
-        .map((p) => p.value)
-        .fold<double>(0, (a, b) => a > b ? a : b.toDouble())
-        .clamp(1.0, double.infinity);
-    // Earliest (index 0) at left, latest at right
-    final n = points.length;
-    final maxXVal = (n - 1).toDouble().clamp(0.0, double.infinity);
-    final spots = [
-      for (var i = 0; i < n; i++)
-        FlSpot(i.toDouble(), points[i].value.toDouble()),
-    ];
-    final timeFmt = DateFormat('h a');
-
-    return LineChart(
-      LineChartData(
-        minX: 0,
-        maxX: maxXVal,
-        minY: 0,
-        maxY: maxVal,
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(
-          show: true,
-          border: Border(
-            left: BorderSide(color: Colors.black26, width: 1),
-            bottom: BorderSide(color: Colors.black26, width: 1),
-            top: const BorderSide(color: Colors.transparent),
-            right: const BorderSide(color: Colors.transparent),
-          ),
-        ),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 44,
-              interval: maxVal / 4,
-              getTitlesWidget: (v, meta) => Text(
-                v.toInt().toString(),
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 1,
-              getTitlesWidget: (v, meta) {
-                final i = v.round();
-                if (i >= 0 && i < points.length) {
-                  return Text(
-                    timeFmt.format(points[i].time),
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 12,
-                    ),
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-        ),
-        lineTouchData: const LineTouchData(enabled: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: false,
-            color: _kWbGold,
-            barWidth: 4,
-            isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) =>
-                  FlDotCirclePainter(
-                radius: index == points.length - 1 ? 6 : 4,
-                color: _kWbGold,
-                strokeWidth: 0,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              color: _kWbGold.withOpacity(0.12),
-            ),
-          ),
-        ],
-      ),
-      duration: const Duration(milliseconds: 200),
     );
   }
 }
@@ -935,7 +755,9 @@ class _WallboardLeaderboard extends StatelessWidget {
         .toList();
     final sorted = excludedMain
       ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
-    final maxCount = sorted.isNotEmpty ? sorted.first.checkInCount : 1;
+    final maxCount = sorted.isNotEmpty
+        ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF))
+        : 1;
 
     return SizedBox(
       width: double.infinity,
@@ -964,7 +786,8 @@ class _WallboardLeaderboard extends StatelessWidget {
               final i = e.key;
               final s = e.value;
               final isTop = i == 0;
-              final pct = maxCount > 0 ? (s.checkInCount / maxCount) : 0.0;
+              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+              final pct = maxCount > 0 ? (count / maxCount) : 0.0;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 20),
@@ -1022,7 +845,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                                 ),
                               const SizedBox(width: 16),
                               Text(
-                                NumberFormat.decimalPattern().format(s.checkInCount),
+                                NumberFormat.decimalPattern().format(count),
                                 style: GoogleFonts.inter(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -1039,7 +862,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
-                        value: pct,
+                        value: pct.clamp(0.0, 1.0),
                         minHeight: 10,
                         backgroundColor: _kWbGold.withOpacity(0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(

@@ -88,7 +88,7 @@ class GlobalAnalytics {
   List<MapEntry<String, int>> get top5Ministries =>
       _topN(ministryCounts, 5);
 
-  /// Peak hour key (YYYY-MM-DD-HH) with max check-ins.
+  /// Peak bucket key (YYYY-MM-DD-HH-mm, 15-min) with max check-ins.
   String? get peakHourKey {
     if (hourlyCheckins.isEmpty) return null;
     return hourlyCheckins.entries
@@ -129,14 +129,23 @@ class GlobalAnalytics {
     );
   }
 
+  /// Safely cast Firestore map (keys may be dynamic) to Map<String, dynamic> for counts.
+  static Map<String, dynamic> _asStringKeyMap(dynamic value) {
+    if (value == null || value is! Map) return {};
+    final map = value as Map;
+    return Map.fromEntries(
+      map.entries.map((e) => MapEntry(e.key?.toString() ?? '', e.value)),
+    );
+  }
+
   factory GlobalAnalytics.fromFirestore(Map<String, dynamic>? json) {
     if (json == null) return const GlobalAnalytics();
     final lastUpdatedTs = json['lastUpdated'];
     final ec = json['earliestCheckin'] as Map<String, dynamic>?;
     final er = json['earliestRegistration'] as Map<String, dynamic>?;
-    final rc = json['regionCounts'] as Map<String, dynamic>? ?? {};
-    final mc = json['ministryCounts'] as Map<String, dynamic>? ?? {};
-    final hc = json['hourlyCheckins'] as Map<String, dynamic>? ?? {};
+    final rc = _asStringKeyMap(json['regionCounts']);
+    final mc = _asStringKeyMap(json['ministryCounts']);
+    final hc = _asStringKeyMap(json['hourlyCheckins']);
 
     int toInt(dynamic v) =>
         v is int ? v : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);

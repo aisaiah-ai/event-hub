@@ -59,7 +59,7 @@ class CheckinAnalyticsService {
     if (!_refreshTrigger.isClosed) _refreshTrigger.add(null);
   }
 
-  static const _pollInterval = Duration(seconds: 15);
+  static const _pollInterval = Duration(seconds: 4);
 
   static Stream<T> _mergeStreams<T>(List<Stream<T>> streams) {
     final controller = StreamController<T>.broadcast();
@@ -271,7 +271,15 @@ class CheckinAnalyticsService {
         }
       }
       candidates.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      final top3 = candidates.take(3).toList();
+      // First 3 unique registrants by earliest check-in time (one row per person).
+      final seen = <String>{};
+      final top3 = <({String registrantId, DateTime timestamp})>[];
+      for (final c in candidates) {
+        if (seen.contains(c.registrantId)) continue;
+        seen.add(c.registrantId);
+        top3.add(c);
+        if (top3.length >= 3) break;
+      }
       final results = <({String name, DateTime timestamp})>[];
       for (final c in top3) {
         final regSnap = await _firestore

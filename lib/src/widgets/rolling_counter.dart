@@ -40,17 +40,19 @@ class _RollingCounterState extends State<RollingCounter> {
   void didUpdateWidget(covariant RollingCounter oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.value > oldWidget.value) {
-      _previousValue = oldWidget.value;
-      _delta = widget.value - oldWidget.value;
+    final newVal = widget.value.clamp(0, 0x7FFFFFFF);
+    final oldVal = oldWidget.value.clamp(0, 0x7FFFFFFF);
+    if (newVal > oldVal) {
+      _previousValue = oldVal;
+      _delta = newVal - oldVal;
       if (widget.enableGlow) {
         _triggerGlow();
       }
       if (widget.showDelta && _delta > 0) {
         _showDeltaIndicator();
       }
-    } else if (widget.value < oldWidget.value) {
-      _previousValue = widget.value;
+    } else if (newVal < oldVal) {
+      _previousValue = newVal;
     }
     // When value unchanged: do nothing so in-progress animation is not killed
   }
@@ -74,22 +76,25 @@ class _RollingCounterState extends State<RollingCounter> {
 
   @override
   Widget build(BuildContext context) {
-    final animate = widget.value > _previousValue;
+    // Never display negative numbers (bad data or stale analytics).
+    final displayValue = widget.value.clamp(0, 0x7FFFFFFF);
+    final prevSafe = _previousValue.clamp(0, 0x7FFFFFFF);
+    final animate = displayValue > prevSafe;
     final duration = animate ? widget.duration : Duration.zero;
     final curve = widget.exaggerated ? Curves.elasticOut : Curves.easeOut;
-    final begin = _previousValue.toDouble();
-    final end = widget.value.toDouble();
+    final begin = prevSafe.toDouble();
+    final end = displayValue.toDouble();
     final span = end - begin;
 
     // Schedule one-time sync of _previousValue when this animation completes (so next rebuild doesn't re-run it).
     if (animate && duration > Duration.zero) {
-      final target = widget.value;
+      final target = displayValue;
       if (_syncScheduledForTarget != target) {
         _syncScheduledForTarget = target;
         Future.delayed(duration, () {
-          if (mounted && widget.value == target) {
+          if (mounted && widget.value.clamp(0, 0x7FFFFFFF) == target) {
             setState(() {
-              _previousValue = widget.value;
+              _previousValue = displayValue;
               _syncScheduledForTarget = null;
             });
           }
@@ -107,7 +112,7 @@ class _RollingCounterState extends State<RollingCounter> {
           duration: duration,
           curve: curve,
           builder: (context, t, child) {
-            final value = (begin + span * t).round();
+            final value = (begin + span * t).round().clamp(0, 0x7FFFFFFF);
             final scale = widget.exaggerated && animate
                 ? 1.0 + 0.18 * math.sin(math.pi * t)
                 : 1.0;

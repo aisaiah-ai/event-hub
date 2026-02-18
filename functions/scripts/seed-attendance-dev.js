@@ -39,7 +39,7 @@ if (!admin.apps.length) {
   admin.initializeApp({ projectId });
 }
 
-const db = getFirestore(databaseId);
+const db = databaseId === '(default)' ? getFirestore() : getFirestore(databaseId);
 
 const EVENT_ID = 'nlc-2026';
 const MAIN_CHECKIN = 'main-checkin';

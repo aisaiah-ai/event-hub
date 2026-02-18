@@ -78,7 +78,7 @@ class EventRepository {
       'selfCheckinEnabled': true,
       'sessionsEnabled': true,
     },
-    logoUrl: 'assets/checkin/IntheOne.svg',
+    logoUrl: 'assets/checkin/empower.png',
     backgroundImageUrl: 'assets/images/nlc_background.png',
     backgroundPatternUrl: 'assets/checkin/mossaic.svg',
     organizationName: 'Couples for Christ',
@@ -102,7 +102,7 @@ class EventRepository {
       'dinnerTime': '6:00 PM - 9:00 PM',
       'rsvpDeadline': 'March 10',
     },
-    logoUrl: 'assets/checkin/IntheOne.svg',
+    logoUrl: 'assets/checkin/empower.png',
     backgroundPatternUrl: 'assets/checkin/mossaic.svg',
     organizationName: 'Couples for Christ',
   );

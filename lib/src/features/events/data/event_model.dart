@@ -36,7 +36,7 @@ class EventModel {
   final bool allowCheckin;
   final Map<String, dynamic> metadata;
 
-  /// Logo URL or asset path (e.g. "https://..." or "assets/checkin/IntheOne.svg")
+  /// Logo URL or asset path (e.g. "https://..." or "assets/checkin/empower.png")
   final String? logoUrl;
 
   /// Full background image URL (optional)

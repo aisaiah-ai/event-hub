@@ -119,6 +119,19 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
     return v?.toString().trim();
   }
 
+  /// Ministry and service when not redundant (avoid "CFC · CFC (HH & up)").
+  List<String> get _ministryAndServiceDisplay {
+    final m = _ministry;
+    final s = _service;
+    if (m == null && s == null) return [];
+    if (m == null) return [s!];
+    if (s == null) return [m];
+    if (m == s) return [m];
+    if (s.toLowerCase().startsWith(m.toLowerCase())) return [s];
+    if (m.toLowerCase().startsWith(s.toLowerCase())) return [m];
+    return [m, s];
+  }
+
   String? get _regionDisplay {
     final region =
         widget.registrant.profile['region'] ?? widget.registrant.answers['region'];
@@ -178,13 +191,12 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
                         color: AppColors.navy,
                       ),
                     ),
-                    if (_ministry != null || _service != null || _regionDisplay != null) ...[
+                    if (_ministryAndServiceDisplay.isNotEmpty || _regionDisplay != null) ...[
                       const SizedBox(height: 6),
                       Text(
                         [
-                          if (_ministry != null) _ministry,
-                          if (_service != null) _service,
-                          if (_regionDisplay != null) _regionDisplay,
+                          ..._ministryAndServiceDisplay,
+                          if (_regionDisplay != null) _regionDisplay!,
                         ].join(' · '),
                         style: GoogleFonts.inter(
                           fontSize: 13,

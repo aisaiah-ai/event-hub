@@ -26,12 +26,12 @@ class FirestoreConfig {
   static bool get isAvailable => _instance != null;
 
   /// Firestore instance for the default database.
+  /// Uses FirebaseFirestore.instance so we match the same default DB that Node scripts use (getFirestore() with no args).
   static FirebaseFirestore? get instanceOrNull {
     if (_instance != null) return _instance;
     try {
-      final app = Firebase.app();
-      _instance = FirebaseFirestore.instanceFor(app: app, databaseId: databaseId);
-      _log('Connected: project=${app.options.projectId}, database=$databaseId');
+      _instance = FirebaseFirestore.instance;
+      _log('Connected: project=${Firebase.app().options.projectId}, database=$databaseId');
       return _instance;
     } catch (e) {
       _log('Init failed: $e');
