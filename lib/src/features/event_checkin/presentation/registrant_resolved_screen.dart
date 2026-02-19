@@ -203,7 +203,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
       } else {
         setState(() => _error = outcome.errorMessage ?? outcome.errorCode ?? 'Check-in failed.');
       }
-    } catch (e, st) {
+    } catch (e) {
       debugPrint('[RegistrantResolved] checkIn failed: $e');
       if (e is FirebaseException) {
         debugPrint('[RegistrantResolved] code=${e.code} message=${e.message}');

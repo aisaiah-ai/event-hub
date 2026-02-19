@@ -33,7 +33,6 @@ class CheckinManualEntryPage extends StatefulWidget {
 }
 
 class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
-  late CheckinRepository _repo;
   late RegistrantService _registrantService;
   EventModel? _event;
   bool _loadingEvent = true;
@@ -48,7 +47,6 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
   @override
   void initState() {
     super.initState();
-    _repo = widget.repository ?? CheckinRepository();
     _registrantService = RegistrantService();
     _loadEvent();
   }

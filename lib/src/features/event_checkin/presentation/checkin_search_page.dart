@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -18,7 +15,6 @@ import '../data/checkin_repository.dart';
 import '../data/nlc_sessions.dart';
 import 'theme/checkin_theme.dart';
 import 'widgets/registrant_result_card.dart';
-import 'widgets/checkin_success_overlay.dart';
 import 'widgets/already_checked_in_dialog.dart';
 
 /// Search registrants by name. Session-only: badge and check-in scoped to [sessionId].
@@ -157,71 +153,6 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         'source': 'search',
         'isMainCheckIn': widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
       },
-    );
-  }
-
-  List<String> _checkInPathLines(String registrantId) {
-    return [
-      'document=events/${widget.eventId}/sessions/${widget.mode.sessionId}/attendance/$registrantId',
-    ];
-  }
-
-  /// Unwrap boxed errors (e.g. "Dart exception thrown from converted Future" on web).
-  static Object _unwrapError(Object e) {
-    try {
-      if (e is AsyncError) return e.error;
-    } catch (_) {}
-    try {
-      final d = e as dynamic;
-      final inner = d.error;
-      if (inner != null && identical(inner, e) == false) return inner as Object;
-    } catch (_) {}
-    return e;
-  }
-
-  static String _checkInErrorMessage(Object real, String pathDetail) {
-    final pathLine = 'Write target: $pathDetail';
-    if (real is FirebaseException) {
-      if (real.code == 'permission-denied') {
-        return 'Check-in denied. $pathLine Deploy Firestore rules for this database.';
-      }
-      return 'Check-in failed: ${real.message ?? real.code}. $pathLine';
-    }
-    final s = real.toString();
-    if (s.contains('converted Future') || s.contains("fetch the boxed error")) {
-      return 'Check-in failed (likely permission-denied). $pathLine Deploy Firestore rules.';
-    }
-    return 'Check-in failed: $real. $pathLine';
-  }
-
-  Future<void> _refreshSearchResults() async {
-    if (!mounted) return;
-    final q = _searchController.text.trim();
-    if (q.length < 2) return;
-    final eventId = _event?.id ?? widget.eventId;
-    if (eventId.isEmpty) return;
-    final list = await _repo.searchRegistrants(eventId, q, limit: 15);
-    if (!mounted) return;
-    setState(() => _results = list);
-  }
-
-  void _showSuccessOverlay({required String name, bool alsoCheckedInToConference = false}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      builder: (context) => CheckinSuccessOverlay(
-        name: name,
-        modeDisplayName: widget.mode.displayName,
-        timestamp: DateTime.now(),
-        alsoCheckedInToConference: alsoCheckedInToConference,
-        onDismiss: () {
-          Navigator.of(context).pop();
-          if (mounted) {
-            context.pop({'registrantId': null, 'completed': true});
-          }
-        },
-      ),
     );
   }
 
