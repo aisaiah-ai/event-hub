@@ -22,5 +22,9 @@ class NlcColors {
   // Status
   static const Color successGreen = NlcPalette.success;
 
+  /// Leaderboard bars (ranking only — not session/wayfinding colors).
+  static const Color leaderboardGold = Color(0xFFC9A227);
+  static const Color leaderboardLightGold = Color(0xFFE8D48A);
+
   static const Color white = NlcPalette.white;
 }

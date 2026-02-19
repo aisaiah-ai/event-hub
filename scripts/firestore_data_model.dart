@@ -7,9 +7,9 @@
 /// Ensure PARENT documents exist in the target database (event-hub-dev / event-hub-prod)
 /// before writing to subcollections.
 
-// ignore_for_file: avoid_print
-
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 
 void main(List<String> args) {
   final out = StringBuffer();
@@ -42,15 +42,15 @@ void main(List<String> args) {
   out.writeln();
 
   final s = out.toString();
-  print(s);
+  debugPrint(s);
 
   try {
     final file = File('docs/FIRESTORE_DATA_MODEL.md');
     file.parent.createSync(recursive: true);
     file.writeAsStringSync(s);
-    print('Wrote docs/FIRESTORE_DATA_MODEL.md');
+    debugPrint('Wrote docs/FIRESTORE_DATA_MODEL.md');
   } catch (e) {
-    print('Could not write file: $e');
+    debugPrint('Could not write file: $e');
   }
 }
 

@@ -983,6 +983,7 @@ class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: kIsWeb ? (_) => setState(() => _hover = true) : null,
       onExit: kIsWeb ? (_) => setState(() => _hover = false) : null,
       child: GestureDetector(

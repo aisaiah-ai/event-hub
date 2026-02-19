@@ -1288,6 +1288,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedContainer(
@@ -1376,9 +1377,9 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 child: LinearProgressIndicator(
                   value: widget.barValue.clamp(0.0, 1.0),
                   minHeight: 8,
-                  backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
+                  backgroundColor: NlcColors.leaderboardLightGold.withValues(alpha: 0.4),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    widget.isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
+                    widget.isTop ? NlcColors.leaderboardGold : NlcColors.leaderboardLightGold,
                   ),
                 ),
               )

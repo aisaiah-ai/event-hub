@@ -22,6 +22,10 @@ class AppColors {
   static const Color accent = NlcPalette.brandBlue;
   static const Color accentSoft = NlcPalette.brandBlueSoft;
   static const Color accentDark = NlcPalette.brandBlueDark;
+
+  /// Neutral gold for capacity progress bars (not session color).
+  static const Color capacityBarGold = Color(0xFFC9A227);
+  static const Color capacityBarGoldLight = Color(0xFFE8D48A);
 }
 
 class AppSpacing {

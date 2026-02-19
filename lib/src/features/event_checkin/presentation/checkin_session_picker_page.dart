@@ -235,6 +235,7 @@ class _ConferenceCheckinCardState extends State<_ConferenceCheckinCard> {
     );
 
     return MouseRegion(
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: GestureDetector(
@@ -392,6 +393,7 @@ class _SessionCardState extends State<_SessionCard> {
     );
 
     return MouseRegion(
+      hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: GestureDetector(

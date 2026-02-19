@@ -78,6 +78,7 @@ class _AnimatedCheckinCardState extends State<AnimatedCheckinCard> {
     final leadingColor = widget.isPrimary ? NlcPalette.cream : NlcPalette.brandBlueDark;
 
     return MouseRegion(
+      hitTestBehavior: HitTestBehavior.opaque,
       cursor: SystemMouseCursors.click,
       onEnter: kIsWeb ? (_) => setState(() => _isHovered = true) : null,
       onExit: kIsWeb ? (_) => setState(() => _isHovered = false) : null,
