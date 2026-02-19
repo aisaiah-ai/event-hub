@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../models/session.dart';
 import '../../../services/checkin_orchestrator_service.dart';
@@ -111,7 +110,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
         title: const Text('Confirm Check-In'),
         content: Text(
           'Check into ${session.displayName}?\n'
-          'Remaining seats: ${item.remainingSeats == 0x7FFFFFFF ? "No limit" : item.remainingSeats}',
+          '${session.capacity > 0 ? (item.remainingSeats <= 0 ? "Session is full." : "${item.remainingSeats} seats remaining.") : "Open capacity."}',
         ),
         actions: [
           TextButton(
@@ -262,11 +261,10 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                             item.label == SessionAvailabilityLabel.closed;
                         final color = sessionColorFromHex(session.colorHex);
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.betweenSecondaryCards),
-                          child: _SessionCard(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: SessionSelectionCard(
                             session: session,
                             remainingSeats: item.remainingSeats,
-                            preRegisteredCount: item.preRegisteredCount,
                             label: item.label,
                             color: color,
                             onTap: disabled ? null : () => _onTapSession(item),
@@ -288,11 +286,12 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
 
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
+/// Reusable wayfinding-first session card. Color = room identity only; capacity copy simplified.
+class SessionSelectionCard extends StatefulWidget {
+  const SessionSelectionCard({
+    super.key,
     required this.session,
     required this.remainingSeats,
-    this.preRegisteredCount = 0,
     required this.label,
     required this.color,
     this.onTap,
@@ -300,71 +299,120 @@ class _SessionCard extends StatelessWidget {
 
   final Session session;
   final int remainingSeats;
-  final int preRegisteredCount;
   final SessionAvailabilityLabel label;
   final Color color;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final disabled = onTap == null;
-    final labelStr = SessionCatalogService.availabilityLabelString(label);
-    final chipColor = _chipColor(label);
-    String dateTime = '';
-    if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().add_jm().format(session.startAt!);
-      if (session.endAt != null) {
-        dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
-      }
-    }
+  State<SessionSelectionCard> createState() => _SessionSelectionCardState();
+}
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Opacity(
-          opacity: disabled ? 0.7 : 1,
-          child: Container(
+class _SessionSelectionCardState extends State<SessionSelectionCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final session = widget.session;
+    final disabled = widget.onTap == null;
+    final labelStr = SessionCatalogService.availabilityLabelString(widget.label);
+    final chipColor = _chipColor(widget.label);
+    final colorName = resolveSessionColorName(session.colorHex);
+    final textOnColor = contrastTextColorOn(widget.color);
+
+    final capacityText = session.capacity > 0
+        ? (widget.remainingSeats <= 0 ? 'Full' : '${widget.remainingSeats} seats remaining')
+        : 'Open capacity';
+
+    return Opacity(
+      opacity: disabled ? 0.6 : 1,
+      child: GestureDetector(
+        onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
+        onTapUp: disabled ? null : (_) => setState(() => _pressed = false),
+        onTapCancel: disabled ? null : () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 1.02 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
               color: AppColors.surfaceCard,
               borderRadius: BorderRadius.circular(16),
+              border: widget.onTap != null
+                  ? Border.all(
+                      color: widget.color.withValues(alpha: _pressed ? 0.8 : 0.4),
+                      width: _pressed ? 2.5 : 2,
+                    )
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  blurRadius: _pressed ? 20 : 16,
+                  offset: Offset(0, _pressed ? 6 : 4),
                 ),
               ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // Colored header – 48px min, wayfinding identity
                 Container(
-                  constraints: const BoxConstraints(minHeight: 56),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: BoxDecoration(color: color),
-                  child: Center(
-                    child: Text(
-                      session.displayName,
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                  constraints: const BoxConstraints(minHeight: 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(color: widget.color),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$colorName SESSION',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.0,
+                          color: textOnColor,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        session.displayName,
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: textOnColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-                Container(height: 4, color: color),
+                // White body – 24px padding, 16px spacing
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Location row with chip aligned right
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          Icon(Icons.location_on, size: 18, color: AppColors.textPrimary87),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              session.location ?? '—',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
@@ -382,47 +430,12 @@ class _SessionCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      if (session.location != null && session.location!.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, size: 16, color: AppColors.textPrimary87),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                session.location!,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: AppColors.textPrimary87,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (dateTime.isNotEmpty) ...[
-                        if (session.location != null && session.location!.isNotEmpty) const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.schedule, size: 16, color: AppColors.textPrimary87),
-                            const SizedBox(width: 8),
-                            Text(
-                              dateTime,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: AppColors.textPrimary87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       Text(
-                        session.capacity > 0
-                            ? '${session.capacity} total · $preRegisteredCount pre-registered · ${session.attendanceCount} checked in · ${remainingSeats <= 0 ? "Full" : "$remainingSeats remaining"}'
-                            : 'No capacity limit · $preRegisteredCount pre-registered · ${session.attendanceCount} checked in',
+                        capacityText,
                         style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppColors.textPrimary87.withValues(alpha: 0.9),
+                          fontSize: 14,
+                          color: AppColors.textPrimary87.withValues(alpha: 0.95),
                         ),
                       ),
                     ],

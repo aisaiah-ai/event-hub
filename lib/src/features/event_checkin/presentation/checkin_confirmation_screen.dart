@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/session.dart';
 import '../../../theme/nlc_palette.dart';
@@ -16,7 +17,8 @@ import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
 
-/// Post check-in confirmation: session info, receipt, Save as Image, Wallet placeholders.
+/// NLC check-in confirmation: wayfinding (session color), wristband instruction, conference guide.
+/// UI + messaging only. No changes to Firestore, analytics, or attendance path.
 class CheckinConfirmationScreen extends StatefulWidget {
   const CheckinConfirmationScreen({
     super.key,
@@ -45,6 +47,17 @@ class CheckinConfirmationScreen extends StatefulWidget {
 class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
   final GlobalKey _receiptKey = GlobalKey();
   bool _savingImage = false;
+
+  static const String _guideUrl = 'https://nlcguide.cfcusaconferences.org';
+
+  Future<void> _openGuide() async {
+    final uri = Uri.parse(_guideUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) _showSnack('Could not open guide.');
+    }
+  }
 
   Future<void> _saveAsImage() async {
     final ro = _receiptKey.currentContext?.findRenderObject();
@@ -86,23 +99,26 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  void _onDone() {
+    context.go('/events/${widget.eventSlug}/main-checkin');
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
     final color = sessionColorFromHex(session.colorHex);
-    final colorName = sessionColorDisplayName(session.colorHex);
-    final wayfindingMessage = colorName != null
-        ? 'Proceed to the $colorName session area.'
-        : 'Proceed to your session area.';
+    final colorName = resolveSessionColorName(session.colorHex);
+    final textOnColor = contrastTextColorOn(color);
     final at = widget.checkedInAt ?? DateTime.now();
     String dateTime = '';
     if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().add_jm().format(session.startAt!);
+      dateTime = DateFormat.MMMd().format(session.startAt!);
+      dateTime += ' · ${DateFormat.jm().format(session.startAt!)}';
       if (session.endAt != null) {
         dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
       }
     } else {
-      dateTime = DateFormat.MMMd().add_jm().format(at);
+      dateTime = '${DateFormat.MMMd().format(at)} · ${DateFormat.jm().format(at)}';
     }
 
     return EventPageScaffold(
@@ -113,14 +129,14 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: NlcPalette.cream),
-          onPressed: () => context.go('/events/${widget.eventSlug}/main-checkin'),
+          icon: const Icon(Icons.check, color: NlcPalette.cream),
+          onPressed: _onDone,
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
@@ -129,29 +145,15 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
                   const SizedBox(height: AppSpacing.afterHeader),
                   ConferenceHeader(logoUrl: widget.event?.logoUrl),
                   const SizedBox(height: AppSpacing.betweenSections),
-                  Container(
-                    constraints: const BoxConstraints(minHeight: 56),
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        wayfindingMessage,
-                        style: GoogleFonts.inter(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  // A. Header: checkmark, You Are Checked In, participant name
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 64,
+                    color: NlcPalette.success,
                   ),
-                  const SizedBox(height: AppSpacing.betweenSections),
+                  const SizedBox(height: 12),
                   Text(
-                    "You're Checked In",
+                    'You Are Checked In',
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -159,18 +161,24 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSpacing.belowSubtitle),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.registrantName,
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: NlcPalette.cream.withValues(alpha: 0.95),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  // Session card: banner (icon + color label + title), body (location, date/time), dashed divider, wristband block
                   RepaintBoundary(
                     key: _receiptKey,
                     child: Container(
-                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceCard,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.5),
-                          width: 2,
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.08),
@@ -179,110 +187,263 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
                           ),
                         ],
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(3),
+                          // Colored banner: circle icon + BLUE SESSION, then session title
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                            decoration: BoxDecoration(color: color),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: textOnColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      '$colorName SESSION',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 1.0,
+                                        color: textOnColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
+                                const SizedBox(height: 10),
+                                Text(
                                   session.displayName,
                                   style: GoogleFonts.inter(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.navy,
+                                    color: textOnColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // White body: location, date/time
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (session.location != null &&
+                                    session.location!.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on,
+                                          size: 18, color: color),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          session.location!,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            color: AppColors.textPrimary87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (dateTime.isNotEmpty) const SizedBox(height: 8),
+                                ],
+                                if (dateTime.isNotEmpty)
+                                  Row(
+                                    children: [
+                                      Icon(Icons.schedule,
+                                          size: 18, color: color),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        dateTime,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 15,
+                                          color: AppColors.textPrimary87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Dashed divider
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Row(
+                              children: List.generate(
+                                14,
+                                (_) => Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: Container(
+                                    width: 12,
+                                    height: 2,
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.45),
+                                      borderRadius: BorderRadius.circular(1),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                           const SizedBox(height: 16),
-                          if (dateTime.isNotEmpty)
-                            _ReceiptRow(
-                              icon: Icons.schedule,
-                              label: 'Date & time',
-                              value: dateTime,
+                          // Wristband block: light tint background, icon, instruction
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          if (session.location != null &&
-                              session.location!.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            _ReceiptRow(
-                              icon: Icons.location_on,
-                              label: 'Location',
-                              value: session.location!,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.festival,
+                                  size: 28,
+                                  color: color,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text.rich(
+                                        TextSpan(
+                                          text: 'Your wristband color: ',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            color: AppColors.navy,
+                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: colorName,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                                color: color,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Proceed to the $colorName wristband table.',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                          const SizedBox(height: 20),
-                          Divider(
-                            height: 1,
-                            color: NlcPalette.brandBlue.withValues(alpha: 0.3),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Receipt',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.registrantName,
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.navy,
-                            ),
-                          ),
-                          Text(
-                            'ID: ${widget.registrantId}',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: AppColors.textPrimary87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Checked in: ${DateFormat.MMMd().add_jm().format(at)}',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: AppColors.textPrimary87,
-                            ),
-                          ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
+                  Divider(
+                    height: 1,
+                    color: NlcPalette.cream.withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: 24),
+                  // Conference guide: icon, title/URL, Open Guide button on the right
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceCard.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: NlcPalette.brandBlue.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(Icons.menu_book_rounded,
+                            size: 28, color: NlcPalette.brandBlue),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Conference Guide',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'nlcguide.cfcusaconferences.org',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: AppColors.textPrimary87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        FilledButton(
+                          onPressed: _openGuide,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: NlcPalette.brandBlue,
+                            foregroundColor: NlcPalette.cream,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Open Guide'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _onDone,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: NlcPalette.brandBlue,
+                        foregroundColor: NlcPalette.cream,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   _ActionButton(
                     icon: Icons.image_outlined,
                     label: 'Save as Image',
                     onTap: _savingImage ? null : _saveAsImage,
                     loading: _savingImage,
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionButton(
-                    icon: Icons.wallet,
-                    label: 'Add to Apple Wallet',
-                    subtitle: 'Coming soon',
-                    onTap: null,
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionButton(
-                    icon: Icons.wallet,
-                    label: 'Add to Google Wallet',
-                    subtitle: 'Coming soon',
-                    onTap: null,
                   ),
                   const SizedBox(height: AppSpacing.footerTop),
                   const FooterCredits(),
@@ -297,63 +458,16 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
   }
 }
 
-class _ReceiptRow extends StatelessWidget {
-  const _ReceiptRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: NlcPalette.brandBlue),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.textPrimary87.withValues(alpha: 0.9),
-                ),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.navy,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
-    this.subtitle,
-    this.onTap,
+    required this.onTap,
     this.loading = false,
   });
 
   final IconData icon;
   final String label;
-  final String? subtitle;
   final VoidCallback? onTap;
   final bool loading;
 
@@ -385,28 +499,13 @@ class _ActionButton extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: enabled ? AppColors.navy : Colors.grey,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ],
+                child: Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? AppColors.navy : Colors.grey,
+                  ),
                 ),
               ),
               if (loading)

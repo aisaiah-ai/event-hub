@@ -774,6 +774,28 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-19 — Confirmation Screen Wayfinding + Guide Integration
+
+**What was done**
+- CheckinConfirmationScreen: UI + messaging only. No Firestore, analytics, or attendance changes.
+- Header: large checkmark, "You Are Checked In", participant name.
+- Session card: full top banner using session color (resolveSessionColor); "BLUE SESSION" / "ORANGE SESSION" / "YELLOW SESSION" / "MAIN" label; session title, location, date/time. Adaptive text color on banner (WCAG: dark → white, yellow → navy).
+- Wristband instruction block: "Your wristband color: BLUE" (color bolded), "Proceed to the BLUE wristband table." (dynamic from session.colorHex).
+- Conference guide section: book icon, "Conference Guide", subtitle nlcguide.cfcusaconferences.org, "Open Guide" button (url_launcher, external browser). No embedded QR.
+- App bar: back replaced with check/Done; only "Done" and "Open Guide" as primary actions. No return to session selection.
+- session_wayfinding: resolveSessionColorName(hex) → uppercase BLUE/ORANGE/YELLOW/MAIN; contrastTextColorOn(background) for accessible text on colored banner. url_launcher dependency added.
+
+**What was tried**
+- Align confirmation screen 1:1 with venue signage: session color wayfinding, wristband color instruction, table direction, online guide URL.
+
+**Outcome / still broken**
+- Implemented. Analytics, capacity, orchestrator, attendance path unchanged.
+
+**Next time (recall)**
+- Confirmation is final; no session change. Guide URL opens in external browser.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

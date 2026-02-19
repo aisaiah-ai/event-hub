@@ -48,6 +48,7 @@ dependencies:
   spreadsheet_decoder: ^2.3.0
   fl_chart: ^0.69.0
   shared_preferences: ^2.2.2
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:

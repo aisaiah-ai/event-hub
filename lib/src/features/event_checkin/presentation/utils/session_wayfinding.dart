@@ -32,14 +32,48 @@ String? sessionColorDisplayName(String? hex) {
   final h = (hex.startsWith('#') ? hex : '#$hex').toLowerCase();
   switch (h) {
     case '#1e3a5f':
+    case '#1e2f4f':
       return 'Navy';
     case '#2563eb':
+    case '#2f6fed':
       return 'Blue';
     case '#ea580c':
+    case '#f59e0b':
       return 'Orange';
     case '#eab308':
+    case '#facc15':
       return 'Yellow';
     default:
       return null;
   }
+}
+
+/// Uppercase session color label for signage: "BLUE SESSION", "ORANGE SESSION", wristband instructions.
+/// Maps prompt hexes (#2F6FED, #F59E0B, #FACC15, #1E2F4F) and current NLC hexes. Main check-in → "MAIN".
+String resolveSessionColorName(String? hex) {
+  if (hex == null || hex.isEmpty) return 'SESSION';
+  final h = (hex.startsWith('#') ? hex : '#$hex').toLowerCase();
+  switch (h) {
+    case '#1e3a5f':
+    case '#1e2f4f':
+      return 'MAIN';
+    case '#2563eb':
+    case '#2f6fed':
+      return 'BLUE';
+    case '#ea580c':
+    case '#f59e0b':
+      return 'ORANGE';
+    case '#eab308':
+    case '#facc15':
+      return 'YELLOW';
+    default:
+      return 'SESSION';
+  }
+}
+
+/// Text color for use on a colored background (WCAG contrast). Dark background → white; yellow → dark navy.
+Color contrastTextColorOn(Color background) {
+  final luminance = background.computeLuminance();
+  if (luminance < 0.4) return Colors.white;
+  return NlcPalette.ink;
 }
