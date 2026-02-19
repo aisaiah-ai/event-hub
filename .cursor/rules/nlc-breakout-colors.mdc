@@ -1,0 +1,30 @@
+---
+description: Official NLC 2026 breakout color system — use for wayfinding only; no hardcoded hex in widgets
+alwaysApply: true
+---
+
+# NLC Breakout Color System (UI Enforcement)
+
+## Canonical colors (single source of truth)
+
+- **Gender Identity** → Blue `#2F6FED`
+- **Abortion & Contraception** → Orange `#F59E0B`
+- **Immigration** → Yellow `#FACC15`
+- **Main Check-In** → Neutral Navy `#1E2F4F`
+
+## Implementation rules
+
+1. **Central reference:** `lib/src/core/theme/session_colors.dart`
+   - `NlcSessionColors`: blue, orange, yellow, main (and *Hex constants).
+   - `resolveSessionColor(Session session)` — single source of truth for UI color.
+   - `resolveSessionColorHex(Session session)` — for wallet/save-as-image.
+
+2. **No hardcoded breakout hex** in widgets. All session color must come from `resolveSessionColor(session)` or `NlcSessionColors`.
+
+3. **Session cards (selection, pre-reg, confirmation):**
+   - 6px vertical left color stripe using session color.
+   - Status chips and capacity progress bars use **neutral** colors (green/orange/red for status; gold/gray for capacity). Do not use session color for capacity indication.
+
+4. **Dashboard:** Session leaderboard bars use gold / light gold only. Session colors are for wayfinding, not ranking.
+
+5. **Color meaning:** Room identification only. Never use session color to indicate capacity, availability, or rank.
