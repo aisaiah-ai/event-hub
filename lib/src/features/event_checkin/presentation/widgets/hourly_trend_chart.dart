@@ -1,6 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../core/theme/nlc_theme.dart';
+import '../../../../theme/nlc_palette.dart';
 import 'package:intl/intl.dart';
 
 /// Shared line chart for check-in trend (keys: YYYY-MM-DD-HH-mm, 15-minute buckets).
@@ -54,7 +57,7 @@ class HourlyTrendChart extends StatelessWidget {
         child: Center(
           child: Text(
             emptyMessage,
-            style: GoogleFonts.inter(color: Colors.black54, fontSize: 16),
+            style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 16),
             textAlign: TextAlign.center,
           ),
         ),
@@ -68,7 +71,7 @@ class HourlyTrendChart extends StatelessWidget {
         child: Center(
           child: Text(
             'No trend data (expected keys: YYYY-MM-DD-HH-mm)',
-            style: GoogleFonts.inter(color: Colors.black54, fontSize: 14),
+            style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -83,7 +86,7 @@ class HourlyTrendChart extends StatelessWidget {
           ];
     chartPoints.sort((a, b) => a.time.compareTo(b.time));
 
-    final color = lineColor ?? const Color(0xFFD4A017);
+    final color = lineColor ?? NlcPalette.brandBlue;
     return SizedBox(
       height: height,
       child: _LineChartPainter(
@@ -122,12 +125,22 @@ class _LineChartPainter extends StatelessWidget {
         maxX: maxXVal,
         minY: 0,
         maxY: maxVal,
-        gridData: const FlGridData(show: false),
+        gridData: FlGridData(
+          show: true,
+          getDrawingHorizontalLine: (v) => FlLine(
+            color: NlcColors.secondaryBlue.withValues(alpha: 0.15),
+            strokeWidth: 1,
+          ),
+          getDrawingVerticalLine: (v) => FlLine(
+            color: NlcColors.secondaryBlue.withValues(alpha: 0.15),
+            strokeWidth: 1,
+          ),
+        ),
         borderData: FlBorderData(
           show: true,
           border: Border(
-            left: BorderSide(color: Colors.black26, width: 1),
-            bottom: BorderSide(color: Colors.black26, width: 1),
+            left: BorderSide(color: NlcColors.mutedText.withValues(alpha: 0.4), width: 1),
+            bottom: BorderSide(color: NlcColors.mutedText.withValues(alpha: 0.4), width: 1),
             top: const BorderSide(color: Colors.transparent),
             right: const BorderSide(color: Colors.transparent),
           ),
@@ -140,7 +153,7 @@ class _LineChartPainter extends StatelessWidget {
               interval: maxVal / 4,
               getTitlesWidget: (v, meta) => Text(
                 v.toInt().toString(),
-                style: const TextStyle(color: Colors.black54, fontSize: 12),
+                style: TextStyle(color: NlcColors.mutedText, fontSize: 12),
               ),
             ),
           ),
@@ -154,7 +167,7 @@ class _LineChartPainter extends StatelessWidget {
                 if (i >= 0 && i < points.length) {
                   return Text(
                     timeFmt.format(points[i].time),
-                    style: const TextStyle(color: Colors.black54, fontSize: 12),
+                    style: TextStyle(color: NlcColors.mutedText, fontSize: 12),
                   );
                 }
                 return const SizedBox();
@@ -182,7 +195,7 @@ class _LineChartPainter extends StatelessWidget {
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: lineColor.withOpacity(0.12),
+              color: lineColor.withValues(alpha: 0.12),
             ),
           ),
         ],

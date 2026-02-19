@@ -157,8 +157,11 @@ class CheckinAnalyticsService {
     for (final doc in docs) {
       final data = doc.data();
       final session = Session.fromFirestore(doc.id, data);
-      final count = await _countAttendance(eventId, doc.id);
-      _log('fetchSessionStats: session=${doc.id} attendanceCount=$count (from attendance)');
+      // Prefer session doc attendanceCount (authoritative for capacity); fallback to live count.
+      final count = session.attendanceCount > 0
+          ? session.attendanceCount
+          : await _countAttendance(eventId, doc.id);
+      _log('fetchSessionStats: session=${doc.id} attendanceCount=$count');
       final startAt = (data['startAt'] as Timestamp?)?.toDate();
       results.add(SessionCheckinStat(
         sessionId: doc.id,

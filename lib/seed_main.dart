@@ -55,6 +55,11 @@ void main(List<String> args) async {
   final noHash = seedNoHashDefine == '1' || seedNoHashDefine == 'true'
       || (Platform.environment['SEED_NO_HASH'] ?? '').toLowerCase() == '1';
 
+  const clearFirstDefine = String.fromEnvironment('SEED_CLEAR_FIRST', defaultValue: '');
+  final clearFirst = clearFirstDefine == '1' || clearFirstDefine == 'true'
+      || (Platform.environment['SEED_CLEAR_FIRST'] ?? '').toLowerCase() == '1'
+      || (filePath?.contains('nlc_main_clean') ?? false);
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -74,9 +79,12 @@ void main(List<String> args) async {
   }
 
   try {
-    final result = await runSeed(filePath, hashPii: !noHash);
+    final result = await runSeed(filePath, hashPii: !noHash, clearFirst: clearFirst);
     print('');
     print('Done. Imported: ${result.imported}, Skipped: ${result.skipped}');
+    if (result.sessionRegistrationsWritten > 0) {
+      print('Session registrations: ${result.sessionRegistrationsWritten}');
+    }
     print('Registrants: events/nlc-2026/registrants (event-hub-dev)');
   } catch (e, st) {
     print('Error: $e');

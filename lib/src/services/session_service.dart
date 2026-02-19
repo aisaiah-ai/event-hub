@@ -90,7 +90,7 @@ class SessionService {
       return (exists: false, checkedInAt: null);
     }
     final data = snap.data()!;
-    final ts = data['checkedInAt'];
+    final ts = data['createdAt'] ?? data['checkedInAt'];
     DateTime? at;
     if (ts is Timestamp) at = ts.toDate();
     return (exists: true, checkedInAt: at);

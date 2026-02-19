@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../theme/nlc_palette.dart';
 import '../../../../models/registrant.dart';
 import '../../data/checkin_mode.dart';
 import '../../data/checkin_repository.dart';
@@ -228,14 +229,14 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.goldGradientStart,
-            AppColors.goldGradientEnd,
+            NlcPalette.brandBlue,
+            NlcPalette.brandBlueSoft,
           ],
         ),
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppColors.goldGradientEnd.withOpacity(0.35),
+            color: NlcPalette.brandBlue.withValues(alpha: 0.35),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -297,7 +298,7 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.goldGradientEnd,
+              color: NlcPalette.brandBlue,
             ),
           ),
           const SizedBox(height: 4),
@@ -317,7 +318,7 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
       style: GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: AppColors.goldGradientEnd,
+        color: NlcPalette.brandBlue,
       ),
     );
   }

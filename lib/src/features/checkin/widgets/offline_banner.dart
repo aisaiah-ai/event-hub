@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/nlc_palette.dart';
 import '../checkin_tokens.dart';
 
 class OfflineBanner extends StatelessWidget {
@@ -15,10 +16,10 @@ class OfflineBanner extends StatelessWidget {
         vertical: CheckinTokens.spacingS,
       ),
       decoration: BoxDecoration(
-        color: CheckinTokens.accentGold.withValues(alpha: 0.25),
+        color: NlcPalette.brandBlue.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(CheckinTokens.radiusLarge),
         border: Border.all(
-          color: CheckinTokens.accentGold.withValues(alpha: 0.5),
+          color: NlcPalette.brandBlue.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -26,7 +27,7 @@ class OfflineBanner extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off, color: CheckinTokens.accentGold, size: 20),
+          Icon(Icons.cloud_off, color: NlcPalette.brandBlue, size: 20),
           const SizedBox(width: CheckinTokens.spacingS),
           Text(
             text,

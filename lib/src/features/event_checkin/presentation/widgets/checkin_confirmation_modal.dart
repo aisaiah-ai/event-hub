@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../theme/nlc_palette.dart';
 import '../theme/checkin_theme.dart';
 
 /// Bottom sheet confirmation modal with gold top border.
@@ -61,7 +62,7 @@ class CheckinConfirmationModal extends StatelessWidget {
             margin: const EdgeInsets.only(top: 12),
             width: 48,
             decoration: BoxDecoration(
-              color: AppColors.gold,
+              color: NlcPalette.brandBlue,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -136,8 +137,8 @@ class CheckinConfirmationModal extends StatelessWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              AppColors.goldGradientStart,
-                              AppColors.goldGradientEnd,
+                              NlcPalette.brandBlue,
+                              NlcPalette.brandBlueSoft,
                             ],
                           ),
                           borderRadius: BorderRadius.circular(14),
@@ -153,7 +154,7 @@ class CheckinConfirmationModal extends StatelessWidget {
                                 style: GoogleFonts.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                  color: NlcPalette.cream,
                                 ),
                               ),
                             ),

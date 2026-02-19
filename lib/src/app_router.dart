@@ -1,12 +1,19 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'features/checkin/checkin_screen.dart';
+import 'features/events/data/event_model.dart';
 import 'features/event_checkin/presentation/checkin_dashboard_screen.dart';
 import 'features/event_checkin/presentation/wallboard_screen.dart';
 import 'features/event_checkin/presentation/checkin_manual_entry_page.dart';
 import 'features/event_checkin/data/checkin_mode.dart' show CheckInFlowType, CheckInMode;
 import 'features/event_checkin/presentation/checkin_search_page.dart';
 import 'features/event_checkin/presentation/checkin_success_page.dart';
+import 'features/event_checkin/presentation/registrant_resolved_screen.dart';
+import 'features/event_checkin/presentation/session_selection_screen.dart';
+import 'features/event_checkin/presentation/checkin_confirmation_screen.dart';
+import 'models/session.dart';
+import 'services/checkin_orchestrator_service.dart';
 import 'features/events/presentation/event_checkin_entry_page.dart';
 import 'features/events/presentation/event_landing_page.dart';
 import 'features/events/presentation/event_rsvp_page.dart';
@@ -38,7 +45,7 @@ String get _initialLocation {
   if (host == 'nlc.aisaiah.org' ||
       host == 'localhost' ||
       host == '127.0.0.1') {
-    return '/events/nlc/checkin';
+    return '/events/nlc/main-checkin';
   }
   if (host == 'rsvp.aisaiah.org') return '/';
   return '/admin/dashboard';
@@ -57,7 +64,7 @@ GoRouter createAppRouter() {
           if (host == 'nlc.aisaiah.org' ||
               host == 'localhost' ||
               host == '127.0.0.1') {
-            return '/events/nlc/checkin';
+            return '/events/nlc/main-checkin';
           }
           return '/admin/dashboard';
         },
@@ -134,10 +141,12 @@ GoRouter createAppRouter() {
               final extra = state.extra as Map<String, dynamic>?;
               final eventId = extra?['eventId'] as String? ??
                   (slug == 'nlc' ? 'nlc-2026' : slug);
+              final sessionId = extra?['sessionId'] as String? ??
+                  (slug == 'nlc' ? 'main-checkin' : 'default');
               return CheckinManualEntryPage(
                 eventId: eventId,
                 eventSlug: slug,
-                sessionId: extra?['sessionId'] as String? ?? 'default',
+                sessionId: sessionId,
               );
             },
           ),
@@ -151,6 +160,80 @@ GoRouter createAppRouter() {
                 sessionName: extra?['sessionName'] as String? ?? 'Session',
                 eventSlug: slug,
                 returnPath: extra?['returnPath'] as String?,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'registrant-resolved',
+            builder: (context, state) {
+              final slug = state.pathParameters['eventSlug'] ?? '';
+              final extra = state.extra as Map<String, dynamic>? ?? {};
+              final event = extra['event'] as EventModel?;
+              if (event == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Missing event. Go back.')),
+                );
+              }
+              return RegistrantResolvedScreen(
+                event: event,
+                eventSlug: slug,
+                eventId: extra['eventId'] as String? ?? event.id,
+                registrantId: extra['registrantId'] as String? ?? '',
+                registrantName: extra['registrantName'] as String? ?? 'Guest',
+                source: extra['source'] == 'manual'
+                    ? CheckinSource.manual
+                    : (extra['source'] == 'qr' ? CheckinSource.qr : CheckinSource.search),
+                isMainCheckIn: extra['isMainCheckIn'] as bool? ?? false,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'session-selection',
+            builder: (context, state) {
+              final slug = state.pathParameters['eventSlug'] ?? '';
+              final extra = state.extra as Map<String, dynamic>? ?? {};
+              final event = extra['event'] as EventModel?;
+              if (event == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Missing event. Go back.')),
+                );
+              }
+              final preIds = extra['preRegisteredSessionIds'] as List<dynamic>?;
+              return SessionSelectionScreen(
+                event: event,
+                eventSlug: slug,
+                eventId: extra['eventId'] as String? ?? event.id,
+                registrantId: extra['registrantId'] as String? ?? '',
+                registrantName: extra['registrantName'] as String? ?? 'Guest',
+                source: extra['source'] == 'manual'
+                    ? CheckinSource.manual
+                    : (extra['source'] == 'qr' ? CheckinSource.qr : CheckinSource.search),
+                preRegisteredSessionIds: preIds
+                    ?.map((e) => e.toString())
+                    .where((e) => e.isNotEmpty)
+                    .toList(),
+              );
+            },
+          ),
+          GoRoute(
+            path: 'confirmation',
+            builder: (context, state) {
+              final slug = state.pathParameters['eventSlug'] ?? '';
+              final extra = state.extra as Map<String, dynamic>? ?? {};
+              final session = extra['session'] as Session?;
+              if (session == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Missing session. Go back.')),
+                );
+              }
+              return CheckinConfirmationScreen(
+                eventSlug: slug,
+                session: session,
+                registrantName: extra['registrantName'] as String? ?? 'Guest',
+                registrantId: extra['registrantId'] as String? ?? '',
+                event: extra['event'] as EventModel?,
+                eventId: extra['eventId'] as String?,
+                checkedInAt: extra['checkedInAt'] as DateTime?,
               );
             },
           ),

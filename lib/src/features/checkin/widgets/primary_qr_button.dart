@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../theme/nlc_palette.dart';
 import '../checkin_tokens.dart';
 
 class PrimaryQRButton extends StatelessWidget {
   const PrimaryQRButton({
     super.key,
     required this.onScanQr,
-    this.text = 'Scan Conference QR Code',
+    this.text = 'Scan CFC ID QR Code',
     this.subtext = 'Fastest way to check in',
   });
 
@@ -37,9 +38,9 @@ class PrimaryQRButton extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFF0F4A6D),
-                    Color(0xFF164B70),
-                    Color(0xFF0E3A5D),
+                    NlcPalette.brandBlueSoft,
+                    NlcPalette.brandBlue,
+                    NlcPalette.brandBlueDark,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(CheckinTokens.radiusLarge),
@@ -57,12 +58,12 @@ class PrimaryQRButton extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
+                  Icon(Icons.qr_code_scanner, color: NlcPalette.cream, size: 28),
                   const SizedBox(width: CheckinTokens.spacingM),
                   Text(
                     text,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: NlcPalette.cream,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

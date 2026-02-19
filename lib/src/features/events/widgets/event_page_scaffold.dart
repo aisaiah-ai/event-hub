@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../core/theme/nlc_theme.dart';
+import '../../../theme/nlc_palette.dart';
 import '../data/event_model.dart';
-import '../event_tokens.dart';
 
 /// Scaffold for event pages with dynamic branding: background and logo.
 /// Uses [EventModel] branding when provided, otherwise defaults.
@@ -15,8 +16,12 @@ class EventPageScaffold extends StatelessWidget {
     this.appBar,
     /// Override max width for body (e.g. 1200 for dashboard). Default 520 for NLC.
     this.bodyMaxWidth,
-    /// Override overlay opacity for NLC background (e.g. 0.55 for dashboard readability).
+    /// Override overlay opacity for NLC background (default 0.55).
     this.overlayOpacity,
+    /// Override overlay tint color (default brandBlueDark).
+    this.overlayTint,
+    /// Use radial overlay (subtle top glow) for immersive main check-in. Ignored if useLightBackground.
+    this.useRadialOverlay = false,
     /// Use light executive background (no image/overlay). For analytics dashboard.
     this.useLightBackground = false,
   });
@@ -28,13 +33,15 @@ class EventPageScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final double? bodyMaxWidth;
   final double? overlayOpacity;
+  final Color? overlayTint;
+  final bool useRadialOverlay;
   final bool useLightBackground;
 
   @override
   Widget build(BuildContext context) {
     if (useLightBackground) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: NlcColors.ivory,
         appBar: appBar,
         body: body != null
             ? Center(
@@ -47,11 +54,11 @@ class EventPageScaffold extends StatelessWidget {
       );
     }
 
-    final primary = event?.primaryColor ?? EventTokens.primaryBlue;
+    final primary = event?.primaryColor ?? NlcColors.primaryBlue;
     final bgUrl = _effectiveBackgroundImageUrl();
     final useNlcLocalAsset = bgUrl == EventPageScaffold.nlcBackgroundAsset;
 
-    final overlay = overlayOpacity ?? 0.45;
+    final overlay = overlayOpacity ?? 0.55;
     final maxW = bodyMaxWidth ?? 520.0;
 
     return Scaffold(
@@ -69,7 +76,25 @@ class EventPageScaffold extends StatelessWidget {
                 ),
                 Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(overlay),
+                    decoration: BoxDecoration(
+                      gradient: useRadialOverlay
+                          ? RadialGradient(
+                              center: Alignment.topCenter,
+                              radius: 0.8,
+                              colors: [
+                                NlcPalette.brandBlueSoft.withValues(alpha: 0.25),
+                                (overlayTint ?? NlcPalette.brandBlueDark),
+                              ],
+                            )
+                          : LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                (overlayTint ?? NlcPalette.brandBlueDark).withValues(alpha: overlay),
+                                (overlayTint ?? NlcPalette.brandBlueDark).withValues(alpha: overlay * 0.85),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
                 SafeArea(
@@ -210,7 +235,8 @@ class EventLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = logoUrl ?? 'assets/checkin/empower.png';
+    final raw = logoUrl ?? 'assets/checkin/nlc_logo.png';
+    final url = raw == 'assets/checkin/empower.png' ? 'assets/checkin/nlc_logo.png' : raw;
     if (url.isEmpty) return const SizedBox.shrink();
 
     if (_isAssetPath(url)) {

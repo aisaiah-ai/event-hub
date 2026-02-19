@@ -95,6 +95,13 @@ No hashing (for local search testing):
 SEED_FILE="/path/to/file.csv" SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev
 ```
 
+**NLC main clean (erase all registration, then seed registrants + session registrations):**  
+Using `docs/data2/nlc_main_clean.csv` (or `SEED_CLEAR_FIRST=1` with any file) will delete all documents in `events/nlc-2026/registrants` and `events/nlc-2026/sessionRegistrations`, then seed from the CSV. The CSV `id` column is used as registrant document ID. Session columns `export_Gender_Identity_Dialogue`, `export_Contraception_Dialogue`, `export_Immigration_Dialogue` — if a cell is **X**, that registrant is pre-registered to the corresponding dialogue session. See **docs/data2/README.md** for full details.
+
+```bash
+SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev
+```
+
 See **tools/SEED_README.md** for column mapping and permission tips.
 
 ### 3b. Seed attendance (Node — dev only)

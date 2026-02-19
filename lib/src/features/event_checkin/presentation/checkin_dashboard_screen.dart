@@ -3,13 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/nlc_theme.dart';
+import '../../../theme/nlc_palette.dart';
 import '../../../models/analytics_aggregates.dart';
 import '../../../services/attendance_export_service.dart';
 import '../../../services/checkin_analytics_service.dart';
 import '../../../services/dashboard_layout_service.dart';
 import '../../../widgets/rolling_counter.dart';
 import '../../events/widgets/event_page_scaffold.dart';
-import 'theme/checkin_theme.dart';
 import 'widgets/hourly_trend_chart.dart';
 import 'widgets/last_updated_with_timezone.dart';
 
@@ -233,7 +234,7 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(ok ? 'Export started' : 'Export failed'),
-            backgroundColor: ok ? AppColors.statusCheckedIn : Colors.red,
+            backgroundColor: ok ? NlcColors.successGreen : Colors.red,
           ),
         );
       }
@@ -249,18 +250,12 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
   }
 }
 
-// --- Theme constants ---
+// --- Theme (NlcColors) ---
 
-const Color _kGold = Color(0xFFD4A017);
-const Color _kNavy = Color(0xFF1C3D5A);
-const Color _kBlue = Color(0xFF2E6BE6);
-const Color _kMuted = Color(0xFF6B7280);
-const Color _kCardBg = Color(0xFFFAFAF9);
-
-/// Refined card: soft off-white, 16px radius, subtle shadow.
+/// Refined card: ivory, 16px radius, subtle shadow.
 BoxDecoration _lightCardDecoration() {
   return BoxDecoration(
-    color: _kCardBg,
+    color: NlcColors.ivory,
     borderRadius: BorderRadius.circular(16),
     border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
     boxShadow: [
@@ -273,10 +268,10 @@ BoxDecoration _lightCardDecoration() {
   );
 }
 
-/// Metric tile: white, 16px radius, stronger shadow for depth.
+/// Metric tile: ivory, 16px radius, stronger shadow for depth.
 BoxDecoration _metricTileDecoration() {
   return BoxDecoration(
-    color: Colors.white,
+    color: NlcColors.ivory,
     borderRadius: BorderRadius.circular(16),
     boxShadow: [
       BoxShadow(
@@ -549,7 +544,7 @@ class _ReorderableDashboardSections extends StatelessWidget {
                     index: i,
                     child: Icon(
                       Icons.drag_handle,
-                      color: _kMuted,
+                      color: NlcColors.mutedText,
                       size: 24,
                     ),
                   ),
@@ -610,12 +605,12 @@ class _LiveIndicatorState extends State<_LiveIndicator>
               height: 8,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.statusCheckedIn.withOpacity(
+                color: NlcColors.successGreen.withOpacity(
                   0.6 + 0.4 * _controller.value,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.statusCheckedIn.withOpacity(0.5),
+                    color: NlcColors.successGreen.withOpacity(0.5),
                     blurRadius: 6,
                     spreadRadius: 1,
                   ),
@@ -630,7 +625,7 @@ class _LiveIndicatorState extends State<_LiveIndicator>
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: AppColors.statusCheckedIn,
+            color: NlcColors.successGreen,
             letterSpacing: 0.8,
           ),
         ),
@@ -662,24 +657,28 @@ class _MetricsTiles extends StatelessWidget {
         .where((s) => s.sessionId != mainCheckinId)
         .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
 
+    final registrantDisplay = registrantCount.clamp(0, 0x7FFFFFFF);
     final tiles = [
       _MetricTile(
         icon: Icons.people_rounded,
         label: 'Total Registrants',
-        value: registrantCount.clamp(0, 0x7FFFFFFF),
+        value: registrantDisplay,
         subtext: null,
+        showDashWhenZero: true,
       ),
       _MetricTile(
         icon: Icons.check_circle_rounded,
         label: 'Main Check-In Total',
         value: mainCheckinCount,
         subtext: 'Main Conference Entry',
+        showDashWhenZero: false,
       ),
       _MetricTile(
         icon: Icons.bar_chart_rounded,
         label: 'Session Check-Ins',
         value: sessionCheckins,
         subtext: 'Breakout Sessions Only',
+        showDashWhenZero: false,
       ),
     ];
 
@@ -713,15 +712,18 @@ class _MetricTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.subtext,
+    this.showDashWhenZero = false,
   });
 
   final IconData icon;
   final String label;
   final int value;
   final String? subtext;
+  final bool showDashWhenZero;
 
   @override
   Widget build(BuildContext context) {
+    final showDash = showDashWhenZero && value == 0;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _metricTileDecoration(),
@@ -733,7 +735,7 @@ class _MetricTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 28, color: _kGold),
+                Icon(icon, size: 28, color: NlcPalette.brandBlue),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -741,7 +743,7 @@ class _MetricTile extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _kNavy,
+                      color: NlcColors.slate,
                     ),
                   ),
                 ),
@@ -750,25 +752,36 @@ class _MetricTile extends StatelessWidget {
             Container(
               height: 1,
               margin: const EdgeInsets.symmetric(vertical: 12),
-              color: Colors.black.withOpacity(0.08),
+              color: NlcPalette.brandBlue.withValues(alpha: 0.35),
             ),
-            RollingCounter(
-              value: value.clamp(0, 0x7FFFFFFF),
-              duration: const Duration(milliseconds: 1800),
-              exaggerated: true,
-              enableGlow: false,
-              style: GoogleFonts.inter(
-                fontSize: 42,
-                fontWeight: FontWeight.w700,
-                color: _kNavy,
-                fontFeatures: [FontFeature.tabularFigures()],
+            if (showDash)
+              Text(
+                '—',
+                style: GoogleFonts.inter(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: NlcColors.slate,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              )
+            else
+              RollingCounter(
+                value: value.clamp(0, 0x7FFFFFFF),
+                duration: const Duration(milliseconds: 1800),
+                exaggerated: true,
+                enableGlow: false,
+                style: GoogleFonts.inter(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: NlcColors.slate,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
               ),
-            ),
             if (subtext != null) ...[
               const SizedBox(height: 4),
               Text(
                 subtext!,
-                style: GoogleFonts.inter(fontSize: 14, color: _kMuted),
+                style: GoogleFonts.inter(fontSize: 14, color: NlcColors.mutedText),
               ),
             ],
           ],
@@ -832,14 +845,14 @@ class _First3RegistrationsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.schedule_rounded, size: 20, color: _kGold),
+              Icon(Icons.schedule_rounded, size: 20, color: NlcPalette.brandBlue),
               const SizedBox(width: 8),
               Text(
                 'First 3 Registrations',
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: _kNavy,
+                  color: NlcColors.slate,
                 ),
               ),
             ],
@@ -851,7 +864,7 @@ class _First3RegistrationsCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   '—',
-                  style: GoogleFonts.inter(fontSize: 15, color: _kMuted),
+                  style: GoogleFonts.inter(fontSize: 15, color: NlcColors.mutedText),
                 ),
               );
             }
@@ -865,20 +878,20 @@ class _First3RegistrationsCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: _kNavy,
+                      color: NlcColors.slate,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       r.name,
-                      style: GoogleFonts.inter(fontSize: 15, color: _kNavy),
+                      style: GoogleFonts.inter(fontSize: 15, color: NlcColors.slate),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     ' — ${DateFormat.MMMd().add_jm().format(r.timestamp)}',
-                    style: GoogleFonts.inter(fontSize: 13, color: _kMuted),
+                    style: GoogleFonts.inter(fontSize: 13, color: NlcColors.mutedText),
                   ),
                 ],
               ),
@@ -907,14 +920,14 @@ class _First3CheckinsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle_rounded, size: 20, color: _kGold),
+              Icon(Icons.check_circle_rounded, size: 20, color: NlcPalette.brandBlue),
               const SizedBox(width: 8),
               Text(
                 'First 3 Check-Ins',
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: _kNavy,
+                  color: NlcColors.slate,
                 ),
               ),
             ],
@@ -926,7 +939,7 @@ class _First3CheckinsCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   '—',
-                  style: GoogleFonts.inter(fontSize: 15, color: _kMuted),
+                  style: GoogleFonts.inter(fontSize: 15, color: NlcColors.mutedText),
                 ),
               );
             }
@@ -940,20 +953,20 @@ class _First3CheckinsCard extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: _kNavy,
+                      color: NlcColors.slate,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       c.name,
-                      style: GoogleFonts.inter(fontSize: 15, color: _kNavy),
+                      style: GoogleFonts.inter(fontSize: 15, color: NlcColors.slate),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     ' — ${DateFormat.MMMd().add_jm().format(c.timestamp)}',
-                    style: GoogleFonts.inter(fontSize: 13, color: _kMuted),
+                    style: GoogleFonts.inter(fontSize: 13, color: NlcColors.mutedText),
                   ),
                 ],
               ),
@@ -986,7 +999,7 @@ class _DashboardTrendSection extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: _kNavy,
+              color: NlcColors.slate,
             ),
           ),
           const SizedBox(height: 4),
@@ -994,14 +1007,14 @@ class _DashboardTrendSection extends StatelessWidget {
             'Hourly Attendance Progress',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: _kMuted,
+              color: NlcColors.mutedText,
             ),
           ),
           const SizedBox(height: 24),
           HourlyTrendChart(
             hourlyCheckins: global.hourlyCheckins,
             height: 320,
-            lineColor: _kGold,
+            lineColor: NlcPalette.brandBlue,
             emptyMessage: 'No check-in data yet',
           ),
         ],
@@ -1095,14 +1108,14 @@ class _Top5Card extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: _kNavy,
+              color: NlcColors.slate,
             ),
           ),
           const SizedBox(height: 24),
           if (top5.isEmpty)
             Text(
               'No data yet',
-              style: GoogleFonts.inter(color: _kMuted, fontSize: 14),
+              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
             )
           else
             ...top5.asMap().entries.map((e) {
@@ -1127,7 +1140,7 @@ class _Top5Card extends StatelessWidget {
                             entry.key,
                             style: GoogleFonts.inter(
                               fontSize: 14,
-                              color: _kNavy,
+                              color: NlcColors.slate,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1137,7 +1150,7 @@ class _Top5Card extends StatelessWidget {
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: _kMuted,
+                            color: NlcColors.mutedText,
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
@@ -1150,8 +1163,8 @@ class _Top5Card extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct.clamp(0.0, 1.0),
                         minHeight: 8,
-                        backgroundColor: _kBlue.withOpacity(0.15),
-                        valueColor: const AlwaysStoppedAnimation<Color>(_kBlue),
+                        backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
+                        valueColor: const AlwaysStoppedAnimation<Color>(NlcColors.secondaryBlue),
                       ),
                     )
                   else
@@ -1209,14 +1222,14 @@ class _SessionLeaderboardSection extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: _kNavy,
+              color: NlcColors.slate,
             ),
           ),
           const SizedBox(height: 24),
           if (sorted.isEmpty)
             Text(
               'No sessions yet',
-              style: GoogleFonts.inter(color: _kMuted, fontSize: 14),
+              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
             )
           else
             ...sorted.asMap().entries.map((e) {
@@ -1281,7 +1294,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
         duration: const Duration(milliseconds: 120),
         padding: EdgeInsets.all(_hover ? 8 : 4),
         decoration: BoxDecoration(
-          color: _hover ? _kGold.withOpacity(0.06) : Colors.transparent,
+          color: _hover ? NlcPalette.brandBlue.withValues(alpha: 0.06) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -1296,7 +1309,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _kNavy,
+                      color: NlcColors.slate,
                     ),
                   ),
                 ),
@@ -1306,7 +1319,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: _kNavy,
+                      color: NlcColors.slate,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1316,7 +1329,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.statusCheckedIn.withOpacity(0.2),
+                      color: NlcColors.successGreen.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1324,7 +1337,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.statusCheckedIn,
+                        color: NlcColors.successGreen,
                       ),
                     ),
                   ),
@@ -1335,7 +1348,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _kGold,
+                      color: NlcPalette.brandBlue,
                       fontFeatures: [FontFeature.tabularFigures()],
                     ),
                     textAlign: TextAlign.right,
@@ -1348,7 +1361,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     '${widget.percent.clamp(0.0, 100.0).toStringAsFixed(1)}%',
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      color: _kMuted,
+                      color: NlcColors.mutedText,
                       fontFeatures: [FontFeature.tabularFigures()],
                     ),
                     textAlign: TextAlign.right,
@@ -1363,9 +1376,9 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 child: LinearProgressIndicator(
                   value: widget.barValue.clamp(0.0, 1.0),
                   minHeight: 8,
-                  backgroundColor: _kGold.withOpacity(0.15),
+                  backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    widget.isTop ? _kGold : _kGold.withOpacity(0.5),
+                    widget.isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
                   ),
                 ),
               )

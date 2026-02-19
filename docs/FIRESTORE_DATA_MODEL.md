@@ -20,13 +20,40 @@
 
 - **Parent must exist:** events/{eventId}
 - **Created by:** Bootstrap. Must exist before writing to attendance.
-- **Notes:** e.g. events/nlc-2026/sessions/main-checkin, events/nlc-2026/sessions/gender-ideology-dialogue
+- **Schema:**
+  - `title` (string)
+  - `startAt`, `endAt` (Timestamp)
+  - `location` (string, e.g. "Grand Ballroom A")
+  - `capacity` (number) — hard capacity for gating
+  - `attendanceCount` (number) — current checked-in count; authoritative for capacity
+  - `colorHex` (string, e.g. "#D4A017")
+  - `isMain` (boolean) — true for Main Check-In session only
+  - `status` ("open" | "closed") — explicit override
+  - `updatedAt` (Timestamp)
+  - Optional: `name`, `code`, `order`, `isActive` (legacy)
+- **Notes:** One session must have `isMain=true`. A session is available when `status == "open"` and `attendanceCount < capacity`. Client may update only `attendanceCount` and `updatedAt` (increment by 1 in transaction).
 
 ## events/{eventId}/sessions/{sessionId}/attendance/{registrantId}
 
 - **Parent must exist:** events/{eventId}/sessions/{sessionId} (session doc must exist)
 - **Created by:** App (session check-in). Pure session architecture: all check-in writes here.
-- **Notes:** CheckInService reads session doc first; then writes here. Main Check-In uses session main-checkin.
+- **Schema:**
+  - `registrantId` (string)
+  - `createdAt` (Timestamp) — or `checkedInAt` for backward compatibility
+  - `source` ("qr" | "search" | "manual")
+  - `deviceId` (string, optional)
+  - `operatorUid` (string, optional)
+- **Notes:** Create only; no update/delete from client. Main Check-In uses the session where `isMain=true`.
+
+## events/{eventId}/sessionRegistrations/{registrantId}
+
+- **Parent must exist:** events/{eventId}
+- **Created by:** Admin / import / backend. Client reads only.
+- **Schema:**
+  - `registrantId` (string)
+  - `sessionIds` (array of string) — sessions the registrant is pre-registered to
+  - `updatedAt` (Timestamp)
+- **Notes:** Used to show "You are registered for these sessions" or to bypass selection when a single session. If business rule is one breakout only, still store as array; enforce in UI.
 
 ## events/{eventId}/rsvps/{rsvpId}
 

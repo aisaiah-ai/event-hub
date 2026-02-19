@@ -562,6 +562,179 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-18 — NLC 2026 — Session Selection UI Premium Refinement
+
+**What was done**
+- UI/UX refinement only (no business logic, routing, or Firestore changes).
+- **Header:** Centered column layout; logo ~10% larger (212px); 20px gap; "NATIONAL LEADERS CONFERENCE" 28px semi-bold; "2026" 22px bold gold (#D4A017).
+- **Conference Check-In card:** Elevated as primary action — 8px taller (vertical padding 24px), 1px gold border (rgba 0.35), subtle gold gradient overlay, QR icon 15% larger with soft gold glow (blur 12px), subtext "Main Event Entry" 13px 70% opacity.
+- **Breakout section:** "Select your session" replaced with "BREAKOUT SESSIONS" (uppercase, 16px semi-bold), subtle gold divider above (40% opacity), 24px above / 16px below spacing.
+- **Session cards:** Optional LIVE badge (green #1E7F43, 11px, when `session.isActive == true`); 16px border radius; 20px padding; 16px between cards; max body width 480px.
+- **Hover/tap:** AnimatedContainer 150ms; hover: elevation + translateY(-2px), shadow increase (rgba 0.25, blur 16); tap: gold ripple, scale 0.98.
+- **Footer:** Two lines "Powered by AISaiah" / "CFC Digital Integration", 12px, 60% opacity.
+- **Polish:** FadeTransition on page load (300ms).
+
+**What was tried**
+- Achieving premium, production-grade feel for NLC 2026 Self Check-In Session Selection while keeping structure and branding.
+
+**Outcome / still broken**
+- Implemented; no Firestore or check-in flow changes. Visual only.
+
+**Next time (recall)**
+- Session Selection UI lives in `lib/src/features/event_checkin/presentation/checkin_session_picker_page.dart`; theme in `theme/checkin_theme.dart`; header/footer in `widgets/conference_header.dart`, `widgets/footer_credits.dart`.
+
+---
+
+## 2026-02-18 — NLC 2026 — Empowered to Serve Color System Refactor
+
+**What was done**
+- Introduced centralized NLC theme: `lib/src/core/theme/nlc_theme.dart` with [NlcColors]:
+  - primaryBlue `#1F3A5F`, secondaryBlue `#27496D`, accentGold `#D4A84F`, softGold `#E6C27A`, ivory `#F4F1EA`, slate `#2E2E2E`, mutedText `#6B7280`, successGreen `#2E7D32`.
+- Replaced dark navy + bright gold with deep heritage blue, muted parchment/ivory, and warm brushed gold. No hardcoded colors in NLC flows; all use NlcColors or AppColors (which delegate to NlcColors).
+- **Dashboard:** Metric cards and section cards → ivory; text → slate, subtext → mutedText; accent dividers and icons → accentGold; progress bars → active/top accentGold, others secondaryBlue; LIVE → successGreen.
+- **Wallboard:** Same palette; card backgrounds ivory; chart line accentGold; leaderboard top bar accentGold, others secondaryBlue.
+- **Session check-in / picker:** Card backgrounds ivory; overlay primaryBlue 0.55–0.65 over mosaic; header “National Leaders Conference” → ivory, “2026” → accentGold; thin divider softGold; QR tile accentGold, icon primaryBlue; LIVE badge successGreen.
+- **Charts:** Line stroke accentGold, fill accentGold 0.12; axis labels mutedText; grid secondaryBlue 0.15.
+- **Scaffold:** Default primary primaryBlue; NLC overlay primaryBlue (not black); light executive background ivory.
+
+**What was tried**
+- Aligning entire NLC Conference UI with Empowered to Serve branding: mature, confident, leadership-level, mobile readable, no over-saturation.
+
+**Outcome / still broken**
+- Implemented. Visual coherence and contrast improved; no business-logic or Firestore changes.
+
+**Next time (recall)**
+- Single source of truth: `lib/src/core/theme/nlc_theme.dart`. Use only NlcColors (or AppColors in check-in theme) for NLC screens; no `Color(0xFF…)` in event_checkin, dashboard, wallboard, or event scaffold for NLC.
+
+---
+
+## 2026-02-18 — NLC Theme vNext — Blue Logo Palette Refactor
+
+**What was done**
+- Replaced gold accent theme with blue-first "Empowered to Serve" palette.
+- Added `lib/src/theme/nlc_palette.dart`: brandBlue, brandBlueDark, brandBlueSoft, cream, cream2, ink, muted, border, shadow, success, danger.
+- Added `lib/src/theme/nlc_decorations.dart`: nlcCardDecoration(), nlcPanelDecoration(), nlcPillDecoration().
+- Updated `NlcColors` and `AppColors` to delegate to NlcPalette; removed all gold constants.
+- EventPageScaffold: overlay default 0.55, overlayTint default brandBlueDark; blue gradient overlay (top darker → bottom lighter).
+- Main check-in: Scan QR → brandBlue bg + cream text; Search/Manual/Recent → cream2 surfaces, blue icon accents; MAIN CHECK-IN pill → brandBlue.
+- Search results: status chips → success (checked in) / brandBlueSoft outline (not checked in); card borders subtle blue.
+- Dashboard: metric tiles, chart line, LIVE badge → brandBlue; Top 5 bars and session leaderboard → brandBlue.
+- Registrant result cards, confirmation modal, footer, subtitle, location block → palette tokens.
+- CheckinTokens (admin check-in screen) → NlcPalette.
+
+**What was tried**
+- Removing all gold/yellow accents; achieving consistent blue/cream palette across check-in, search, dashboard, wallboard.
+
+**Outcome / still broken**
+- Implemented. No Firestore, routes, or data model changes. UI + theme refactor only.
+
+**Next time (recall)**
+- Use only NlcPalette (or AppColors/NlcColors) in check-in flows; no hardcoded colors except in nlc_palette.dart.
+
+---
+
+## 2026-02-18 — NLC Check-In vNext — Immersive Blue Portal Layout
+
+**What was done**
+- Main Check-In page (isMainCheckIn) refactored to immersive blue portal layout. UI only; no Firestore, check-in, or navigation logic changed.
+- **EventPageScaffold:** Added `useRadialOverlay`. When true (main-checkin route), overlay is RadialGradient (center top, radius 0.8): brandBlueSoft 0.25 → brandBlueDark. Removes strong linear gradient for a subtle top glow.
+- **EventCheckinEntryPage:** Passes `useRadialOverlay: widget.isMainCheckIn` and `bodyMaxWidth: 480` when isMainCheckIn.
+- **CheckinLandingPage (immersive branch):** Centered column max 480px, 24px padding. Order: logo (150px, white glow, no card) → 24 → title "Event Check-In" (Playfair 30, cream) → subtitle (14px, cream 0.7) → thin cream divider 60×1 → 32 → glass primary QR card → 16 → Search card → 16 → Manual card → 32 → divider → location (simple list) → 16 → recent check-ins (simple list) → footer. Removed MAIN CHECK-IN pill, SubtitleBar, and heavy card outlines.
+- **Primary QR card:** Glass style: 76px height, radius 17, gradient brandBlueSoft 0.7 / brandBlueDark 0.8, 1px cream border 0.25, subtle shadow; QR icon in darker blue rounded square, cream text; hover scale 1.02, press scale 0.98 (web hover).
+- **Secondary cards:** cream2, 16 radius, 20 padding, icon left / title+subtitle / chevron right; brandBlueDark and muted typography.
+- **Location & recent:** Simple list style at bottom; no heavy cards; cream/muted text.
+- **Animations:** Logo fade-in 300ms; cards slide up with 250ms stagger (SlideTransition + Interval); primary card has custom hover/press scale.
+
+**What was tried**
+- Making main check-in feel premium, immersive, minimal, and conference-branded instead of "card on background."
+
+**Outcome / still broken**
+- Implemented. Layout and styling only.
+
+**Next time (recall)**
+- Immersive layout is used only when CheckinLandingPage is built with isMainCheckIn (main-checkin route). Other check-in flows (session picker, session check-in) unchanged.
+
+---
+
+## 2026-02-18 — Session Allocation + Capacity Enforcement + Confirmation Pass
+
+**What was done**
+- **Data model (docs/FIRESTORE_DATA_MODEL.md):** Sessions schema extended with `capacity`, `attendanceCount`, `colorHex`, `isMain`, `status`; attendance doc with `createdAt`, `source`; new path `events/{eventId}/sessionRegistrations/{registrantId}`.
+- **Session model:** Added `capacity`, `attendanceCount`, `colorHex`, `isMain`, `status` (open/closed), `remainingSeats`, `isAvailable`.
+- **Services:** `SessionCatalogService` (list/watch sessions, availability labels), `SessionRegistrationService` (get/watch pre-registered sessionIds), `CheckinOrchestratorService` (ensureMainCheckIn + checkInToTargetSession with Firestore transaction; capacity gating; idempotency).
+- **UI:** `RegistrantResolvedScreen` (Continue → load sessionRegistrations → main/single/multi/empty flow), `SessionSelectionScreen` (session cards with capacity/status, confirm modal, orchestrator), `CheckinConfirmationScreen` (receipt, Save as Image via RepaintBoundary/toImage/PNG, Apple/Google Wallet placeholders).
+- **Flow:** After QR/search/manual registrant resolve → push to registrant-resolved → then confirmation or session selection. Manual entry no longer checks in directly; returns registrantId for orchestration.
+- **Dashboard:** Total Registrants shows "—" when zero (unknown); session stats prefer session doc `attendanceCount` when present.
+- **Firestore rules:** Session doc allow update only when only `attendanceCount` and `updatedAt` change and `attendanceCount` increments by 1; `sessionRegistrations` read-only for client.
+
+**What was tried**
+- Implementing pure-session architecture with transactional capacity, pre-registration-driven flow, and pass-style confirmation with save-as-image and wallet hooks.
+
+**Outcome / still broken**
+- Implemented. Session docs must have `attendanceCount` (and optionally `capacity`, `status`, `colorHex`, `isMain`) for new flow. Bootstrap/seed should set these. If session has no `attendanceCount`, dashboard falls back to live attendance count().
+
+**Next time (recall)**
+- Deploy rules to (default): `firebase deploy --only firestore:(default)`. Ensure session docs have `attendanceCount` for capacity and dashboard. Use testing checklist in docs/TESTING_CHECKIN_ORCHESTRATION.md.
+
+---
+
+## 2026-02-18 — Permission-denied on RegistrantResolvedScreen Continue (session update)
+
+**What was done**
+- Updated session update rule in `firestore.rules` to allow first increment when session doc has no `attendanceCount` (legacy): allow update when `resource.data.attendanceCount == null && request.resource.data.attendanceCount == 1`, or when existing count + 1 equals new count.
+
+**What was tried**
+- Fixing permission-denied when tapping Continue on Main check-in (RegistrantResolvedScreen). Orchestrator runs transaction: create attendance doc, update session `attendanceCount` and `updatedAt`. Rule previously required `request.resource.data.attendanceCount == resource.data.attendanceCount + 1`; if session doc never had `attendanceCount` set, `resource.data.attendanceCount` is null and the expression failed in Rules.
+
+**Outcome / still broken**
+- Rule fix applied. User must deploy rules to **(default)** (app uses default DB per journal): `firebase deploy --only firestore:(default)` then retry.
+
+**Next time (recall)**
+- Legacy session docs without `attendanceCount` are now allowed (treated as 0). For new events, bootstrap session docs with `attendanceCount: 0` (and `capacity`, `status`, `isMain` as needed).
+- **Rules “not updated”:** Same as 2026-02-15 — CLI can report success but Console still shows old rules. Use **explicit deploy:** run `./scripts/deploy-firestore-dev.sh` from repo root (targets (default) + event-hub-dev). Then **verify** in Firebase Console → Firestore → (default) → Rules tab that the text matches `firestore.rules`. If deploy fails (auth/network), run `./scripts/print-firestore-rules-for-paste.sh` and paste manually into Console.
+
+---
+
+## 2026-02-18 — Session-Aware Check-In UX Upgrade
+
+**What was done**
+- **RegistrantResolvedScreen** refactored from single “Continue” into a session-aware gate. No Firestore, orchestrator, capacity, or dashboard logic changed; UI + flow only.
+- **MODE A — Pre-Registered (locked session):** When `sessionRegistrations/{registrantId}` exists and `sessionIds.length == 1`, screen shows: header “Main Check-In”, registrant name, “Ready to check in”, a **non-editable session card** (color stripe from `session.colorHex`, title, date/time, location, “Remaining Seats: X” or “Session Full”), **PRE-REGISTERED** green chip, and primary button **“Confirm & Check In”**. User cannot change session. On tap: `checkInToTargetSession(sessionId)`. Pre-registered users can attempt check-in even if session is full or closed (orchestrator may still enforce; on failure we show error).
+- **MODE B — Not registered yet:** When sessionRegistrations doc missing or `sessionIds` empty, screen shows: “Select Your Session”, subtitle “Choose an available session to continue.”, and a **session list** from `listSessionsWithAvailability()`. Each card: color stripe, title, date/time, location, remaining seats, **status chip** (CLOSED / FULL / Almost Full when remaining ≤ 10% capacity / Available). Full and closed cards are disabled (opacity 0.7, no tap). On session tap: confirmation dialog (“Confirm Session Selection?” with session name, date, location, remaining seats) → Confirm → `checkInToTargetSession(selectedSessionId)`. If transaction fails with “Session full”: snackbar “This session just became full.”, refresh session list.
+- **Multiple sessions:** Still push to `SessionSelectionScreen` with `preRegisteredSessionIds` (unchanged).
+- **Confirmation screen:** Unchanged (session name, date/time, location, color tag, receipt, Save as Image, Apple/Google Wallet placeholders).
+- Styling: NLC background, 24px padding, max width 600px, 16px rounded cards, soft shadow, color accent on cards.
+
+**What was tried**
+- Differentiating UX for pre-registered (locked session, one-tap confirm) vs not registered (select session, capacity-aware chips, confirm dialog, real-time full handling).
+
+**Outcome / still broken**
+- Implemented. Pre-registered sees locked card + Confirm & Check In; not registered sees “Select Your Session” with list and status chips. Edge cases: pre-reg but full/closed still show button (orchestrator may deny); manual/walk-in goes to MODE B.
+
+**Next time (recall)**
+- Session-aware gate lives on RegistrantResolvedScreen only. No changes to Firestore, CheckinOrchestratorService, or dashboard.
+
+---
+
+## 2026-02-18 — Seed from nlc_main_clean.csv: clear registration, registrants + session registrations
+
+**What was done**
+- **Seed tool** (`lib/src/tools/seed_nlc_registrants.dart`): Added `clearRegistrationData(firestore)` to batch-delete all docs in `events/nlc-2026/registrants` and `events/nlc-2026/sessionRegistrations`. Added `runSeed(..., clearFirst: bool)`: when true, clears then seeds. Return type now includes `sessionRegistrationsWritten`.
+- **NLC main clean format:** When CSV has `id` column, use it as registrant document ID. Added column mapping for NLC export headers: `Registrant - Person's Name - First Name` → firstName, etc. Session columns `export_Gender_Identity_Dialogue`, `export_Contraception_Dialogue`, `export_Immigration_Dialogue`: if cell is **X**, write that session ID to `sessionRegistrations/{registrantId}` with `sessionIds` array (`gender-ideology-dialogue`, `contraception-ivf-abortion-dialogue`, `immigration-dialogue`).
+- **seed_main.dart:** Reads `SEED_CLEAR_FIRST` env/define; also enables clear-first when file path contains `nlc_main_clean`. Passes `clearFirst` to `runSeed` and prints session registrations count.
+- **Docs:** `docs/data2/README.md` — section “Seeding Firestore from nlc_main_clean.csv”. `docs/SEED_AND_CLEANUP.md` — NLC main clean command and `SEED_CLEAR_FIRST` note.
+
+**What was tried**
+- Using `docs/data2/nlc_main_clean.csv` as single source: erase all registration first, then seed registrants and session pre-registrations from the same file.
+
+**Outcome / still broken**
+- Implemented. Run: `SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev`. Clear-first runs automatically for that path; or set `SEED_CLEAR_FIRST=1` for any file. Session registrations written only for rows that have at least one X in the three dialogue columns.
+
+**Next time (recall)**
+- NLC main clean seed uses CSV `id` as registrant ID and export_*_Dialogue columns (X) for `sessionRegistrations`. Bootstrap must create dialogue session docs (`gender-ideology-dialogue`, etc.) in Firestore if session check-in is used.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

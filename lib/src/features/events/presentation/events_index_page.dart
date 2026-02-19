@@ -31,7 +31,7 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
     // Dev: default to NLC check-in. Prod: use active event (RSVP).
     if (Environment.isDev) {
       if (!mounted) return;
-      context.go('/events/nlc/checkin');
+      context.go('/events/nlc/main-checkin');
       return;
     }
     try {

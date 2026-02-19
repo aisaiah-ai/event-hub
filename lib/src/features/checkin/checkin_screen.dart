@@ -64,7 +64,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                         children: [
                           const SizedBox(height: CheckinTokens.spacingS),
                           EventHeaderWidget(
-                            emblemPath: 'assets/checkin/empower.png',
+                            emblemPath: 'assets/checkin/nlc_logo.png',
                             organization: 'Couples for Christ',
                             title: widget.eventTitle ?? 'Event Check-in',
                             subtitle: _buildSubtitle(),

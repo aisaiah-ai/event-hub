@@ -376,7 +376,7 @@ class _ManualCheckinScreenState extends State<ManualCheckinScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    'Scan Conference QR Code',
+                                    'Scan CFC ID QR Code',
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(
                                           color: Colors.white,

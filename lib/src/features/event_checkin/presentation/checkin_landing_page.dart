@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../theme/nlc_palette.dart';
 import '../../../models/session.dart';
 import '../../events/data/event_model.dart';
+import '../../events/widgets/event_page_scaffold.dart';
 import '../data/checkin_mode.dart' show CheckInFlowType;
 import '../data/checkin_repository.dart';
 import '../data/nlc_sessions.dart';
@@ -50,7 +53,8 @@ class CheckinLandingPage extends StatefulWidget {
 /// Event ID for NLC 2026. Sessions must be loaded from Firestore; no hardcoded lists.
 const String nlc2026EventId = 'nlc-2026';
 
-class _CheckinLandingPageState extends State<CheckinLandingPage> {
+class _CheckinLandingPageState extends State<CheckinLandingPage>
+    with TickerProviderStateMixin {
   late CheckinRepository _repo;
   List<Session> _sessions = [];
   Session? _selectedSession;
@@ -60,9 +64,32 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
   /// Recent check-ins for the current session (name + timestamp).
   List<({String name, DateTime timestamp})> _recentCheckins = [];
 
+  late AnimationController _logoFadeController;
+  late AnimationController _cardsController;
+  late List<Animation<Offset>> _cardSlideAnimations;
+
   @override
   void initState() {
     super.initState();
+    _logoFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _cardsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _cardSlideAnimations = List.generate(3, (i) {
+      return Tween<Offset>(
+        begin: const Offset(0, 0.15),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _cardsController,
+        curve: Interval(0.1 + i * 0.25, 0.4 + i * 0.2, curve: Curves.easeOut),
+      ));
+    });
+    _logoFadeController.forward();
+    _cardsController.forward();
     assert(
       widget.mode == CheckInFlowType.event || widget.sessionId != null,
       'Session mode requires sessionId',
@@ -160,12 +187,12 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
 
   String get _primaryButtonTitle {
     if (_isSessionMode) {
-      return 'Scan QR to Check Into This Session';
+      return 'Scan CFC ID QR Code to Check Into This Session';
     }
     if (_isMainCheckIn) {
-      return 'Scan QR to Check In';
+      return 'Scan CFC ID QR Code';
     }
-    return 'Scan CFC QR Code';
+    return 'Scan CFC ID QR Code';
   }
 
   String get _primaryButtonSubtitle {
@@ -176,6 +203,13 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
       return 'This will check you in.';
     }
     return 'Point your camera at your CFC ID QR code.';
+  }
+
+  @override
+  void dispose() {
+    _logoFadeController.dispose();
+    _cardsController.dispose();
+    super.dispose();
   }
 
   @override
@@ -190,7 +224,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.white.withValues(alpha: 0.95),
+                color: NlcPalette.cream.withValues(alpha: 0.95),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -198,77 +232,350 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
         ),
       );
     }
-    return _loadingSessions
-        ? const Center(
-            child: CircularProgressIndicator(color: AppColors.white),
-          )
-        : SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSpacing.afterHeader),
-                      if (_isSessionMode) _buildSessionHeader() else _buildEventHeader(),
-                      if (_isMainCheckIn) _buildMainCheckInBadge(),
-                      AnimatedCheckinCard(
-                        leading: Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppColors.goldIconContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.qr_code_scanner, size: 28),
-                        ),
-                        title: _primaryButtonTitle,
-                        subtitle: _primaryButtonSubtitle,
-                        onTap: _onScanQr,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.goldGradientStart,
-                            AppColors.goldGradientEnd,
-                          ],
-                        ),
-                        isPrimary: true,
-                      ),
-                      const SizedBox(height: AppSpacing.betweenSections),
-                      AnimatedCheckinCard(
-                        leading: const Icon(Icons.search, size: 28),
-                        title: 'Search by Name',
-                        subtitle: _isSessionMode
-                            ? 'Enter at least 3 letters of your last name to check into $_effectiveSessionName.'
-                            : _isMainCheckIn
-                                ? 'Enter at least 3 letters of your last name to check in.'
-                                : 'Enter at least 3 letters of your last name.',
-                        onTap: _onSearch,
-                        backgroundColor: AppColors.surfaceCard,
-                        isPrimary: false,
-                      ),
-                      const SizedBox(height: AppSpacing.betweenSecondaryCards),
-                      AnimatedCheckinCard(
-                        leading: const Icon(Icons.edit_note, size: 28),
-                        title: 'Enter Manually',
-                        subtitle: 'For walk-ins or unregistered attendees.',
-                        onTap: _onManualEntry,
-                        backgroundColor: AppColors.surfaceCard,
-                        isPrimary: false,
-                      ),
-                      const SizedBox(height: AppSpacing.betweenSections),
-                      _buildRecentCheckinsLog(),
-                      const SizedBox(height: AppSpacing.footerTop),
-                      const FooterCredits(),
-                      const SizedBox(height: AppSpacing.betweenSections),
+    if (_loadingSessions) {
+      return const Center(
+        child: CircularProgressIndicator(color: NlcPalette.cream),
+      );
+    }
+    if (_isMainCheckIn) {
+      return _buildImmersiveMainCheckIn();
+    }
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              children: [
+                const SizedBox(height: AppSpacing.afterHeader),
+                if (_isSessionMode) _buildSessionHeader() else _buildEventHeader(),
+                AnimatedCheckinCard(
+                  leading: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: NlcPalette.cream,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.qr_code_scanner, size: 28),
+                  ),
+                  title: _primaryButtonTitle,
+                  subtitle: _primaryButtonSubtitle,
+                  onTap: _onScanQr,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      NlcPalette.brandBlue,
+                      NlcPalette.brandBlueSoft,
                     ],
                   ),
+                  isPrimary: true,
+                ),
+                const SizedBox(height: AppSpacing.betweenSections),
+                AnimatedCheckinCard(
+                  leading: const Icon(Icons.search, size: 28),
+                  title: 'Search by Name',
+                  subtitle: _isSessionMode
+                      ? 'Enter at least 2 letters of your last name to check into $_effectiveSessionName.'
+                      : 'Enter at least 2 letters of your last name.',
+                  onTap: _onSearch,
+                  backgroundColor: AppColors.surfaceCard,
+                  isPrimary: false,
+                ),
+                const SizedBox(height: AppSpacing.betweenSecondaryCards),
+                AnimatedCheckinCard(
+                  leading: const Icon(Icons.edit_note, size: 28),
+                  title: 'Enter Manually',
+                  subtitle: 'For walk-ins or unregistered attendees.',
+                  onTap: _onManualEntry,
+                  backgroundColor: AppColors.surfaceCard,
+                  isPrimary: false,
+                ),
+                const SizedBox(height: AppSpacing.betweenSections),
+                _buildRecentCheckinsLog(),
+                const SizedBox(height: AppSpacing.footerTop),
+                const FooterCredits(),
+                const SizedBox(height: AppSpacing.betweenSections),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const double _immersiveMaxWidth = 480;
+  static const double _immersivePadding = 24;
+  static const double _logoSize = 150;
+
+  Widget _buildImmersiveMainCheckIn() {
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _immersivePadding,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _immersiveMaxWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 24),
+                _buildImmersiveLogo(),
+                const SizedBox(height: 24),
+                _buildImmersiveTitleSection(),
+                const SizedBox(height: 32),
+                SlideTransition(
+                  position: _cardSlideAnimations[0],
+                  child: _buildImmersivePrimaryCard(),
+                ),
+                const SizedBox(height: 16),
+                SlideTransition(
+                  position: _cardSlideAnimations[1],
+                  child: _buildImmersiveSecondaryCard(
+                    icon: Icons.search,
+                    title: 'Search by Name',
+                    subtitle: 'Enter at least 2 letters of your last name to check in.',
+                    onTap: _onSearch,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SlideTransition(
+                  position: _cardSlideAnimations[2],
+                  child: _buildImmersiveSecondaryCard(
+                    icon: Icons.edit_note,
+                    title: 'Enter Manually',
+                    subtitle: 'For walk-ins or unregistered attendees.',
+                    onTap: _onManualEntry,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Divider(height: 1, color: NlcPalette.cream.withValues(alpha: 0.3)),
+                const SizedBox(height: 24),
+                _buildImmersiveLocation(),
+                const SizedBox(height: 16),
+                _buildImmersiveRecentCheckins(),
+                const SizedBox(height: 24),
+                const FooterCredits(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImmersiveLogo() {
+    return FadeTransition(
+      opacity: _logoFadeController,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: NlcPalette.white.withValues(alpha: 0.12),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: EventLogo(
+          logoUrl: widget.event.logoUrl,
+          size: _logoSize,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImmersiveTitleSection() {
+    return Column(
+      children: [
+        Text(
+          'Event Check-In',
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 30,
+            fontWeight: FontWeight.w600,
+            color: NlcPalette.cream,
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Scan your CFC ID QR code or search by name to check in.',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: NlcPalette.cream.withValues(alpha: 0.7),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: 60,
+          height: 1,
+          color: NlcPalette.cream.withValues(alpha: 0.4),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImmersivePrimaryCard() {
+    return _ImmersivePrimaryQrCard(
+      title: 'Scan CFC ID QR Code',
+      subtitle: 'Fastest way to check in.',
+      onTap: _onScanQr,
+    );
+  }
+
+  Widget _buildImmersiveSecondaryCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: NlcPalette.cream2,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: NlcPalette.shadow,
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 28, color: NlcPalette.brandBlueDark),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: NlcPalette.brandBlueDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: NlcPalette.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          );
+              Icon(Icons.chevron_right_rounded, color: NlcPalette.brandBlueDark, size: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImmersiveLocation() {
+    final venue = widget.event.locationName;
+    final address = widget.event.address;
+    if (venue.isEmpty && address.isEmpty) return const SizedBox.shrink();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.location_on, size: 20, color: NlcPalette.cream.withValues(alpha: 0.9)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (venue.isNotEmpty)
+                Text(
+                  venue,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: NlcPalette.cream,
+                  ),
+                ),
+              if (address.isNotEmpty) ...[
+                if (venue.isNotEmpty) const SizedBox(height: 4),
+                Text(
+                  address,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: NlcPalette.cream.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImmersiveRecentCheckins() {
+    if (_recentCheckins.isEmpty) return const SizedBox.shrink();
+    String formatTime(DateTime dt) =>
+        '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Recent check-ins',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: NlcPalette.cream.withValues(alpha: 0.85),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._recentCheckins.take(10).map((e) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Text(
+                    formatTime(e.timestamp),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: NlcPalette.cream.withValues(alpha: 0.65),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      e.name,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: NlcPalette.cream.withValues(alpha: 0.9),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
   }
 
   Widget _buildSessionHeader() {
@@ -282,14 +589,14 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
             fontSize: 18,
             letterSpacing: 2,
             fontWeight: FontWeight.w600,
-            color: AppColors.goldGradientEnd,
+            color: NlcPalette.brandBlue,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.goldGradientEnd, width: 2),
+            border: Border.all(color: NlcPalette.brandBlue, width: 2),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
@@ -307,27 +614,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
     );
   }
 
-  Widget _buildMainCheckInBadge() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C355E),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Text(
-          'MAIN CHECK-IN',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildRecentCheckinsLog() {
     if (_recentCheckins.isEmpty) {
       return const SizedBox.shrink();
@@ -340,7 +626,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
         color: AppColors.surfaceCard.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.goldGradientEnd.withValues(alpha: 0.4),
+          color: NlcPalette.brandBlue.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -350,7 +636,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.history, size: 20, color: AppColors.goldGradientEnd),
+              Icon(Icons.history, size: 20, color: NlcPalette.brandBlue),
               const SizedBox(width: 8),
               Text(
                 'Recent check-ins',
@@ -406,7 +692,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Scan your QR code or search by name to check in.',
+              'Scan your CFC ID QR code or search by name to check in.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
@@ -430,7 +716,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
             ],
           ),
           padding: const EdgeInsets.all(20),
-          iconColor: AppColors.goldIconContainer,
+          iconColor: NlcPalette.brandBlue,
           venueStyle: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -504,7 +790,18 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
       );
       if (!mounted) return;
       if (registrant != null) {
-        await _performCheckin(registrantId: registrant.id);
+        context.push(
+          '/events/${widget.eventSlug}/checkin/registrant-resolved',
+          extra: {
+            'event': widget.event,
+            'eventId': widget.event.id,
+            'eventSlug': widget.eventSlug,
+            'registrantId': registrant.id,
+            'registrantName': _displayName(registrant),
+            'source': 'qr',
+            'isMainCheckIn': _isMainCheckIn,
+          },
+        );
       } else {
         _showNotFoundSnackbar(identifier);
       }
@@ -568,7 +865,21 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
     );
     if (!mounted || result == null) return;
     final success = result['success'] as bool? ?? false;
-    if (success) {
+    final registrantId = result['registrantId'] as String?;
+    if (success && registrantId != null) {
+      context.push(
+        '/events/${widget.eventSlug}/checkin/registrant-resolved',
+        extra: {
+          'event': widget.event,
+          'eventId': widget.event.id,
+          'eventSlug': widget.eventSlug,
+          'registrantId': registrantId,
+          'registrantName': result['name'] as String? ?? 'Guest',
+          'source': 'manual',
+          'isMainCheckIn': _isMainCheckIn,
+        },
+      );
+    } else if (success) {
       await _showSuccessAndReturn(
         name: result['name'] as String? ?? 'Guest',
         sessionName: _effectiveSessionName,
@@ -649,6 +960,131 @@ class _CheckinLandingPageState extends State<CheckinLandingPage> {
   }
 }
 
+/// Glass-style primary QR card for immersive main check-in.
+class _ImmersivePrimaryQrCard extends StatefulWidget {
+  const _ImmersivePrimaryQrCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  State<_ImmersivePrimaryQrCard> createState() => _ImmersivePrimaryQrCardState();
+}
+
+class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
+  bool _hover = false;
+  bool _pressing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: kIsWeb ? (_) => setState(() => _hover = true) : null,
+      onExit: kIsWeb ? (_) => setState(() => _hover = false) : null,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressing = true),
+        onTapUp: (_) => setState(() => _pressing = false),
+        onTapCancel: () => setState(() => _pressing = false),
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          widget.onTap();
+        },
+        child: AnimatedScale(
+          scale: _pressing ? 0.98 : (_hover && kIsWeb ? 1.02 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: Container(
+            height: 76,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: NlcPalette.cream.withValues(alpha: 0.25),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: NlcPalette.shadow,
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  NlcPalette.brandBlueSoft.withValues(alpha: 0.7),
+                  NlcPalette.brandBlueDark.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  widget.onTap();
+                },
+                borderRadius: BorderRadius.circular(17),
+                splashColor: NlcPalette.cream.withValues(alpha: 0.15),
+                highlightColor: NlcPalette.cream.withValues(alpha: 0.08),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: NlcPalette.brandBlueDark.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.qr_code_scanner,
+                          size: 26,
+                          color: NlcPalette.cream,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              style: GoogleFonts.inter(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: NlcPalette.cream,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: NlcPalette.cream.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SessionLabel extends StatelessWidget {
   const _SessionLabel({required this.session});
 
@@ -661,11 +1097,11 @@ class _SessionLabel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.goldGradientEnd.withValues(alpha: 0.5)),
+        border: Border.all(color: NlcPalette.brandBlue.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
-          Icon(Icons.event_note, color: AppColors.goldGradientEnd, size: 24),
+          Icon(Icons.event_note, color: NlcPalette.brandBlue, size: 24),
           const SizedBox(width: 12),
           Text(
             session.displayName,

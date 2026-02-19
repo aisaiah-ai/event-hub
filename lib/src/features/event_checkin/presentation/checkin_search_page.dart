@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../theme/nlc_palette.dart';
 import '../../../config/firestore_config.dart';
 import '../../../models/registrant.dart';
 import '../../../services/registrant_service.dart';
@@ -14,6 +15,7 @@ import '../../events/data/event_repository.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import '../data/checkin_mode.dart';
 import '../data/checkin_repository.dart';
+import '../data/nlc_sessions.dart';
 import 'theme/checkin_theme.dart';
 import 'widgets/registrant_result_card.dart';
 import 'widgets/checkin_success_overlay.dart';
@@ -143,46 +145,19 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
       );
       return;
     }
-    if (!mounted) return;
-    try {
-      final result = await _repo.checkInSessionAndConferenceIfNeeded(
-        widget.eventId,
-        widget.mode.sessionId,
-        r.id,
-        checkedInBy: 'self',
-      );
-      if (!mounted) return;
-      if (result.didSessionCheckIn || result.didConferenceCheckIn) {
-        _showSuccessOverlay(
-          name: _displayName(r),
-          alsoCheckedInToConference: result.didConferenceCheckIn,
-        );
-        await _refreshSearchResults();
-      } else {
-        await AlreadyCheckedInDialog.show(
-          context,
-          checkedInAt: null,
-          message: 'Already checked into this session.',
-        );
-      }
-    } catch (e, st) {
-      final real = _unwrapError(e);
-      final pathLines = _checkInPathLines(r.id);
-      debugPrint('[CheckinSearch] Check-in FAILED sessionId=${widget.mode.sessionId} registrantId=${r.id} error=$real');
-      debugPrint('[CheckinSearch] database=${FirestoreConfig.databaseId}');
-      for (final line in pathLines) {
-        debugPrint('[CheckinSearch]   $line');
-      }
-      debugPrint('[CheckinSearch] stack=$st');
-      if (!mounted) return;
-      final String message = _checkInErrorMessage(real, pathLines.join(' ; '));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 10),
-        ),
-      );
-    }
+    if (!mounted || _event == null) return;
+    context.push(
+      '/events/${widget.eventSlug}/checkin/registrant-resolved',
+      extra: {
+        'event': _event,
+        'eventId': _event!.id,
+        'eventSlug': widget.eventSlug,
+        'registrantId': r.id,
+        'registrantName': _displayName(r),
+        'source': 'search',
+        'isMainCheckIn': widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
+      },
+    );
   }
 
   List<String> _checkInPathLines(String registrantId) {
@@ -379,14 +354,14 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.goldGradientEnd,
+            color: NlcPalette.brandBlue,
           ),
         ),
         const SizedBox(height: 8),
         Divider(
           height: 1,
           thickness: 2,
-          color: AppColors.goldGradientEnd.withValues(alpha: 0.7),
+          color: NlcPalette.brandBlue.withValues(alpha: 0.7),
         ),
       ],
     );
@@ -400,14 +375,14 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
           onTap: () => context.pop(),
           child: Row(
             children: [
-              const Icon(Icons.arrow_back, size: 20, color: AppColors.gold),
+              const Icon(Icons.arrow_back, size: 20, color: NlcPalette.cream),
               const SizedBox(width: 8),
               Text(
                 'Back to Search',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.gold,
+                  color: NlcPalette.cream,
                 ),
               ),
             ],
@@ -419,7 +394,7 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: AppColors.gold,
+            color: NlcPalette.cream,
           ),
         ),
       ],
@@ -448,7 +423,7 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
           color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
-          hintText: 'Search by last name (min 3 characters)',
+          hintText: 'Search by last name (min 2 characters)',
           hintStyle: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.textPrimary87.withValues(alpha: 0.6),
@@ -471,16 +446,52 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
     );
   }
 
+  void _onEnterManually() {
+    HapticFeedback.mediumImpact();
+    context.push<Map<String, dynamic>>(
+      '/events/${widget.eventSlug}/checkin/manual',
+      extra: {
+        'eventId': _event?.id ?? widget.eventId,
+        'eventSlug': widget.eventSlug,
+        'sessionId': widget.mode.sessionId,
+        'sessionName': widget.mode.displayName,
+      },
+    );
+  }
+
   Widget _buildResultList() {
     if (_results.isEmpty) {
+      final hasQuery = _searchController.text.trim().length >= 2;
       return Center(
-        child: Text(
-          _searchController.text.trim().length < 2
-              ? 'Enter at least 2 characters to search'
-              : 'No matches found',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: AppColors.white.withValues(alpha: 0.7),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                hasQuery ? 'No matches found' : 'Enter at least 2 characters to search',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.white.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (hasQuery) ...[
+                const SizedBox(height: 20),
+                TextButton.icon(
+                  onPressed: _onEnterManually,
+                  icon: const Icon(Icons.edit_note, size: 20, color: NlcPalette.cream),
+                  label: Text(
+                    'Enter manually',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: NlcPalette.cream,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       );

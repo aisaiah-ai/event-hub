@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/nlc_theme.dart';
+import '../../../theme/nlc_palette.dart';
 import '../../../models/analytics_aggregates.dart';
 import '../../../services/checkin_analytics_service.dart';
 import '../../../services/dashboard_layout_service.dart';
 import '../../../widgets/rolling_counter.dart';
 import '../../events/widgets/event_page_scaffold.dart';
-import 'theme/checkin_theme.dart';
 import 'widgets/hourly_trend_chart.dart';
 import 'widgets/last_updated_with_timezone.dart';
 
@@ -116,7 +117,7 @@ class _WallboardLoading extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: AppColors.gold),
+          const CircularProgressIndicator(color: NlcPalette.brandBlue),
           const SizedBox(height: 24),
           Text(
             'Loading live data…',
@@ -131,14 +132,10 @@ class _WallboardLoading extends StatelessWidget {
   }
 }
 
-// --- Theme ---
-
-const Color _kWbGold = Color(0xFFD4A017);
-const Color _kWbNavy = Color(0xFF1C3D5A);
-const Color _kWbCardBg = Color(0xFFFAFAF9);
+// --- Theme (NlcColors) ---
 
 BoxDecoration _wbCardDecoration() => BoxDecoration(
-      color: _kWbCardBg,
+      color: NlcColors.ivory,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
       boxShadow: [
@@ -150,9 +147,9 @@ BoxDecoration _wbCardDecoration() => BoxDecoration(
       ],
     );
 
-/// Wallboard metric tile: white, 16px radius, stronger shadow.
+/// Wallboard metric tile: ivory, 16px radius, stronger shadow.
 BoxDecoration _wbMetricTileDecoration() => BoxDecoration(
-      color: Colors.white,
+      color: NlcColors.ivory,
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
@@ -516,11 +513,11 @@ class _LiveIndicatorState extends State<_LiveIndicator>
             height: 12,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.statusCheckedIn
+              color: NlcColors.successGreen
                   .withOpacity(0.6 + 0.4 * _controller.value),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.statusCheckedIn.withOpacity(0.6),
+                  color: NlcColors.successGreen.withOpacity(0.6),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -534,7 +531,7 @@ class _LiveIndicatorState extends State<_LiveIndicator>
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppColors.statusCheckedIn,
+            color: NlcColors.successGreen,
             letterSpacing: 1.2,
           ),
         ),
@@ -636,7 +633,7 @@ class _WallboardMetricTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 32, color: _kWbGold),
+                Icon(icon, size: 32, color: NlcPalette.brandBlue),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -644,7 +641,7 @@ class _WallboardMetricTile extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _kWbNavy,
+                      color: NlcColors.slate,
                     ),
                   ),
                 ),
@@ -664,11 +661,11 @@ class _WallboardMetricTile extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 72,
                 fontWeight: FontWeight.w800,
-                color: _kWbNavy,
+                color: NlcColors.slate,
                 fontFeatures: [FontFeature.tabularFigures()],
                 shadows: [
                   Shadow(
-                    color: _kWbGold.withOpacity(0.15),
+                    color: NlcPalette.brandBlue.withValues(alpha: 0.15),
                     blurRadius: 8,
                   ),
                 ],
@@ -680,7 +677,7 @@ class _WallboardMetricTile extends StatelessWidget {
                 subtext!,
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: Colors.black54,
+                  color: NlcColors.mutedText,
                 ),
               ),
             ],
@@ -711,7 +708,7 @@ class _WallboardGraph extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: _kWbNavy,
+              color: NlcColors.slate,
             ),
           ),
           const SizedBox(height: 4),
@@ -719,14 +716,14 @@ class _WallboardGraph extends StatelessWidget {
             'Hourly Attendance Progress',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.black54,
+              color: NlcColors.mutedText,
             ),
           ),
           const SizedBox(height: 24),
           HourlyTrendChart(
             hourlyCheckins: global.hourlyCheckins,
             height: 380,
-            lineColor: _kWbGold,
+            lineColor: NlcPalette.brandBlue,
             emptyMessage: 'No check-in data yet',
           ),
         ],
@@ -772,14 +769,14 @@ class _WallboardLeaderboard extends StatelessWidget {
               style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: _kWbNavy,
+              color: NlcColors.slate,
             ),
           ),
           const SizedBox(height: 24),
           if (sorted.isEmpty)
             Text(
               'No sessions yet',
-              style: GoogleFonts.inter(color: Colors.black54, fontSize: 18),
+              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 18),
             )
           else
             ...sorted.asMap().entries.map((e) {
@@ -803,7 +800,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                             style: GoogleFonts.inter(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: _kWbNavy,
+                              color: NlcColors.slate,
                             ),
                           ),
                         ),
@@ -817,7 +814,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                                     fontSize: 18,
                                     fontWeight:
                                         isTop ? FontWeight.w700 : FontWeight.w500,
-                                    color: _kWbNavy,
+                                    color: NlcColors.slate,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -830,7 +827,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.statusCheckedIn
+                                    color: NlcColors.successGreen
                                         .withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -839,7 +836,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.statusCheckedIn,
+                                      color: NlcColors.successGreen,
                                     ),
                                   ),
                                 ),
@@ -849,7 +846,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                                 style: GoogleFonts.inter(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
-                                  color: _kWbGold,
+                                  color: NlcPalette.brandBlue,
                                   fontFeatures: [FontFeature.tabularFigures()],
                                 ),
                               ),
@@ -864,9 +861,9 @@ class _WallboardLeaderboard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct.clamp(0.0, 1.0),
                         minHeight: 10,
-                        backgroundColor: _kWbGold.withOpacity(0.15),
+                        backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          isTop ? _kWbGold : _kWbGold.withOpacity(0.5),
+                          isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
                         ),
                       ),
                     ),

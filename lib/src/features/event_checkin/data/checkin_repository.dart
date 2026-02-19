@@ -105,7 +105,7 @@ class CheckinRepository {
       final results = <({String name, DateTime timestamp})>[];
       for (final d in attSnap.docs) {
         final data = d.data();
-        final ts = data['checkedInAt'];
+        final ts = data['createdAt'] ?? data['checkedInAt'];
         final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
         final reg = await _registrantService.getRegistrant(eventId, d.id);
         final name = reg != null

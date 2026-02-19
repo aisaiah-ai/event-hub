@@ -77,11 +77,21 @@ String _toSchemaKey(String header) {
     'ministry': 'ministry',
     'ministry_membership': 'ministryMembership',
     'ministrymembership': 'ministryMembership',
+    // NLC main export columns (Registrant - Person's Name - First Name, etc.)
+    'registrant_person_s_name_first_name': 'firstName',
+    'registrant_person_s_name_last_name': 'lastName',
+    'registrant_email': 'email',
+    'registrant_phone_number': 'phone',
+    'region_other_text': 'regionOther',
   };
   return map[n] ?? n;
 }
 
 String _registrantId(int index, Map<String, dynamic> row) {
+  // Use CSV 'id' column when present (e.g. nlc_main_clean.csv has nlc_xxx ids).
+  final id = row['id']?.toString().trim();
+  if (id != null && id.isNotEmpty) return id;
+
   final parts = <String>[];
   for (final k in ['email', 'cfcId', 'firstName', 'lastName', 'name']) {
     final v = row[k]?.toString();
@@ -92,6 +102,23 @@ String _registrantId(int index, Map<String, dynamic> row) {
   final bytes = utf8.encode(input);
   final digest = sha256.convert(bytes);
   return digest.toString().substring(0, 20);
+}
+
+/// Session column (CSV header) -> Firestore session ID for NLC dialogue sessions.
+const _sessionColumnToId = {
+  'export_Gender_Identity_Dialogue': 'gender-ideology-dialogue',
+  'export_Contraception_Dialogue': 'contraception-ivf-abortion-dialogue',
+  'export_Immigration_Dialogue': 'immigration-dialogue',
+};
+
+/// Returns session IDs for which the row has "X" in the corresponding export column.
+List<String> _sessionIdsFromRow(Map<String, String> rawRow) {
+  final ids = <String>[];
+  for (final entry in _sessionColumnToId.entries) {
+    final val = rawRow[entry.key]?.trim().toUpperCase();
+    if (val == 'X') ids.add(entry.value);
+  }
+  return ids;
 }
 
 Future<List<Map<String, String>>> readSpreadsheet(String path) async {
@@ -160,40 +187,77 @@ Future<List<Map<String, String>>> readSpreadsheet(String path) async {
   throw ArgumentError('Unsupported format: $ext. Use .csv, .xlsx, or .xls');
 }
 
-/// Runs the seed. Returns (imported, skipped).
+const _batchSize = 500;
+
+/// Deletes all documents in events/{eventId}/registrants and
+/// events/{eventId}/sessionRegistrations. Use before reseeding from NLC main export.
+Future<void> clearRegistrationData(FirebaseFirestore firestore) async {
+  final registrantsRef = firestore.collection('events/$eventId/registrants');
+  final sessionRegRef =
+      firestore.collection('events/$eventId/sessionRegistrations');
+
+  for (final colRef in [registrantsRef, sessionRegRef]) {
+    var total = 0;
+    while (true) {
+      final snap = await colRef.limit(_batchSize).get();
+      if (snap.docs.isEmpty) break;
+      final batch = firestore.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+        total++;
+      }
+      await batch.commit();
+      print('  Deleted $total docs from ${colRef.path}');
+    }
+  }
+  print('Cleared registrants and sessionRegistrations for $eventId.');
+}
+
+/// Runs the seed. Returns (imported, skipped, sessionRegistrationsWritten).
 /// [hashPii]: when false, stores PII as-is (for local testing; search will work).
-Future<({int imported, int skipped})> runSeed(
+/// [clearFirst]: when true, deletes all registrants and sessionRegistrations before seeding.
+Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
   String filePath, {
   bool hashPii = true,
+  bool clearFirst = false,
 }) async {
   print('Reading: $filePath');
   print('PII hashing: ${hashPii ? "on" : "off (searchable)"}');
+  if (clearFirst) print('Clear-first: will erase all registrants and sessionRegistrations then seed.');
 
   final rows = await readSpreadsheet(filePath);
   if (rows.isEmpty) {
     print('No data rows found.');
-    return (imported: 0, skipped: 0);
+    return (imported: 0, skipped: 0, sessionRegistrationsWritten: 0);
   }
 
   // Use default DB if event-hub-dev fails (e.g. doesn't exist yet)
-  final useDefault = const bool.fromEnvironment('SEED_USE_DEFAULT', defaultValue: false);
+  final useDefault =
+      const bool.fromEnvironment('SEED_USE_DEFAULT', defaultValue: false);
   final FirebaseFirestore firestore;
   if (useDefault) {
     firestore = FirebaseFirestore.instance;
-    print('Found ${rows.length} rows. Writing to Firestore ((default) database)...');
+    print(
+        'Found ${rows.length} rows. Writing to Firestore ((default) database)...');
   } else {
     FirestoreConfig.init(AppEnvironment.dev);
     firestore = FirestoreConfig.instance;
     // Disable persistence to avoid LevelDB lock if app is also running
     firestore.settings = const Settings(persistenceEnabled: false);
-    
+
     print('Found ${rows.length} rows. Writing to Firestore (event-hub-dev)...');
     print('  Project: ${firestore.app.options.projectId}');
     print('  Database: ${firestore.databaseId}');
-
-
   }
+
+  if (clearFirst) {
+    print('Clearing existing registration data...');
+    await clearRegistrationData(firestore);
+  }
+
   final registrantsRef = firestore.collection('events/$eventId/registrants');
+  final sessionRegRef =
+      firestore.collection('events/$eventId/sessionRegistrations');
 
   var imported = 0;
   var skipped = 0;
@@ -252,5 +316,35 @@ Future<({int imported, int skipped})> runSeed(
     }
   }
 
-  return (imported: imported, skipped: skipped);
+  // Seed sessionRegistrations from export_*_Dialogue columns (X = registered).
+  var sessionRegCount = 0;
+  for (var i = 0; i < rows.length; i++) {
+    final raw = rows[i];
+    final sessionIds = _sessionIdsFromRow(raw);
+    if (sessionIds.isEmpty) continue;
+    final rowMap = <String, dynamic>{};
+    for (final e in raw.entries) {
+      rowMap[e.key] = e.value;
+    }
+    final registrantId = _registrantId(i, rowMap);
+    try {
+      await sessionRegRef.doc(registrantId).set({
+        'registrantId': registrantId,
+        'sessionIds': sessionIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      sessionRegCount++;
+    } catch (e, st) {
+      print('  ✗ sessionRegistrations for $registrantId: $e');
+      print('    ${st.toString().split('\n').take(2).join('\n    ')}');
+    }
+  }
+  if (sessionRegCount > 0) {
+    print('Session registrations written: $sessionRegCount');
+  }
+
+  return (
+      imported: imported,
+      skipped: skipped,
+      sessionRegistrationsWritten: sessionRegCount);
 }

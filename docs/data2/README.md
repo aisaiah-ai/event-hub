@@ -103,3 +103,29 @@ and so on. Each pass only matches to NLC rows that still have no match, so you d
 2. **Your list:** Copy `export_still_not_in_nlc.csv` to `export_not_in_nlc.csv` and curate (fix names, etc.).
 3. **Match passes:** `python3 match_export_not_in_nlc.py` [optional: `--input <file> --output <file>`]. Still-not → v2 (or v3, v4…); newly matched → appended to `export_matched_to_nlc`; `nlc_main` updated; sync ensures list of matching is complete.
 4. **Repeat:** Use v2 as input for next pass (or copy v2 → `export_not_in_nlc.csv`) and run again.
+
+---
+
+## Seeding Firestore from `nlc_main_clean.csv`
+
+Use the Flutter seed tool to **erase all registration data** for NLC 2026, then **seed registrants and session registrations** from `nlc_main_clean.csv`.
+
+- **Registrants:** Each row becomes a document in `events/nlc-2026/registrants`. The CSV `id` column (e.g. `nlc_5ef4b888e524`) is used as the document ID.
+- **Session registrations:** Columns `export_Gender_Identity_Dialogue`, `export_Contraception_Dialogue`, `export_Immigration_Dialogue` are used for breakout sessions. If a cell contains **X**, that registrant is pre-registered to the corresponding session:
+  - `export_Gender_Identity_Dialogue` → `gender-ideology-dialogue`
+  - `export_Contraception_Dialogue` → `contraception-ivf-abortion-dialogue`
+  - `export_Immigration_Dialogue` → `immigration-dialogue`
+
+**Run from project root:**
+
+```bash
+SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev
+```
+
+Using the path `nlc_main_clean.csv` automatically enables **clear-first**: all existing documents in `events/nlc-2026/registrants` and `events/nlc-2026/sessionRegistrations` are deleted before seeding. To clear-first with any other file, set:
+
+```bash
+SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_CLEAR_FIRST=1 SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev
+```
+
+**Database:** By default the seed writes to **event-hub-dev**. To use the default Firestore database instead, add `--dart-define=SEED_USE_DEFAULT=1`.

@@ -105,24 +105,34 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
         walkIn,
         triggerFormation: false,
       );
-      await _repo.checkInSessionOnly(
-        widget.eventId,
-        widget.sessionId,
-        registrantId,
-        source: 'manual',
-        method: CheckinMethod.manual,
-      );
+      if (!mounted) return;
+      setState(() => _submitting = false);
       if (!mounted) return;
       context.pop({
         'success': true,
         'name': '$first $last'.trim(),
+        'registrantId': registrantId,
       });
     } catch (e) {
-      if (mounted) setState(() {
-        _submitting = false;
-        _error = e.toString();
-      });
+      if (mounted) {
+        final message = _userFriendlyError(e);
+        setState(() {
+          _submitting = false;
+          _error = message;
+        });
+      }
     }
+  }
+
+  static String _userFriendlyError(Object e) {
+    final s = e.toString().toLowerCase();
+    if (s.contains('permission-denied') || s.contains('permission_denied')) {
+      return 'Check-in denied. Ensure Firestore rules allow creating registrants and attendance for this event.';
+    }
+    if (s.contains('not-found') || s.contains('document') && s.contains('exist')) {
+      return 'Event or session may not exist. Contact support.';
+    }
+    return e.toString();
   }
 
   @override
@@ -130,6 +140,7 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
     if (_loadingEvent) {
       return EventPageScaffold(
         event: null,
+        eventSlug: widget.eventSlug,
         body: const Center(
           child: CircularProgressIndicator(color: EventTokens.textOffWhite),
         ),
@@ -138,6 +149,7 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
 
     return EventPageScaffold(
       event: _event,
+      eventSlug: widget.eventSlug,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

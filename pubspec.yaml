@@ -74,6 +74,8 @@ flutter:
   assets:
     - assets/checkin/BG.svg
     - assets/checkin/empower.png
+    - assets/checkin/nlc_logo_mark.png
+    - assets/checkin/nlc_logo.png
     - assets/checkin/mossaic.svg
     - assets/checkin/background2.svg
     - assets/images/nlc_background.png

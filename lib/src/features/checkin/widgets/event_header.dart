@@ -6,7 +6,7 @@ import '../checkin_tokens.dart';
 class EventHeaderWidget extends StatelessWidget {
   const EventHeaderWidget({
     super.key,
-    this.emblemPath = 'assets/checkin/empower.png',
+    this.emblemPath = 'assets/checkin/nlc_logo.png',
     this.organization = 'Couples for Christ',
     this.title = 'National Leaders Conference',
     this.subtitle = '',

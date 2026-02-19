@@ -71,6 +71,8 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
     return EventPageScaffold(
       event: _event,
       eventSlug: widget.eventSlug,
+      useRadialOverlay: widget.isMainCheckIn,
+      bodyMaxWidth: widget.isMainCheckIn ? 480 : 520,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

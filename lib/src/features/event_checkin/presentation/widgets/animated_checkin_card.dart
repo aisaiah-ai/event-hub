@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../../../../theme/nlc_palette.dart';
+
 /// Kiosk-grade animated action card with hover, press scale, and elevation.
 class AnimatedCheckinCard extends StatefulWidget {
   const AnimatedCheckinCard({
@@ -71,9 +73,9 @@ class _AnimatedCheckinCardState extends State<AnimatedCheckinCard> {
       'AnimatedCheckinCard requires gradient or backgroundColor',
     );
 
-    final titleColor = widget.isPrimary ? Colors.black : const Color(0xFF1C3D5A);
-    final subtitleColor = widget.isPrimary ? Colors.black87 : Colors.black54;
-    final leadingColor = widget.isPrimary ? Colors.black : const Color(0xFF1C3D5A);
+    final titleColor = widget.isPrimary ? NlcPalette.cream : NlcPalette.ink;
+    final subtitleColor = widget.isPrimary ? NlcPalette.cream.withValues(alpha: 0.9) : NlcPalette.muted;
+    final leadingColor = widget.isPrimary ? NlcPalette.cream : NlcPalette.brandBlueDark;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,

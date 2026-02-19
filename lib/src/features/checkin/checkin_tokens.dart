@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for check-in screen — match mock exactly.
+import '../../theme/nlc_palette.dart';
+
+/// Design tokens for check-in screen — blue palette, no gold.
 class CheckinTokens {
   CheckinTokens._();
 
-  // Colors
-  static const Color primaryBlue = Color(0xFF0E3A5D);
-  static const Color accentGold = Color(0xFFF4A340);
-  static const Color surfaceCard = Color(0xFFF3F3F3);
-  static const Color successGreen = Color(0xFF2E7D32);
+  // Colors (delegate to NlcPalette)
+  static const Color primaryBlue = NlcPalette.brandBlueDark;
+  static const Color surfaceCard = NlcPalette.cream2;
+  static const Color successGreen = NlcPalette.success;
   static const Color warningAmber = Color(0xFFFFC107);
-  static const Color textPrimary = Color(0xFF1C1C1C);
-  static const Color textOffWhite = Color(0xFFE8E8E8);
-  static const Color textMuted = Color(0xFFB0B0B0);
-  static const Color errorRed = Color(0xFFB71C1C);
+  static const Color textPrimary = NlcPalette.ink;
+  static const Color textOffWhite = NlcPalette.cream;
+  static const Color textMuted = NlcPalette.muted;
+  static const Color errorRed = NlcPalette.danger;
 
   // Radius & Spacing
   static const double radiusLarge = 16;

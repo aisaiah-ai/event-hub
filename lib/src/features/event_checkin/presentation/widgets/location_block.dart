@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../theme/nlc_palette.dart';
 import '../theme/checkin_theme.dart';
 
 /// Location block — icon + venue + address. Customizable card styling.
@@ -22,7 +23,7 @@ class LocationBlock extends StatelessWidget {
   final BoxDecoration? decoration;
   /// Padding around the content. Default: 20 all sides when decoration is set.
   final EdgeInsetsGeometry? padding;
-  /// Icon color. Default: AppColors.gold.
+  /// Icon color. Default: NlcPalette.brandBlue.
   final Color? iconColor;
   final double iconSize;
   /// Override venue text style.
@@ -40,7 +41,7 @@ class LocationBlock extends StatelessWidget {
         Icon(
           Icons.location_on,
           size: iconSize,
-          color: iconColor ?? AppColors.gold,
+          color: iconColor ?? NlcPalette.brandBlue,
         ),
         const SizedBox(width: AppSpacing.iconSpacing),
         Expanded(
