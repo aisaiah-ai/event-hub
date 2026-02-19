@@ -7,6 +7,8 @@
 /// Ensure PARENT documents exist in the target database (event-hub-dev / event-hub-prod)
 /// before writing to subcollections.
 
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 void main(List<String> args) {

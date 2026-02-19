@@ -50,11 +50,13 @@ class Session {
 
   String get displayName => name ?? title;
 
-  /// Remaining seats (capacity - attendanceCount). Negative or zero when full/unlimited.
+  /// Remaining seats (capacity - attendanceCount). Canonical for capacity gating.
+  /// When capacity is 0 (no limit), returns a large sentinel so isAvailable is true.
   int get remainingSeats =>
       capacity > 0 ? (capacity - attendanceCount).clamp(0, 0x7FFFFFFF) : 0x7FFFFFFF;
 
-  /// Session is available: open and not full.
+  /// Session is available: status == open and remainingSeats > 0 (or unlimited).
+  /// Use this to enable/disable selection in UI and in transactional check-in.
   bool get isAvailable =>
       status == SessionStatus.open &&
       (capacity <= 0 || attendanceCount < capacity);

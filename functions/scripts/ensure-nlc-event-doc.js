@@ -46,10 +46,13 @@ const EVENT_DATA = {
   },
 };
 
-// ----- 2. Sessions (name, location, order, isActive) -----
-// Only main-checkin. Other sessions (e.g. dialogue sessions) create in Firestore as needed.
+// ----- 2. Sessions (name, location, capacity, colorHex, order, isMain) -----
+// Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Yellow).
 const SESSIONS = [
-  { id: 'main-checkin', name: 'Main Check-In', location: 'Registration', order: 0 },
+  { id: 'main-checkin', name: 'Main Check-In', location: 'Registration', capacity: 0, colorHex: '#1E3A5F', order: 0, isMain: true },
+  { id: 'gender-ideology-dialogue', name: 'Gender Ideology Dialogue', location: 'Main Ballroom', capacity: 450, colorHex: '#2563EB', order: 1, isMain: false },
+  { id: 'immigration-dialogue', name: 'Immigration Dialogue', location: 'Valencia Ballroom', capacity: 192, colorHex: '#EAB308', order: 2, isMain: false },
+  { id: 'contraception-ivf-abortion-dialogue', name: 'Contraception/IVF/Abortion Dialogue', location: 'Saugus/Castaic', capacity: 72, colorHex: '#EA580C', order: 3, isMain: false },
 ];
 
 // ----- 3. Stats overview (all fields — Cloud Functions require these) -----
@@ -88,9 +91,14 @@ async function run() {
     const ref = db.doc(`events/${EVENT_ID}/sessions/${s.id}`);
     batch.set(ref, {
       name: s.name,
-      location: s.location,
+      location: s.location || '',
       order: s.order,
       isActive: true,
+      isMain: s.isMain === true,
+      capacity: s.capacity != null ? s.capacity : 0,
+      attendanceCount: 0,
+      status: 'open',
+      colorHex: s.colorHex || '',
     }, { merge: true });
   }
 
@@ -103,7 +111,7 @@ async function run() {
   await batch.commit();
   console.log('OK: database=' + databaseId);
   console.log('OK: events/' + EVENT_ID + ' (event doc with name, venue, createdAt, isActive, metadata)');
-  console.log('OK: events/' + EVENT_ID + '/sessions (main-checkin only)');
+  console.log('OK: events/' + EVENT_ID + '/sessions (main-checkin + dialogue sessions)');
   console.log('OK: events/' + EVENT_ID + '/stats/overview (full stats structure)');
   console.log('OK: events/' + EVENT_ID + '/analytics/global (check-in trend and Top 5 updated by Cloud Function)');
 }

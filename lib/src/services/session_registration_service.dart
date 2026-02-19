@@ -15,7 +15,9 @@ class SessionRegistration {
   final DateTime? updatedAt;
 }
 
-/// Read-only service for events/{eventId}/sessionRegistrations/{registrantId}.
+/// Intent layer: pre-registered sessions per registrant.
+/// Path: events/{eventId}/sessionRegistrations/{registrantId}.
+/// Writes are admin/seed/server-only; client reads only (no arbitrary client writes).
 class SessionRegistrationService {
   SessionRegistrationService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirestoreConfig.instance;
@@ -68,6 +70,31 @@ class SessionRegistrationService {
     );
   }
 
+  /// Stream of full registration doc (for reactive UI). Returns null when doc missing.
+  Stream<SessionRegistration?> watchRegistration(
+    String eventId,
+    String registrantId,
+  ) {
+    return _firestore.doc(_path(eventId, registrantId)).snapshots().map((snap) {
+      if (!snap.exists || snap.data() == null) return null;
+      final data = snap.data()!;
+      final list = data['sessionIds'];
+      final sessionIds = list is List
+          ? list
+              .map((e) => e?.toString())
+              .where((e) => e != null && e.isNotEmpty)
+              .cast<String>()
+              .toList()
+          : <String>[];
+      final updatedAt = data['updatedAt'];
+      return SessionRegistration(
+        registrantId: registrantId,
+        sessionIds: sessionIds,
+        updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,
+      );
+    });
+  }
+
   /// Stream of session IDs for a registrant (for reactive UI).
   Stream<List<String>> watchRegistrantSessionRegistration(
     String eventId,
@@ -82,6 +109,40 @@ class SessionRegistrationService {
           .where((e) => e != null && e.isNotEmpty)
           .cast<String>()
           .toList();
+    });
+  }
+
+  /// Pre-registered count per session: sessionId -> number of registrants who signed up.
+  /// Used for display: "Total: X. Pre-registered: Y. Checked in: Z. Remaining: X − Z."
+  Future<Map<String, int>> getPreRegisteredCountsPerSession(String eventId) async {
+    final snap = await _firestore
+        .collection('events/$eventId/sessionRegistrations')
+        .get();
+    final counts = <String, int>{};
+    for (final doc in snap.docs) {
+      final list = doc.data()['sessionIds'];
+      if (list is! List) continue;
+      for (final e in list) {
+        final id = e?.toString();
+        if (id == null || id.isEmpty) continue;
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  /// Set session registration for a registrant. Admin/seed/backend only — do not expose to client for arbitrary writes.
+  /// Use for import, seed from CSV, or server-side sync.
+  Future<void> setRegistration(
+    String eventId,
+    String registrantId,
+    List<String> sessionIds,
+  ) async {
+    final ref = _firestore.doc(_path(eventId, registrantId));
+    await ref.set({
+      'registrantId': registrantId,
+      'sessionIds': sessionIds,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 }

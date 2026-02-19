@@ -735,6 +735,45 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-18 — Session Registration Intent + Capacity Enforcement Refactor
+
+**What was done**
+- **Data model formalized:** Registrants = identity; sessionRegistrations = intent (pre-reg); attendance = physical presence; sessions = capacity + metadata. No change to analytics, dashboard aggregation, Cloud Functions triggers, or attendance path.
+- **Session model** (`lib/src/models/session.dart`): Documented canonical getters `remainingSeats` and `isAvailable` for capacity gating.
+- **SessionRegistrationService:** Added `watchRegistration(eventId, registrantId)` → `Stream<SessionRegistration?>`. Added `setRegistration(eventId, registrantId, sessionIds)` with comment: admin/seed/server-only; no client arbitrary writes.
+- **CheckinOrchestratorService:** Documented flow: ensureMainCheckIn → UI reads sessionRegistrations → pre-reg → lock UI + checkInToTargetSession(sessionId); not registered → SessionSelectionScreen + listAvailableSessions → on select transaction (capacity) + checkInToTargetSession.
+- **Firestore rules:** sessionRegistrations already read: true, write: false. Sessions update already restricted to attendanceCount (+1) and updatedAt. Clarified comments.
+- **UI:** RegistrantResolvedScreen pre-reg card now shows "You are pre-registered for this session." SessionSelectionScreen and RegistrantResolvedScreen use `session.isAvailable` to disable cards when full/closed.
+- **Docs:** `docs/FIRESTORE_DATA_MODEL.md` updated with architecture summary, session schema, sessionRegistrations intent semantics, and checklist note for (default) vs named DB.
+
+**What was tried**
+- Production-safe separation of intent (sessionRegistrations) vs attendance (attendance subcollection); capacity enforced in transaction; UI locked when pre-registered.
+
+**Outcome / still broken**
+- Implemented. No changes to existing analytics, dashboard, or Cloud Functions. Attendance path unchanged. sessionRegistrations remains client read-only.
+
+**Next time (recall)**
+- sessionRegistrations = intent (server/admin/seed writes only). Check-in flow: getRegistration → pre-reg → lock + checkInToTargetSession; else listAvailableSessions → select → transaction + checkInToTargetSession.
+
+---
+
+## 2026-02-18 — Session capacity, location, colorHex in bootstrap and cards
+
+**What was done**
+- Node bootstrap (`functions/scripts/ensure-nlc-event-doc.js`) and Python bootstrap (`tools/seed_registrants.py` BOOTSTRAP_SESSIONS): set `location`, `capacity`, `colorHex` per NLC session (Main Check-In = Registration, 0 cap, #1E3A5F; Gender Identity = Main Ballroom 450 #0D9488; Immigration = Valencia Ballroom 192 #7C3AED; Contraception/Abortion = Saugus/Castaic 72 #EA580C). Colors are stored so they can be updated later in Firestore.
+- RegistrantResolvedScreen: pre-reg card and selectable card always show a capacity line (Remaining Seats / Session Full / Capacity: Unlimited). Cards already use session color (stripe) and location from session model.
+
+**What was tried**
+- User asked for session colors (updatable), capacity remaining on the card, and location/capacity stored in session data model.
+
+**Outcome / still broken**
+- Implemented. Re-run Python seed or Node bootstrap so (default) DB sessions get location, capacity, colorHex; then cards will show color, location, and capacity remaining.
+
+**Next time (recall)**
+- Session colors/location/capacity live in Firestore; update there to change without code deploy.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

@@ -36,7 +36,10 @@ class CheckinOutcome {
       CheckinOutcome(didCheckIn: false, errorCode: code, errorMessage: message);
 }
 
-/// Single entrypoint for check-in: ensures main first, capacity in transaction, idempotent.
+/// Single entrypoint for check-in. Flow: (1) ensureMainCheckIn (idempotent);
+/// (2) UI checks sessionRegistrations: if pre-registered → lock UI, checkInToTargetSession(sessionId);
+/// if not → show SessionSelectionScreen with listAvailableSessions, on select → checkInToTargetSession.
+/// Capacity enforced in transaction; attendance path unchanged.
 class CheckinOrchestratorService {
   CheckinOrchestratorService({
     FirebaseFirestore? firestore,

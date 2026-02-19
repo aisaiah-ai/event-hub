@@ -12,6 +12,7 @@ import '../../../core/utils/download_helper.dart';
 import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
 
@@ -44,20 +45,6 @@ class CheckinConfirmationScreen extends StatefulWidget {
 class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
   final GlobalKey _receiptKey = GlobalKey();
   bool _savingImage = false;
-
-  Color _colorFromHex(String? hex) {
-    if (hex == null || hex.isEmpty) return NlcPalette.brandBlue;
-    final h = hex.startsWith('#') ? hex : '#$hex';
-    if (h.length == 7) {
-      final r = int.tryParse(h.substring(1, 3), radix: 16);
-      final g = int.tryParse(h.substring(3, 5), radix: 16);
-      final b = int.tryParse(h.substring(5, 7), radix: 16);
-      if (r != null && g != null && b != null) {
-        return Color.fromARGB(255, r, g, b);
-      }
-    }
-    return NlcPalette.brandBlue;
-  }
 
   Future<void> _saveAsImage() async {
     final ro = _receiptKey.currentContext?.findRenderObject();
@@ -102,7 +89,11 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
-    final color = _colorFromHex(session.colorHex);
+    final color = sessionColorFromHex(session.colorHex);
+    final colorName = sessionColorDisplayName(session.colorHex);
+    final wayfindingMessage = colorName != null
+        ? 'Proceed to the $colorName session area.'
+        : 'Proceed to your session area.';
     final at = widget.checkedInAt ?? DateTime.now();
     String dateTime = '';
     if (session.startAt != null) {
@@ -137,6 +128,27 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
                 children: [
                   const SizedBox(height: AppSpacing.afterHeader),
                   ConferenceHeader(logoUrl: widget.event?.logoUrl),
+                  const SizedBox(height: AppSpacing.betweenSections),
+                  Container(
+                    constraints: const BoxConstraints(minHeight: 56),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        wayfindingMessage,
+                        style: GoogleFonts.inter(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.betweenSections),
                   Text(
                     "You're Checked In",

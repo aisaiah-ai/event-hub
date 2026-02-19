@@ -70,8 +70,7 @@ service cloud.firestore {
 
       match /sessions/{sessionId} {
         allow read: if true;
-        // Client may update only attendanceCount (+1) and updatedAt (transactional capacity).
-        // Use 'field' in resource.data to avoid errors when field is missing (legacy docs).
+        // Client may update only attendanceCount (increment by 1) and updatedAt (transactional capacity).
         allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendanceCount', 'updatedAt'])
           && (
             ('attendanceCount' in resource.data && request.resource.data.attendanceCount == resource.data.attendanceCount + 1)
@@ -92,7 +91,7 @@ service cloud.firestore {
         }
       }
 
-      // Pre-registration: client read only (admin/backend writes).
+      // Session registration (intent): pre-registered sessionIds per registrant. Client read only; server/admin/seed writes.
       match /sessionRegistrations/{registrantId} {
         allow read: if true;
         allow write: if false;

@@ -129,3 +129,16 @@ SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_CLEAR_FIRST=1 SEED_NO_HASH=1 flut
 ```
 
 **Database:** By default the seed writes to **event-hub-dev**. To use the default Firestore database instead, add `--dart-define=SEED_USE_DEFAULT=1`.
+
+### Python seed (recommended if Flutter seed fails)
+
+From project root:
+
+```bash
+pip install -r tools/requirements.txt
+python3 tools/seed_registrants.py docs/data2/nlc_main_clean.csv --clear-first --database '(default)'
+```
+
+- **Credentials:** Set `GOOGLE_APPLICATION_CREDENTIALS` to your service account JSON path, or run `gcloud auth application-default login`, or use `--key /path/to/key.json`.
+- **Default database:** `--database '(default)'` matches the app. Omit for `(default)` (it is already the default).
+- **Dry run:** `python3 tools/seed_registrants.py docs/data2/nlc_main_clean.csv --dry-run` to parse and show sample without writing.

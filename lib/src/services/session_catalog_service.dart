@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../config/firestore_config.dart';
 import '../models/session.dart';
+import 'session_registration_service.dart';
 
 /// UI availability label for a session.
 enum SessionAvailabilityLabel {
@@ -12,24 +13,33 @@ enum SessionAvailabilityLabel {
 }
 
 /// Session with computed availability for UI.
+/// Remaining = total capacity − checked in (attendanceCount). Pre-registered is for display only.
 class SessionWithAvailability {
   const SessionWithAvailability({
     required this.session,
     required this.remainingSeats,
     required this.label,
+    this.preRegisteredCount = 0,
   });
 
   final Session session;
   final int remainingSeats;
   final SessionAvailabilityLabel label;
+  /// Number of registrants pre-registered for this session (from sessionRegistrations).
+  final int preRegisteredCount;
 }
 
 /// Lists and watches sessions; computes availability (remaining seats, status label).
 class SessionCatalogService {
-  SessionCatalogService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirestoreConfig.instance;
+  SessionCatalogService({
+    FirebaseFirestore? firestore,
+    SessionRegistrationService? sessionRegistrationService,
+  })  : _firestore = firestore ?? FirestoreConfig.instance,
+        _sessionRegistrationService =
+            sessionRegistrationService ?? SessionRegistrationService();
 
   final FirebaseFirestore _firestore;
+  final SessionRegistrationService _sessionRegistrationService;
 
   String _sessionsPath(String eventId) => 'events/$eventId/sessions';
 
@@ -98,11 +108,13 @@ class SessionCatalogService {
     }
   }
 
-  /// List sessions with availability UI model.
+  /// List sessions with availability UI model (includes pre-registered count for display).
   Future<List<SessionWithAvailability>> listSessionsWithAvailability(
     String eventId,
   ) async {
     final sessions = await listSessions(eventId);
+    final preRegCounts =
+        await _sessionRegistrationService.getPreRegisteredCountsPerSession(eventId);
     return sessions.map((s) {
       final remaining = s.remainingSeats;
       final label = availabilityLabel(s);
@@ -110,15 +122,18 @@ class SessionCatalogService {
         session: s,
         remainingSeats: remaining,
         label: label,
+        preRegisteredCount: preRegCounts[s.id] ?? 0,
       );
     }).toList();
   }
 
-  /// Stream sessions with availability.
+  /// Stream sessions with availability (includes pre-registered count).
   Stream<List<SessionWithAvailability>> watchSessionsWithAvailability(
     String eventId,
   ) {
-    return watchSessions(eventId).asyncMap((sessions) {
+    return watchSessions(eventId).asyncMap((sessions) async {
+      final preRegCounts =
+          await _sessionRegistrationService.getPreRegisteredCountsPerSession(eventId);
       return sessions.map((s) {
         final remaining = s.remainingSeats;
         final label = availabilityLabel(s);
@@ -126,6 +141,7 @@ class SessionCatalogService {
           session: s,
           remainingSeats: remaining,
           label: label,
+          preRegisteredCount: preRegCounts[s.id] ?? 0,
         );
       }).toList();
     });

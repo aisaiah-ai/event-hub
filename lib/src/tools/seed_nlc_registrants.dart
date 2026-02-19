@@ -1,6 +1,11 @@
 // ignore_for_file: avoid_print
-/// Seeds NLC registrants from Excel/CSV to Firebase dev database.
-/// Hashes all PII (names, email, phone, address, etc.) before storing.
+/// Seeds NLC registrants and session registrations from Excel/CSV to Firestore.
+/// - Registrants: events/{eventId}/registrants/{registrantId}
+/// - Session registrations: events/{eventId}/sessionRegistrations/{registrantId}
+///   When the CSV has columns export_Gender_Identity_Dialogue, export_Contraception_Dialogue,
+///   export_Immigration_Dialogue, any cell with "X" means the registrant is pre-registered to that
+///   session; sessionIds are written for each row with at least one X.
+/// Hashes all PII (names, email, phone, etc.) before storing unless SEED_NO_HASH=1.
 
 import 'dart:convert';
 import 'dart:io';
@@ -316,7 +321,8 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
     }
   }
 
-  // Seed sessionRegistrations from export_*_Dialogue columns (X = registered).
+  // Seed session registrations from export_*_Dialogue columns (X = registered to that session).
+  print('Seeding session registrations (export_*_Dialogue = X → sessionIds)...');
   var sessionRegCount = 0;
   for (var i = 0; i < rows.length; i++) {
     final raw = rows[i];
@@ -334,14 +340,15 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
         'updatedAt': FieldValue.serverTimestamp(),
       });
       sessionRegCount++;
+      if (sessionRegCount <= 5) {
+        print('  Session reg $sessionRegCount: $registrantId → ${sessionIds.join(', ')}');
+      }
     } catch (e, st) {
       print('  ✗ sessionRegistrations for $registrantId: $e');
       print('    ${st.toString().split('\n').take(2).join('\n    ')}');
     }
   }
-  if (sessionRegCount > 0) {
-    print('Session registrations written: $sessionRegCount');
-  }
+  print('Session registrations written: $sessionRegCount');
 
   return (
       imported: imported,
