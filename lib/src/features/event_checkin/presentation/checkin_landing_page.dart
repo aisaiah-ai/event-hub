@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../theme/nlc_palette.dart';
 import '../../../models/session.dart';
@@ -281,6 +282,19 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   static const double _immersiveMaxWidth = 480;
   static const double _immersivePadding = 24;
   static const double _logoSize = 150;
+  static const String _guideUrl = 'https://nlcguide.cfcusaconferences.org';
+
+  Future<void> _openGuide() async {
+    final uri = Uri.parse(_guideUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Could not open guide.')));
+      }
+    }
+  }
 
   Widget _buildImmersiveMainCheckIn() {
     return SafeArea(
@@ -313,6 +327,11 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                     subtitle: 'For walk-ins or unregistered attendees.',
                     onTap: _onManualEntry,
                   ),
+                ),
+                const SizedBox(height: 16),
+                SlideTransition(
+                  position: _cardSlideAnimations[2],
+                  child: _buildConferenceGuideCard(),
                 ),
                 const SizedBox(height: 32),
                 Divider(height: 1, color: NlcPalette.cream.withValues(alpha: 0.3)),
@@ -450,6 +469,67 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildConferenceGuideCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: NlcPalette.cream2,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: NlcPalette.shadow,
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.menu_book_rounded, size: 28, color: NlcPalette.brandBlueDark),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Conference Guide',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: NlcPalette.brandBlueDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'nlcguide.cfcusaconferences.org',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: NlcPalette.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          FilledButton(
+            onPressed: _openGuide,
+            style: FilledButton.styleFrom(
+              backgroundColor: NlcPalette.brandBlueDark,
+              foregroundColor: NlcPalette.cream,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Open Guide'),
+          ),
+        ],
       ),
     );
   }
