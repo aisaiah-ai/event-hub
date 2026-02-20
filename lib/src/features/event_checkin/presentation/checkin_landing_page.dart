@@ -185,25 +185,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     }
   }
 
-  String get _primaryButtonTitle {
-    if (_isSessionMode) {
-      return 'Scan CFC ID QR Code to Check Into This Session';
-    }
-    if (_isMainCheckIn) {
-      return 'Scan CFC ID QR Code';
-    }
-    return 'Scan CFC ID QR Code';
-  }
-
-  String get _primaryButtonSubtitle {
-    if (_isSessionMode) {
-      return 'This will check you into $_effectiveSessionName.';
-    }
-    if (_isMainCheckIn) {
-      return 'This will check you in.';
-    }
-    return 'Point your camera at your CFC ID QR code.';
-  }
 
   @override
   void dispose() {
@@ -727,84 +708,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     );
   }
 
-  Future<void> _onScanQr() async {
-    if (!_ensureSessionSelected()) return;
-    HapticFeedback.mediumImpact();
-    final identifier = await _showQrInputDialog();
-    if (identifier == null || !mounted) return;
-    await _processQrIdentifier(identifier);
-  }
 
-  Future<String?> _showQrInputDialog() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Enter CFC ID or Email'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'From QR code or type manually',
-          ),
-          autofocus: true,
-          onSubmitted: (_) => Navigator.of(ctx).pop(controller.text.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Look up'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Future<void> _processQrIdentifier(String identifier) async {
-    try {
-      final registrant = await _repo.findRegistrantByCfcIdOrEmail(
-        widget.event.id,
-        identifier,
-      );
-      if (!mounted) return;
-      if (registrant != null) {
-        context.push(
-          '/events/${widget.eventSlug}/checkin/registrant-resolved',
-          extra: {
-            'event': widget.event,
-            'eventId': widget.event.id,
-            'eventSlug': widget.eventSlug,
-            'registrantId': registrant.id,
-            'registrantName': _displayName(registrant),
-            'source': 'qr',
-            'isMainCheckIn': _isMainCheckIn,
-          },
-        );
-      } else {
-        _showNotFoundSnackbar(identifier);
-      }
-    } catch (e, st) {
-      debugPrint('[CheckinLanding] QR check-in failed: $e');
-      debugPrint('[CheckinLanding] Stack: $st');
-      if (mounted) _showErrorSnackbar(e.toString());
-    }
-  }
-
-  void _showNotFoundSnackbar(String identifier) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Not found: $identifier'),
-        action: SnackBarAction(
-          label: 'Enter manually',
-          onPressed: () => _onManualEntry(),
-        ),
-      ),
-    );
-  }
 
   void _showErrorSnackbar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
