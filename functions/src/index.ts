@@ -14,11 +14,17 @@
  */
 
 import * as functions from "firebase-functions";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 admin.initializeApp();
 
 const db = admin.firestore();
+
+// Named database instances for v2 triggers.
+const DB_PROD = "event-hub-prod";
+const DB_DEV = "event-hub-dev";
 
 /** Look up string from registrant doc: top-level, profile, or answers. Keys tried in order. */
 function getString(
@@ -302,173 +308,272 @@ async function updateCheckInBucket(eventId: string, ts: admin.firestore.Timestam
 }
 
 /**
- * onRegistrantCreate: totalRegistrations, earlyBirdCount, firstEarlyBird*.
- * Ensure stats doc exists.
+ * Shared logic for registrant creation analytics update.
+ */
+async function handleRegistrantCreate(
+  targetDb: admin.firestore.Firestore,
+  eventId: string,
+  registrantId: string,
+  data: admin.firestore.DocumentData,
+): Promise<void> {
+  const statsRef = targetDb.doc(`events/${eventId}/stats/overview`);
+  const globalAnalyticsRef = targetDb.doc(`events/${eventId}/analytics/global`);
+  const registeredAt = getRegisteredAt(data);
+
+  await targetDb.runTransaction(async (tx) => {
+    const statsSnap = await tx.get(statsRef);
+    const stats = statsSnap.data() ?? {};
+    const ensureExists = !statsSnap.exists;
+
+    const updates: Record<string, unknown> = {
+      totalRegistrations: admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (ensureExists) {
+      updates.totalCheckedIn = 0;
+      updates.earlyBirdCount = 0;
+    }
+
+    const early = isEarlyBird(data);
+    if (early) {
+      updates.earlyBirdCount = admin.firestore.FieldValue.increment(1);
+      if (registeredAt) {
+        const existing = stats.firstEarlyBirdRegisteredAt as admin.firestore.Timestamp | undefined;
+        const existingAt = existing?.toDate?.()?.getTime?.() ?? Infinity;
+        const newAt = registeredAt.toDate?.()?.getTime?.() ?? 0;
+        if (newAt < existingAt || !existing) {
+          updates.firstEarlyBirdRegisteredAt = registeredAt;
+          updates.firstEarlyBirdRegistrantId = registrantId;
+        }
+      }
+    }
+
+    tx.set(statsRef, updates, { merge: true });
+    tx.set(globalAnalyticsRef, {
+      totalRegistrants: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+}
+
+/**
+ * onRegistrantCreate (v1): fires on (default) database.
+ * Updates totalRegistrations, earlyBirdCount, totalRegistrants in analytics/global.
  */
 export const onRegistrantCreate = functions.firestore
   .document("events/{eventId}/registrants/{registrantId}")
   .onCreate(async (snap, context) => {
-    const eventId = context.params.eventId as string;
-    const registrantId = context.params.registrantId as string;
-    const data = snap.data();
-
-    const statsRef = db.doc(`events/${eventId}/stats/overview`);
-    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
-    const registeredAt = getRegisteredAt(data);
-
-    await db.runTransaction(async (tx) => {
-      const statsSnap = await tx.get(statsRef);
-      const stats = statsSnap.data() ?? {};
-      const ensureExists = !statsSnap.exists;
-
-      const updates: Record<string, unknown> = {
-        totalRegistrations: admin.firestore.FieldValue.increment(1),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      if (ensureExists) {
-        updates.totalCheckedIn = 0;
-        updates.earlyBirdCount = 0;
-      }
-
-      const early = isEarlyBird(data);
-      if (early) {
-        updates.earlyBirdCount = admin.firestore.FieldValue.increment(1);
-        if (registeredAt) {
-          const existing = stats.firstEarlyBirdRegisteredAt as admin.firestore.Timestamp | undefined;
-          const existingAt = existing?.toDate?.()?.getTime?.() ?? Infinity;
-          const newAt = registeredAt.toDate?.()?.getTime?.() ?? 0;
-          if (newAt < existingAt || !existing) {
-            updates.firstEarlyBirdRegisteredAt = registeredAt;
-            updates.firstEarlyBirdRegistrantId = registrantId;
-          }
-        }
-      }
-
-      tx.set(statsRef, updates, { merge: true });
-      tx.set(globalAnalyticsRef, {
-        totalRegistrants: admin.firestore.FieldValue.increment(1),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    });
-
+    await handleRegistrantCreate(
+      db,
+      context.params.eventId as string,
+      context.params.registrantId as string,
+      snap.data(),
+    );
     return null;
   });
 
 /**
- * onAttendanceCreate: sessions/{sessionId}/attendance/{registrantId} onCreate
- * Pure Session Architecture: updates scalable analytics counters.
- * 1. Increment session analytics/summary attendanceCount, regionCounts, ministryCounts
- * 2. Increment global analytics totalCheckins, regionCounts, ministryCounts, hourlyCheckins
- * 3. If attendeeIndex does NOT exist: create it and increment totalUniqueAttendees
- * 4. Update earliestCheckin if earlier
- * Also keeps stats/overview for legacy dashboard compatibility.
+ * onRegistrantCreateProd (v2): fires on event-hub-prod database.
+ * Keeps analytics/global.totalRegistrants accurate in production.
+ */
+export const onRegistrantCreateProd = onDocumentCreated(
+  {
+    document: "events/{eventId}/registrants/{registrantId}",
+    database: DB_PROD,
+  },
+  async (event) => {
+    if (!event.data) return;
+    const dbProd = getFirestore(DB_PROD);
+    await handleRegistrantCreate(
+      dbProd,
+      event.params.eventId,
+      event.params.registrantId,
+      event.data.data(),
+    );
+  },
+);
+
+/**
+ * onRegistrantCreateDev (v2): fires on event-hub-dev database.
+ */
+export const onRegistrantCreateDev = onDocumentCreated(
+  {
+    document: "events/{eventId}/registrants/{registrantId}",
+    database: DB_DEV,
+  },
+  async (event) => {
+    if (!event.data) return;
+    const dbDev = getFirestore(DB_DEV);
+    await handleRegistrantCreate(
+      dbDev,
+      event.params.eventId,
+      event.params.registrantId,
+      event.data.data(),
+    );
+  },
+);
+
+/**
+ * Shared logic for attendance creation analytics update.
+ * Called by v1 (default DB) and v2 (named DB) triggers.
+ */
+async function handleAttendanceCreate(
+  targetDb: admin.firestore.Firestore,
+  eventId: string,
+  sessionId: string,
+  registrantId: string,
+  data: admin.firestore.DocumentData,
+): Promise<void> {
+  const checkedInAt = data?.checkedInAt as admin.firestore.Timestamp | undefined;
+  const ts = checkedInAt ?? admin.firestore.Timestamp.now();
+
+  const registrantRef = targetDb.doc(`events/${eventId}/registrants/${registrantId}`);
+  const registrantSnap = await registrantRef.get();
+  const r = registrantSnap.data();
+  const region = getString(r, "region", "regionMembership", "Region") ?? "Unknown";
+  const ministry = getString(r, "ministryMembership", "ministry", "Ministry") ?? "Unknown";
+
+  const statsRef = targetDb.doc(`events/${eventId}/stats/overview`);
+  const globalAnalyticsRef = targetDb.doc(`events/${eventId}/analytics/global`);
+  const sessionAnalyticsRef = targetDb.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
+  const attendeeIndexRef = targetDb.doc(`events/${eventId}/attendeeIndex/${registrantId}`);
+
+  await targetDb.runTransaction(async (tx) => {
+    const attendeeIndexSnap = await tx.get(attendeeIndexRef);
+    const isNewUniqueAttendee = !attendeeIndexSnap.exists;
+
+    const globalSnap = await tx.get(globalAnalyticsRef);
+    const global = globalSnap.data() ?? {};
+    const sessionSnap = await tx.get(sessionAnalyticsRef);
+    const sessionData = sessionSnap.data() ?? {};
+
+    const regionKey = safe(region);
+    const ministryKey = safe(ministry);
+    const hourKey = quarterHourBucket(ts);
+
+    const globalRegionCounts = { ...(global.regionCounts as Record<string, number> || {}) };
+    const globalMinistryCounts = { ...(global.ministryCounts as Record<string, number> || {}) };
+    const globalHourlyCheckins = { ...(global.hourlyCheckins as Record<string, number> || {}) };
+
+    globalRegionCounts[regionKey] = (globalRegionCounts[regionKey] ?? 0) + 1;
+    globalMinistryCounts[ministryKey] = (globalMinistryCounts[ministryKey] ?? 0) + 1;
+    globalHourlyCheckins[hourKey] = (globalHourlyCheckins[hourKey] ?? 0) + 1;
+
+    const sessionRegionCounts = { ...(sessionData.regionCounts as Record<string, number> || {}) };
+    const sessionMinistryCounts = { ...(sessionData.ministryCounts as Record<string, number> || {}) };
+    sessionRegionCounts[regionKey] = (sessionRegionCounts[regionKey] ?? 0) + 1;
+    sessionMinistryCounts[ministryKey] = (sessionMinistryCounts[ministryKey] ?? 0) + 1;
+
+    const existingEarliest = global.earliestCheckin as { timestamp: admin.firestore.Timestamp } | undefined;
+    const existingTs = existingEarliest?.timestamp?.toDate?.()?.getTime?.() ?? Infinity;
+    const newTs = ts.toDate?.()?.getTime?.() ?? 0;
+    const shouldUpdateEarliest = newTs < existingTs || !existingEarliest;
+
+    const globalUpdates: Record<string, unknown> = {
+      totalCheckins: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      regionCounts: globalRegionCounts,
+      ministryCounts: globalMinistryCounts,
+      hourlyCheckins: globalHourlyCheckins,
+    };
+    if (isNewUniqueAttendee) {
+      globalUpdates.totalUniqueAttendees = admin.firestore.FieldValue.increment(1);
+    }
+    if (shouldUpdateEarliest) {
+      globalUpdates.earliestCheckin = { registrantId, sessionId, timestamp: ts };
+    }
+    tx.set(globalAnalyticsRef, globalUpdates, { merge: true });
+
+    tx.set(sessionAnalyticsRef, {
+      attendanceCount: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      regionCounts: sessionRegionCounts,
+      ministryCounts: sessionMinistryCounts,
+    }, { merge: true });
+
+    if (isNewUniqueAttendee) {
+      tx.set(attendeeIndexRef, { firstSession: sessionId, firstCheckinTime: ts });
+    }
+
+    const statsSnap = await tx.get(statsRef);
+    const stats = statsSnap.data() ?? {};
+    const sessionTotals = { ...(stats.sessionTotals as Record<string, number> || {}) };
+    const firstSessionCheckIn = { ...(stats.firstSessionCheckIn as Record<string, { at: admin.firestore.Timestamp; registrantId: string }> || {}) };
+    const sk = safe(sessionId);
+    sessionTotals[sk] = (sessionTotals[sk] ?? 0) + 1;
+    if (!firstSessionCheckIn[sk] && checkedInAt) {
+      firstSessionCheckIn[sk] = { at: checkedInAt, registrantId };
+    }
+    tx.set(statsRef, {
+      sessionTotals,
+      firstSessionCheckIn,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+}
+
+/**
+ * onAttendanceCreate (v1): fires on (default) database only.
+ * Pure Session Architecture: updates analytics/global (regionCounts, ministryCounts,
+ * hourlyCheckins, totalCheckins) and session analytics/summary.
  */
 export const onAttendanceCreate = functions.firestore
   .document("events/{eventId}/sessions/{sessionId}/attendance/{registrantId}")
   .onCreate(async (snap, context) => {
-    const eventId = context.params.eventId as string;
-    const sessionId = context.params.sessionId as string;
-    const registrantId = context.params.registrantId as string;
-
-    const data = snap.data();
-    const checkedInAt = data?.checkedInAt as admin.firestore.Timestamp | undefined;
-    const ts = checkedInAt ?? admin.firestore.Timestamp.now();
-
-    const registrantRef = db.doc(`events/${eventId}/registrants/${registrantId}`);
-    const registrantSnap = await registrantRef.get();
-    const r = registrantSnap.data();
-    // Region/ministry from registration: try common keys (top-level, profile, answers).
-    const region = getString(r, "region", "regionMembership", "Region") ?? "Unknown";
-    const ministry = getString(r, "ministryMembership", "ministry", "Ministry") ?? "Unknown";
-
-    const statsRef = db.doc(`events/${eventId}/stats/overview`);
-    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
-    const sessionAnalyticsRef = db.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
-    const attendeeIndexRef = db.doc(`events/${eventId}/attendeeIndex/${registrantId}`);
-
-    await db.runTransaction(async (tx) => {
-      const attendeeIndexSnap = await tx.get(attendeeIndexRef);
-      const isNewUniqueAttendee = !attendeeIndexSnap.exists;
-
-      const globalSnap = await tx.get(globalAnalyticsRef);
-      const global = globalSnap.data() ?? {};
-      const sessionSnap = await tx.get(sessionAnalyticsRef);
-      const sessionData = sessionSnap.data() ?? {};
-
-      const regionKey = safe(region);
-      const ministryKey = safe(ministry);
-      const hourKey = quarterHourBucket(ts);
-
-      const globalRegionCounts = { ...(global.regionCounts as Record<string, number> || {}) };
-      const globalMinistryCounts = { ...(global.ministryCounts as Record<string, number> || {}) };
-      const globalHourlyCheckins = { ...(global.hourlyCheckins as Record<string, number> || {}) };
-
-      globalRegionCounts[regionKey] = (globalRegionCounts[regionKey] ?? 0) + 1;
-      globalMinistryCounts[ministryKey] = (globalMinistryCounts[ministryKey] ?? 0) + 1;
-      globalHourlyCheckins[hourKey] = (globalHourlyCheckins[hourKey] ?? 0) + 1;
-
-      const sessionRegionCounts = { ...(sessionData.regionCounts as Record<string, number> || {}) };
-      const sessionMinistryCounts = { ...(sessionData.ministryCounts as Record<string, number> || {}) };
-      sessionRegionCounts[regionKey] = (sessionRegionCounts[regionKey] ?? 0) + 1;
-      sessionMinistryCounts[ministryKey] = (sessionMinistryCounts[ministryKey] ?? 0) + 1;
-
-      const existingEarliest = global.earliestCheckin as { timestamp: admin.firestore.Timestamp } | undefined;
-      const existingTs = existingEarliest?.timestamp?.toDate?.()?.getTime?.() ?? Infinity;
-      const newTs = ts.toDate?.()?.getTime?.() ?? 0;
-      const shouldUpdateEarliest = newTs < existingTs || !existingEarliest;
-
-      const globalUpdates: Record<string, unknown> = {
-        totalCheckins: admin.firestore.FieldValue.increment(1),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        regionCounts: globalRegionCounts,
-        ministryCounts: globalMinistryCounts,
-        hourlyCheckins: globalHourlyCheckins,
-      };
-      if (isNewUniqueAttendee) {
-        (globalUpdates as Record<string, unknown>).totalUniqueAttendees = admin.firestore.FieldValue.increment(1);
-      }
-      if (shouldUpdateEarliest) {
-        (globalUpdates as Record<string, unknown>).earliestCheckin = {
-          registrantId,
-          sessionId,
-          timestamp: ts,
-        };
-      }
-      tx.set(globalAnalyticsRef, globalUpdates, { merge: true });
-
-      tx.set(sessionAnalyticsRef, {
-        attendanceCount: admin.firestore.FieldValue.increment(1),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        regionCounts: sessionRegionCounts,
-        ministryCounts: sessionMinistryCounts,
-      }, { merge: true });
-
-      if (isNewUniqueAttendee) {
-        tx.set(attendeeIndexRef, {
-          firstSession: sessionId,
-          firstCheckinTime: ts,
-        });
-      }
-
-      const statsSnap = await tx.get(statsRef);
-      const stats = statsSnap.data() ?? {};
-      const sessionTotals = { ...(stats.sessionTotals as Record<string, number> || {}) };
-      const firstSessionCheckIn = { ...(stats.firstSessionCheckIn as Record<string, { at: admin.firestore.Timestamp; registrantId: string }> || {}) };
-      const sk = safe(sessionId);
-      sessionTotals[sk] = (sessionTotals[sk] ?? 0) + 1;
-      if (!firstSessionCheckIn[sk] && checkedInAt) {
-        firstSessionCheckIn[sk] = { at: checkedInAt, registrantId };
-      }
-      tx.set(statsRef, {
-        sessionTotals,
-        firstSessionCheckIn,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    });
-
+    await handleAttendanceCreate(
+      db,
+      context.params.eventId as string,
+      context.params.sessionId as string,
+      context.params.registrantId as string,
+      snap.data(),
+    );
     return null;
   });
+
+/**
+ * onAttendanceCreateProd (v2): fires on event-hub-prod database.
+ * Keeps analytics/global real-time for the production app.
+ */
+export const onAttendanceCreateProd = onDocumentCreated(
+  {
+    document: "events/{eventId}/sessions/{sessionId}/attendance/{registrantId}",
+    database: DB_PROD,
+  },
+  async (event) => {
+    if (!event.data) return;
+    const dbProd = getFirestore(DB_PROD);
+    await handleAttendanceCreate(
+      dbProd,
+      event.params.eventId,
+      event.params.sessionId,
+      event.params.registrantId,
+      event.data.data(),
+    );
+  },
+);
+
+/**
+ * onAttendanceCreateDev (v2): fires on event-hub-dev database.
+ * Keeps analytics/global real-time for the dev app.
+ */
+export const onAttendanceCreateDev = onDocumentCreated(
+  {
+    document: "events/{eventId}/sessions/{sessionId}/attendance/{registrantId}",
+    database: DB_DEV,
+  },
+  async (event) => {
+    if (!event.data) return;
+    const dbDev = getFirestore(DB_DEV);
+    await handleAttendanceCreate(
+      dbDev,
+      event.params.eventId,
+      event.params.sessionId,
+      event.params.registrantId,
+      event.data.data(),
+    );
+  },
+);
 
 /** Callable: backfill stats doc. Admin only. */
 export const backfillStats = functions.https.onCall(async (data, context) => {

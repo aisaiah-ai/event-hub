@@ -50,11 +50,16 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.backfillAnalytics = exports.backfillStats = exports.onAttendanceCreate = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
+exports.backfillAnalytics = exports.backfillStats = exports.onAttendanceCreateDev = exports.onAttendanceCreateProd = exports.onAttendanceCreate = exports.onRegistrantCreateDev = exports.onRegistrantCreateProd = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
 const functions = __importStar(require("firebase-functions"));
+const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
+const firestore_2 = require("firebase-admin/firestore");
 admin.initializeApp();
 const db = admin.firestore();
+// Named database instances for v2 triggers.
+const DB_PROD = "event-hub-prod";
+const DB_DEV = "event-hub-dev";
 /** Look up string from registrant doc: top-level, profile, or answers. Keys tried in order. */
 function getString(data, ...keys) {
     var _a, _b;
@@ -295,19 +300,13 @@ async function updateCheckInBucket(eventId, ts) {
     }
 }
 /**
- * onRegistrantCreate: totalRegistrations, earlyBirdCount, firstEarlyBird*.
- * Ensure stats doc exists.
+ * Shared logic for registrant creation analytics update.
  */
-exports.onRegistrantCreate = functions.firestore
-    .document("events/{eventId}/registrants/{registrantId}")
-    .onCreate(async (snap, context) => {
-    const eventId = context.params.eventId;
-    const registrantId = context.params.registrantId;
-    const data = snap.data();
-    const statsRef = db.doc(`events/${eventId}/stats/overview`);
-    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
+async function handleRegistrantCreate(targetDb, eventId, registrantId, data) {
+    const statsRef = targetDb.doc(`events/${eventId}/stats/overview`);
+    const globalAnalyticsRef = targetDb.doc(`events/${eventId}/analytics/global`);
     const registeredAt = getRegisteredAt(data);
-    await db.runTransaction(async (tx) => {
+    await targetDb.runTransaction(async (tx) => {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const statsSnap = await tx.get(statsRef);
         const stats = (_a = statsSnap.data()) !== null && _a !== void 0 ? _a : {};
@@ -339,38 +338,60 @@ exports.onRegistrantCreate = functions.firestore
             lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
     });
+}
+/**
+ * onRegistrantCreate (v1): fires on (default) database.
+ * Updates totalRegistrations, earlyBirdCount, totalRegistrants in analytics/global.
+ */
+exports.onRegistrantCreate = functions.firestore
+    .document("events/{eventId}/registrants/{registrantId}")
+    .onCreate(async (snap, context) => {
+    await handleRegistrantCreate(db, context.params.eventId, context.params.registrantId, snap.data());
     return null;
 });
 /**
- * onAttendanceCreate: sessions/{sessionId}/attendance/{registrantId} onCreate
- * Pure Session Architecture: updates scalable analytics counters.
- * 1. Increment session analytics/summary attendanceCount, regionCounts, ministryCounts
- * 2. Increment global analytics totalCheckins, regionCounts, ministryCounts, hourlyCheckins
- * 3. If attendeeIndex does NOT exist: create it and increment totalUniqueAttendees
- * 4. Update earliestCheckin if earlier
- * Also keeps stats/overview for legacy dashboard compatibility.
+ * onRegistrantCreateProd (v2): fires on event-hub-prod database.
+ * Keeps analytics/global.totalRegistrants accurate in production.
  */
-exports.onAttendanceCreate = functions.firestore
-    .document("events/{eventId}/sessions/{sessionId}/attendance/{registrantId}")
-    .onCreate(async (snap, context) => {
+exports.onRegistrantCreateProd = (0, firestore_1.onDocumentCreated)({
+    document: "events/{eventId}/registrants/{registrantId}",
+    database: DB_PROD,
+}, async (event) => {
+    if (!event.data)
+        return;
+    const dbProd = (0, firestore_2.getFirestore)(DB_PROD);
+    await handleRegistrantCreate(dbProd, event.params.eventId, event.params.registrantId, event.data.data());
+});
+/**
+ * onRegistrantCreateDev (v2): fires on event-hub-dev database.
+ */
+exports.onRegistrantCreateDev = (0, firestore_1.onDocumentCreated)({
+    document: "events/{eventId}/registrants/{registrantId}",
+    database: DB_DEV,
+}, async (event) => {
+    if (!event.data)
+        return;
+    const dbDev = (0, firestore_2.getFirestore)(DB_DEV);
+    await handleRegistrantCreate(dbDev, event.params.eventId, event.params.registrantId, event.data.data());
+});
+/**
+ * Shared logic for attendance creation analytics update.
+ * Called by v1 (default DB) and v2 (named DB) triggers.
+ */
+async function handleAttendanceCreate(targetDb, eventId, sessionId, registrantId, data) {
     var _a, _b;
-    const eventId = context.params.eventId;
-    const sessionId = context.params.sessionId;
-    const registrantId = context.params.registrantId;
-    const data = snap.data();
     const checkedInAt = data === null || data === void 0 ? void 0 : data.checkedInAt;
     const ts = checkedInAt !== null && checkedInAt !== void 0 ? checkedInAt : admin.firestore.Timestamp.now();
-    const registrantRef = db.doc(`events/${eventId}/registrants/${registrantId}`);
+    const registrantRef = targetDb.doc(`events/${eventId}/registrants/${registrantId}`);
     const registrantSnap = await registrantRef.get();
     const r = registrantSnap.data();
-    // Region/ministry from registration: try common keys (top-level, profile, answers).
     const region = (_a = getString(r, "region", "regionMembership", "Region")) !== null && _a !== void 0 ? _a : "Unknown";
     const ministry = (_b = getString(r, "ministryMembership", "ministry", "Ministry")) !== null && _b !== void 0 ? _b : "Unknown";
-    const statsRef = db.doc(`events/${eventId}/stats/overview`);
-    const globalAnalyticsRef = db.doc(`events/${eventId}/analytics/global`);
-    const sessionAnalyticsRef = db.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
-    const attendeeIndexRef = db.doc(`events/${eventId}/attendeeIndex/${registrantId}`);
-    await db.runTransaction(async (tx) => {
+    const statsRef = targetDb.doc(`events/${eventId}/stats/overview`);
+    const globalAnalyticsRef = targetDb.doc(`events/${eventId}/analytics/global`);
+    const sessionAnalyticsRef = targetDb.doc(`events/${eventId}/sessions/${sessionId}/analytics/summary`);
+    const attendeeIndexRef = targetDb.doc(`events/${eventId}/attendeeIndex/${registrantId}`);
+    await targetDb.runTransaction(async (tx) => {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
         const attendeeIndexSnap = await tx.get(attendeeIndexRef);
         const isNewUniqueAttendee = !attendeeIndexSnap.exists;
@@ -406,11 +427,7 @@ exports.onAttendanceCreate = functions.firestore
             globalUpdates.totalUniqueAttendees = admin.firestore.FieldValue.increment(1);
         }
         if (shouldUpdateEarliest) {
-            globalUpdates.earliestCheckin = {
-                registrantId,
-                sessionId,
-                timestamp: ts,
-            };
+            globalUpdates.earliestCheckin = { registrantId, sessionId, timestamp: ts };
         }
         tx.set(globalAnalyticsRef, globalUpdates, { merge: true });
         tx.set(sessionAnalyticsRef, {
@@ -420,10 +437,7 @@ exports.onAttendanceCreate = functions.firestore
             ministryCounts: sessionMinistryCounts,
         }, { merge: true });
         if (isNewUniqueAttendee) {
-            tx.set(attendeeIndexRef, {
-                firstSession: sessionId,
-                firstCheckinTime: ts,
-            });
+            tx.set(attendeeIndexRef, { firstSession: sessionId, firstCheckinTime: ts });
         }
         const statsSnap = await tx.get(statsRef);
         const stats = (_s = statsSnap.data()) !== null && _s !== void 0 ? _s : {};
@@ -440,7 +454,43 @@ exports.onAttendanceCreate = functions.firestore
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
     });
+}
+/**
+ * onAttendanceCreate (v1): fires on (default) database only.
+ * Pure Session Architecture: updates analytics/global (regionCounts, ministryCounts,
+ * hourlyCheckins, totalCheckins) and session analytics/summary.
+ */
+exports.onAttendanceCreate = functions.firestore
+    .document("events/{eventId}/sessions/{sessionId}/attendance/{registrantId}")
+    .onCreate(async (snap, context) => {
+    await handleAttendanceCreate(db, context.params.eventId, context.params.sessionId, context.params.registrantId, snap.data());
     return null;
+});
+/**
+ * onAttendanceCreateProd (v2): fires on event-hub-prod database.
+ * Keeps analytics/global real-time for the production app.
+ */
+exports.onAttendanceCreateProd = (0, firestore_1.onDocumentCreated)({
+    document: "events/{eventId}/sessions/{sessionId}/attendance/{registrantId}",
+    database: DB_PROD,
+}, async (event) => {
+    if (!event.data)
+        return;
+    const dbProd = (0, firestore_2.getFirestore)(DB_PROD);
+    await handleAttendanceCreate(dbProd, event.params.eventId, event.params.sessionId, event.params.registrantId, event.data.data());
+});
+/**
+ * onAttendanceCreateDev (v2): fires on event-hub-dev database.
+ * Keeps analytics/global real-time for the dev app.
+ */
+exports.onAttendanceCreateDev = (0, firestore_1.onDocumentCreated)({
+    document: "events/{eventId}/sessions/{sessionId}/attendance/{registrantId}",
+    database: DB_DEV,
+}, async (event) => {
+    if (!event.data)
+        return;
+    const dbDev = (0, firestore_2.getFirestore)(DB_DEV);
+    await handleAttendanceCreate(dbDev, event.params.eventId, event.params.sessionId, event.params.registrantId, event.data.data());
 });
 /** Callable: backfill stats doc. Admin only. */
 exports.backfillStats = functions.https.onCall(async (data, context) => {
