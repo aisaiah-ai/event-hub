@@ -10,7 +10,6 @@ import '../../events/widgets/event_page_scaffold.dart';
 import '../data/nlc_sessions.dart';
 import 'theme/checkin_theme.dart';
 import '../../../core/theme/session_colors.dart';
-import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
 import 'session_selection_screen.dart';

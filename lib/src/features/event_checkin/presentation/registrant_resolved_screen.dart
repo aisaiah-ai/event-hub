@@ -16,7 +16,6 @@ import 'session_selection_screen.dart';
 import 'theme/checkin_theme.dart';
 import 'utils/session_date_display.dart';
 import '../../../core/theme/session_colors.dart';
-import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
 
