@@ -9,13 +9,13 @@ alwaysApply: true
 
 - **Gender Identity** → Blue `#2F6FED`
 - **Abortion & Contraception** → Orange `#F59E0B`
-- **Immigration** → Yellow `#FACC15`
+- **Immigration** → Green `#16A34A`
 - **Main Check-In** → Neutral Navy `#1E2F4F`
 
 ## Implementation rules
 
 1. **Central reference:** `lib/src/core/theme/session_colors.dart`
-   - `NlcSessionColors`: blue, orange, yellow, main (and *Hex constants).
+   - `NlcSessionColors`: blue, orange, green, main (and *Hex constants).
    - `resolveSessionColor(Session session)` — single source of truth for UI color.
    - `resolveSessionColorHex(Session session)` — for wallet/save-as-image.
 

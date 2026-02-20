@@ -12,6 +12,7 @@ import '../../../theme/nlc_palette.dart';
 import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import '../../../core/theme/session_colors.dart';
 import 'utils/session_date_display.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
@@ -288,7 +289,7 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                         final disabled = !session.isAvailable ||
                             item.label == SessionAvailabilityLabel.full ||
                             item.label == SessionAvailabilityLabel.closed;
-                        final color = sessionColorFromHex(session.colorHex);
+                        final color = resolveSessionColor(session);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: SessionSelectionCard(
@@ -341,7 +342,7 @@ class SessionSelectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = !isPreview && onTap == null;
-    final colorName = resolveSessionColorName(session.colorHex);
+    final colorName = resolveSessionColorName(resolveSessionColorHex(session));
     final textOnColor = contrastTextColorOn(color);
 
     // Capacity line: capacity − pre-registered − non-registered-checked-in = remaining.

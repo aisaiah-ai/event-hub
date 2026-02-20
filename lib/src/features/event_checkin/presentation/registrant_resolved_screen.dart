@@ -15,6 +15,7 @@ import '../../events/widgets/event_page_scaffold.dart';
 import 'session_selection_screen.dart';
 import 'theme/checkin_theme.dart';
 import 'utils/session_date_display.dart';
+import '../../../core/theme/session_colors.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
@@ -390,7 +391,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                       const SizedBox(height: 24),
                       _PreRegisteredSessionCard(
                         session: _singleSession!,
-                        color: sessionColorFromHex(_singleSession!.colorHex),
+                        color: resolveSessionColor(_singleSession!),
                         preRegisteredCount: _singleSessionPreRegCount,
                         remainingSeats: _singleSessionRemainingSeats,
                       ),
@@ -463,7 +464,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                         ..._sessionsWithAvailability.map((item) {
                           final disabled = item.label == SessionAvailabilityLabel.full ||
                               item.label == SessionAvailabilityLabel.closed;
-                          final color = sessionColorFromHex(item.session.colorHex);
+                          final color = resolveSessionColor(item.session);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: SessionSelectionCard(

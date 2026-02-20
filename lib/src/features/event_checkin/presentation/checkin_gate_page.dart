@@ -9,6 +9,7 @@ import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import '../data/nlc_sessions.dart';
 import 'theme/checkin_theme.dart';
+import '../../../core/theme/session_colors.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
@@ -153,7 +154,7 @@ class _CheckinGatePageState extends State<CheckinGatePage> {
                         if (slug == null) return const SizedBox.shrink();
                         final disabled = item.label == SessionAvailabilityLabel.full ||
                             item.label == SessionAvailabilityLabel.closed;
-                        final color = sessionColorFromHex(session.colorHex);
+                        final color = resolveSessionColor(session);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: SessionSelectionCard(
@@ -185,7 +186,7 @@ class _CheckinGatePageState extends State<CheckinGatePage> {
 
   Widget _buildMainCheckInCard() {
     final session = _mainCheckInSession;
-    final color = sessionColorFromHex(session.colorHex);
+    final color = resolveSessionColor(session);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: SessionSelectionCard(

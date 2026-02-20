@@ -13,8 +13,8 @@ class NlcSessionColors {
   /// Abortion & Contraception → Orange
   static const Color orange = Color(0xFFF59E0B);
 
-  /// Immigration → Yellow
-  static const Color yellow = Color(0xFFFACC15);
+  /// Immigration → Green
+  static const Color green = Color(0xFF16A34A);
 
   /// Main Check-In → Neutral Navy
   static const Color main = Color(0xFF1E2F4F);
@@ -22,7 +22,7 @@ class NlcSessionColors {
   /// Canonical hex values for persistence (e.g. wallet, save-as-image).
   static const String blueHex = '#2F6FED';
   static const String orangeHex = '#F59E0B';
-  static const String yellowHex = '#FACC15';
+  static const String greenHex = '#16A34A';
   static const String mainHex = '#1E2F4F';
 }
 
@@ -37,14 +37,14 @@ Color resolveSessionColor(Session session) {
     case 'contraception-ivf-abortion-dialogue':
       return NlcSessionColors.orange;
     case 'immigration-dialogue':
-      return NlcSessionColors.yellow;
+      return NlcSessionColors.green;
     default:
       break;
   }
   final t = session.title.trim().toLowerCase();
   if (t.contains('gender') && t.contains('ideology')) return NlcSessionColors.blue;
   if (t.contains('contraception') || t.contains('ivf') || t.contains('abortion')) return NlcSessionColors.orange;
-  if (t.contains('immigration')) return NlcSessionColors.yellow;
+  if (t.contains('immigration')) return NlcSessionColors.green;
   final hex = session.colorHex;
   if (hex != null && hex.isNotEmpty) {
     final c = _colorFromHex(hex);
@@ -62,14 +62,14 @@ String resolveSessionColorHex(Session session) {
     case 'contraception-ivf-abortion-dialogue':
       return NlcSessionColors.orangeHex;
     case 'immigration-dialogue':
-      return NlcSessionColors.yellowHex;
+      return NlcSessionColors.greenHex;
     default:
       break;
   }
   final t = session.title.trim().toLowerCase();
   if (t.contains('gender') && t.contains('ideology')) return NlcSessionColors.blueHex;
   if (t.contains('contraception') || t.contains('ivf') || t.contains('abortion')) return NlcSessionColors.orangeHex;
-  if (t.contains('immigration')) return NlcSessionColors.yellowHex;
+  if (t.contains('immigration')) return NlcSessionColors.greenHex;
   final hex = session.colorHex;
   if (hex != null && hex.isNotEmpty) return hex.startsWith('#') ? hex : '#$hex';
   return NlcSessionColors.mainHex;

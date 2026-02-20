@@ -26,7 +26,7 @@ Color sessionColorFromHex(String? hex) {
 }
 
 /// Display name for wayfinding message: "Proceed to the [Color] session area."
-/// Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Yellow).
+/// Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Green).
 String? sessionColorDisplayName(String? hex) {
   if (hex == null || hex.isEmpty) return null;
   final h = (hex.startsWith('#') ? hex : '#$hex').toLowerCase();
@@ -42,14 +42,15 @@ String? sessionColorDisplayName(String? hex) {
       return 'Orange';
     case '#eab308':
     case '#facc15':
-      return 'Yellow';
+    case '#16a34a':
+      return 'Green';
     default:
       return null;
   }
 }
 
 /// Uppercase session color label for signage: "BLUE SESSION", "ORANGE SESSION", wristband instructions.
-/// Maps prompt hexes (#2F6FED, #F59E0B, #FACC15, #1E2F4F) and current NLC hexes. Main check-in → "MAIN".
+/// Maps prompt hexes (#2F6FED, #F59E0B, #16A34A, #1E2F4F) and current NLC hexes. Main check-in → "MAIN".
 String resolveSessionColorName(String? hex) {
   if (hex == null || hex.isEmpty) return 'SESSION';
   final h = (hex.startsWith('#') ? hex : '#$hex').toLowerCase();
@@ -66,7 +67,8 @@ String resolveSessionColorName(String? hex) {
       return 'ORANGE';
     case '#eab308':
     case '#facc15':
-      return 'YELLOW';
+    case '#16a34a':
+      return 'GREEN';
     default:
       return 'SESSION';
   }

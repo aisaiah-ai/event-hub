@@ -12,6 +12,7 @@ import '../../../core/utils/download_helper.dart';
 import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import '../../../core/theme/session_colors.dart';
 import 'utils/session_date_display.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
@@ -106,8 +107,8 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
-    final color = sessionColorFromHex(session.colorHex);
-    final colorName = resolveSessionColorName(session.colorHex);
+    final color = resolveSessionColor(session);
+    final colorName = resolveSessionColorName(resolveSessionColorHex(session));
     final textOnColor = contrastTextColorOn(color);
     final String dateTime = getSessionDateDisplay(session);
 
