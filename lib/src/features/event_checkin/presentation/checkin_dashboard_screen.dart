@@ -654,10 +654,9 @@ class _MetricsTiles extends StatelessWidget {
     const mainCheckinId = 'main-checkin';
     final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
     final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
-    // Sum breakout sessions only (avoids negative when global.totalCheckins is stale)
-    final sessionCheckins = sessions
-        .where((s) => s.sessionId != mainCheckinId)
-        .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
+    final breakouts = sessions.where((s) => s.sessionId != mainCheckinId).toList();
+    final sessionCheckins = breakouts.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
+    final totalPreRegistered = breakouts.fold<int>(0, (sum, s) => sum + s.preRegisteredCount);
 
     final registrantDisplay = registrantCount.clamp(0, 0x7FFFFFFF);
     final tiles = [
@@ -666,6 +665,13 @@ class _MetricsTiles extends StatelessWidget {
         label: 'Total Registrants',
         value: registrantDisplay,
         subtext: null,
+        showDashWhenZero: true,
+      ),
+      _MetricTile(
+        icon: Icons.how_to_reg_rounded,
+        label: 'Pre-Registered',
+        value: totalPreRegistered,
+        subtext: 'Breakout Session Sign-Ups',
         showDashWhenZero: true,
       ),
       _MetricTile(
@@ -686,21 +692,46 @@ class _MetricsTiles extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 900) {
+        if (constraints.maxWidth < 600) {
           return Wrap(
-            spacing: 24,
-            runSpacing: 24,
+            spacing: 16,
+            runSpacing: 16,
             children: tiles,
+          );
+        }
+        if (constraints.maxWidth < 1100) {
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: tiles[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: tiles[1]),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: tiles[2]),
+                  const SizedBox(width: 16),
+                  Expanded(child: tiles[3]),
+                ],
+              ),
+            ],
           );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: tiles[0]),
-            const SizedBox(width: 24),
+            const SizedBox(width: 20),
             Expanded(child: tiles[1]),
-            const SizedBox(width: 24),
+            const SizedBox(width: 20),
             Expanded(child: tiles[2]),
+            const SizedBox(width: 20),
+            Expanded(child: tiles[3]),
           ],
         );
       },

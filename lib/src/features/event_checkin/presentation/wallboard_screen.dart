@@ -560,15 +560,21 @@ class _WallboardMetrics extends StatelessWidget {
     const mainCheckinId = 'main-checkin';
     final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
     final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
-    final sessionCheckins = sessions
-        .where((s) => s.sessionId != mainCheckinId)
-        .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
+    final breakouts = sessions.where((s) => s.sessionId != mainCheckinId).toList();
+    final sessionCheckins = breakouts.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
+    final totalPreRegistered = breakouts.fold<int>(0, (sum, s) => sum + s.preRegisteredCount);
 
     final tiles = [
       _WallboardMetricTile(
         icon: Icons.people_rounded,
         label: 'Total Registrants',
         value: registrantCount.clamp(0, 0x7FFFFFFF),
+      ),
+      _WallboardMetricTile(
+        icon: Icons.how_to_reg_rounded,
+        label: 'Pre-Registered',
+        value: totalPreRegistered,
+        subtext: 'Breakout Session Sign-Ups',
       ),
       _WallboardMetricTile(
         icon: Icons.check_circle_rounded,
@@ -586,11 +592,34 @@ class _WallboardMetrics extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 900) {
+        if (constraints.maxWidth < 700) {
           return Wrap(
-            spacing: 24,
-            runSpacing: 24,
+            spacing: 20,
+            runSpacing: 20,
             children: tiles,
+          );
+        }
+        if (constraints.maxWidth < 1100) {
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: tiles[0]),
+                  const SizedBox(width: 20),
+                  Expanded(child: tiles[1]),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: tiles[2]),
+                  const SizedBox(width: 20),
+                  Expanded(child: tiles[3]),
+                ],
+              ),
+            ],
           );
         }
         return Row(
@@ -601,6 +630,8 @@ class _WallboardMetrics extends StatelessWidget {
             Expanded(child: tiles[1]),
             const SizedBox(width: 24),
             Expanded(child: tiles[2]),
+            const SizedBox(width: 24),
+            Expanded(child: tiles[3]),
           ],
         );
       },
