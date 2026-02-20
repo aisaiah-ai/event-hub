@@ -860,14 +860,10 @@ class _WallboardLeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final physicalRemaining = stat.capacity > 0
+    final remaining = stat.capacity > 0
         ? (stat.capacity - count).clamp(0, stat.capacity)
         : null;
-    // Full for walk-ins if physically full OR pre-registered reservations exceed remaining seats.
-    final isFull = stat.capacity > 0 &&
-        (count >= stat.capacity ||
-            stat.preRegisteredCount > (physicalRemaining ?? 0));
-    final remaining = physicalRemaining;
+    final isFull = stat.capacity > 0 && count >= stat.capacity;
 
     return IntrinsicHeight(
       child: Row(

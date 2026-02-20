@@ -1454,9 +1454,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
     ));
     if (widget.capacity > 0) {
       final physicalRemaining = (widget.capacity - widget.count).clamp(0, widget.capacity);
-      // Full for walk-ins if physically full OR pre-registered reservations exceed remaining seats.
-      final isFull = physicalRemaining == 0 ||
-          widget.preRegisteredCount > physicalRemaining;
+      final isFull = physicalRemaining == 0;
       pills.add((
         label: isFull
             ? 'Full · ${widget.capacity} cap'
