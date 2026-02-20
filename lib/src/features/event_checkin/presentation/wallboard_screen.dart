@@ -627,9 +627,7 @@ class _WallboardMetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _wbMetricTileDecoration(),
-      child: SizedBox(
-        height: 200,
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -684,7 +682,6 @@ class _WallboardMetricTile extends StatelessWidget {
               ),
             ],
           ],
-        ),
       ),
     );
   }

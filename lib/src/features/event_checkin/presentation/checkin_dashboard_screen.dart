@@ -729,9 +729,7 @@ class _MetricTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: _metricTileDecoration(),
-      child: SizedBox(
-        height: 190,
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -787,7 +785,6 @@ class _MetricTile extends StatelessWidget {
               ),
             ],
           ],
-        ),
       ),
     );
   }
