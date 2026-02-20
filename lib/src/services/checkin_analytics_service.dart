@@ -18,6 +18,8 @@ class SessionCheckinStat {
     this.lastUpdated,
     this.startAt,
     this.isActive = true,
+    this.capacity = 0,
+    this.preRegisteredCount = 0,
   });
 
   final String sessionId;
@@ -26,6 +28,10 @@ class SessionCheckinStat {
   final DateTime? lastUpdated;
   final DateTime? startAt;
   final bool isActive;
+  /// Hard capacity (0 = unlimited).
+  final int capacity;
+  /// Number of registrants pre-registered for this session.
+  final int preRegisteredCount;
 }
 
 /// Event-level analytics summary. Reads from analytics/global only.
@@ -153,6 +159,9 @@ class CheckinAnalyticsService {
         return orderA.compareTo(orderB);
       });
 
+    // Fetch pre-registered counts for all sessions in one query.
+    final preRegCounts = await _fetchPreRegCounts(eventId);
+
     final results = <SessionCheckinStat>[];
     for (final doc in docs) {
       final data = doc.data();
@@ -170,9 +179,34 @@ class CheckinAnalyticsService {
         lastUpdated: DateTime.now(),
         startAt: startAt,
         isActive: session.isActive,
+        capacity: session.capacity,
+        preRegisteredCount: preRegCounts[doc.id] ?? 0,
       ));
     }
     return results;
+  }
+
+  /// Counts pre-registered registrants per session from sessionRegistrations collection.
+  Future<Map<String, int>> _fetchPreRegCounts(String eventId) async {
+    try {
+      final snap = await _firestore
+          .collection('events/$eventId/sessionRegistrations')
+          .get();
+      final counts = <String, int>{};
+      for (final doc in snap.docs) {
+        final list = doc.data()['sessionIds'];
+        if (list is! List) continue;
+        for (final e in list) {
+          final id = e?.toString();
+          if (id == null || id.isEmpty) continue;
+          counts[id] = (counts[id] ?? 0) + 1;
+        }
+      }
+      return counts;
+    } catch (e) {
+      _log('_fetchPreRegCounts failed: $e');
+      return {};
+    }
   }
 
   /// Count of registrants. Uses count() aggregation.

@@ -1249,6 +1249,8 @@ class _SessionLeaderboardSection extends StatelessWidget {
                   barValue: barPct.clamp(0.0, 1.0),
                   isTop: isTop,
                   isActive: s.isActive,
+                  capacity: s.capacity,
+                  preRegisteredCount: s.preRegisteredCount,
                 ),
               );
             }),
@@ -1268,6 +1270,8 @@ class _SessionLeaderboardRow extends StatefulWidget {
     required this.barValue,
     required this.isTop,
     this.isActive = false,
+    this.capacity = 0,
+    this.preRegisteredCount = 0,
   });
 
   final int rank;
@@ -1277,6 +1281,8 @@ class _SessionLeaderboardRow extends StatefulWidget {
   final double barValue;
   final bool isTop;
   final bool isActive;
+  final int capacity;
+  final int preRegisteredCount;
 
   @override
   State<_SessionLeaderboardRow> createState() => _SessionLeaderboardRowState();
@@ -1370,13 +1376,15 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+            _buildStatsPills(),
+            const SizedBox(height: 6),
             if (widget.count > 0)
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: widget.barValue.clamp(0.0, 1.0),
-                  minHeight: 8,
+                  minHeight: 6,
                   backgroundColor: NlcColors.leaderboardLightGold.withValues(alpha: 0.4),
                   valueColor: AlwaysStoppedAnimation<Color>(
                     widget.isTop ? NlcColors.leaderboardGold : NlcColors.leaderboardLightGold,
@@ -1384,10 +1392,58 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 ),
               )
             else
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatsPills() {
+    final pills = <({String label, Color bg, Color fg})>[];
+
+    if (widget.preRegisteredCount > 0) {
+      pills.add((
+        label: '${widget.preRegisteredCount} pre-registered',
+        bg: NlcPalette.brandBlue.withValues(alpha: 0.10),
+        fg: NlcPalette.brandBlue,
+      ));
+    }
+    pills.add((
+      label: '${widget.count} checked in',
+      bg: NlcColors.successGreen.withValues(alpha: 0.12),
+      fg: NlcColors.successGreen,
+    ));
+    if (widget.capacity > 0) {
+      final remaining = (widget.capacity - widget.count).clamp(0, widget.capacity);
+      final isFull = remaining == 0;
+      pills.add((
+        label: isFull ? 'Full · ${widget.capacity} cap' : '${widget.capacity} capacity · $remaining remaining',
+        bg: isFull
+            ? const Color(0xFFEF4444).withValues(alpha: 0.10)
+            : NlcColors.mutedText.withValues(alpha: 0.10),
+        fg: isFull ? const Color(0xFFEF4444) : NlcColors.mutedText,
+      ));
+    }
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: pills.map((p) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: p.bg,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          p.label,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: p.fg,
+          ),
+        ),
+      )).toList(),
     );
   }
 }
