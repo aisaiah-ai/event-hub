@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/nlc_theme.dart';
+import '../../../core/theme/session_colors.dart';
 import '../../../theme/nlc_palette.dart';
 import '../../../models/analytics_aggregates.dart';
+import '../../../models/session.dart';
 import '../../../services/attendance_export_service.dart';
 import '../../../services/checkin_analytics_service.dart';
 import '../../../services/dashboard_layout_service.dart';
@@ -1243,6 +1245,7 @@ class _SessionLeaderboardSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _SessionLeaderboardRow(
                   rank: i + 1,
+                  sessionId: s.sessionId,
                   sessionName: s.name,
                   count: count,
                   percent: pct,
@@ -1264,6 +1267,7 @@ class _SessionLeaderboardSection extends StatelessWidget {
 class _SessionLeaderboardRow extends StatefulWidget {
   const _SessionLeaderboardRow({
     required this.rank,
+    required this.sessionId,
     required this.sessionName,
     required this.count,
     required this.percent,
@@ -1275,6 +1279,7 @@ class _SessionLeaderboardRow extends StatefulWidget {
   });
 
   final int rank;
+  final String sessionId;
   final String sessionName;
   final int count;
   final double percent;
@@ -1291,8 +1296,13 @@ class _SessionLeaderboardRow extends StatefulWidget {
 class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   bool _hover = false;
 
+  Color get _sessionColor => resolveSessionColor(
+        Session(id: widget.sessionId, title: widget.sessionName, name: widget.sessionName),
+      );
+
   @override
   Widget build(BuildContext context) {
+    final sessionColor = _sessionColor;
     return MouseRegion(
       hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hover = true),
@@ -1301,7 +1311,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
         duration: const Duration(milliseconds: 120),
         padding: EdgeInsets.all(_hover ? 8 : 4),
         decoration: BoxDecoration(
-          color: _hover ? NlcPalette.brandBlue.withValues(alpha: 0.06) : Colors.transparent,
+          color: _hover ? sessionColor.withValues(alpha: 0.06) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -1355,7 +1365,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: NlcPalette.brandBlue,
+                      color: sessionColor,
                       fontFeatures: [FontFeature.tabularFigures()],
                     ),
                     textAlign: TextAlign.right,
@@ -1377,7 +1387,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
               ],
             ),
             const SizedBox(height: 6),
-            _buildStatsPills(),
+            _buildStatsPills(sessionColor),
             const SizedBox(height: 6),
             if (widget.count > 0)
               ClipRRect(
@@ -1385,10 +1395,8 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 child: LinearProgressIndicator(
                   value: widget.barValue.clamp(0.0, 1.0),
                   minHeight: 6,
-                  backgroundColor: NlcColors.leaderboardLightGold.withValues(alpha: 0.4),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    widget.isTop ? NlcColors.leaderboardGold : NlcColors.leaderboardLightGold,
-                  ),
+                  backgroundColor: sessionColor.withValues(alpha: 0.18),
+                  valueColor: AlwaysStoppedAnimation<Color>(sessionColor),
                 ),
               )
             else
@@ -1399,14 +1407,14 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
     );
   }
 
-  Widget _buildStatsPills() {
+  Widget _buildStatsPills(Color sessionColor) {
     final pills = <({String label, Color bg, Color fg})>[];
 
     if (widget.preRegisteredCount > 0) {
       pills.add((
         label: '${widget.preRegisteredCount} pre-registered',
-        bg: NlcPalette.brandBlue.withValues(alpha: 0.10),
-        fg: NlcPalette.brandBlue,
+        bg: sessionColor.withValues(alpha: 0.10),
+        fg: sessionColor,
       ));
     }
     pills.add((
