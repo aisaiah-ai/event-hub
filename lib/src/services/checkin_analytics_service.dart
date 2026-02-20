@@ -116,17 +116,74 @@ class CheckinAnalyticsService {
         ));
   }
 
+  // Cache pre-reg counts so we don't re-query sessionRegistrations on every session doc change.
+  Map<String, int>? _preRegCountsCache;
+  DateTime? _preRegCountsCachedAt;
+  static const _preRegCacheTtl = Duration(minutes: 2);
+
+  Future<Map<String, int>> _getPreRegCountsCached(String eventId) async {
+    final now = DateTime.now();
+    if (_preRegCountsCache != null &&
+        _preRegCountsCachedAt != null &&
+        now.difference(_preRegCountsCachedAt!) < _preRegCacheTtl) {
+      return _preRegCountsCache!;
+    }
+    final counts = await _fetchPreRegCounts(eventId);
+    _preRegCountsCache = counts;
+    _preRegCountsCachedAt = now;
+    return counts;
+  }
+
   /// Real-time stream of session-level check-in stats.
-  /// Triggers on analytics/global changes (any check-in) then fetches session analytics.
-  /// Also polls periodically so dashboard updates within ~15s of check-in.
-  /// No attendance collection scan.
+  /// Triggers on:
+  ///   1. Direct session doc changes (attendanceCount updated by check-in transaction) — instant.
+  ///   2. analytics/global changes (Cloud Function) — near-instant in prod.
+  ///   3. 4-second poll — guaranteed fallback.
   Stream<List<SessionCheckinStat>> watchSessionCheckins(String eventId) {
+    // Direct listener on sessions collection — fires immediately when attendanceCount changes.
+    final fromSessions = _firestore
+        .collection('events/$eventId/sessions')
+        .snapshots()
+        .asyncMap((snap) => _statsFromSnapshot(snap, eventId));
+
     final fromGlobal = watchSummary(eventId).asyncMap((_) => fetchSessionStats(eventId));
     final fromPoll = Stream.periodic(_pollInterval)
         .asyncMap((_) => fetchSessionStats(eventId));
     final fromRefresh = _refreshTrigger.stream
         .asyncMap((_) => fetchSessionStats(eventId));
-    return _mergeStreams([fromGlobal, fromPoll, fromRefresh]);
+    return _mergeStreams([fromSessions, fromGlobal, fromPoll, fromRefresh]);
+  }
+
+  /// Build stats directly from a sessions collection snapshot (no extra Firestore reads for counts).
+  Future<List<SessionCheckinStat>> _statsFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snap,
+    String eventId,
+  ) async {
+    if (snap.docs.isEmpty) return [];
+    final preRegCounts = await _getPreRegCountsCached(eventId);
+    final docs = snap.docs.toList()
+      ..sort((a, b) {
+        final orderA = (a.data()['order'] as num?)?.toInt() ?? 999;
+        final orderB = (b.data()['order'] as num?)?.toInt() ?? 999;
+        return orderA.compareTo(orderB);
+      });
+    final results = <SessionCheckinStat>[];
+    for (final doc in docs) {
+      final data = doc.data();
+      final session = Session.fromFirestore(doc.id, data);
+      final startAt = (data['startAt'] as Timestamp?)?.toDate();
+      results.add(SessionCheckinStat(
+        sessionId: doc.id,
+        name: session.displayName,
+        checkInCount: session.attendanceCount,
+        lastUpdated: DateTime.now(),
+        startAt: startAt,
+        isActive: session.isActive,
+        capacity: session.capacity,
+        preRegisteredCount: preRegCounts[doc.id] ?? 0,
+      ));
+    }
+    return results;
   }
 
   /// Count docs in attendance subcollection. Uses count() aggregation (no document transfer).
@@ -159,8 +216,8 @@ class CheckinAnalyticsService {
         return orderA.compareTo(orderB);
       });
 
-    // Fetch pre-registered counts for all sessions in one query.
-    final preRegCounts = await _fetchPreRegCounts(eventId);
+    // Use cached pre-reg counts (refreshed every 2 min) to avoid a query on every poll.
+    final preRegCounts = await _getPreRegCountsCached(eventId);
 
     final results = <SessionCheckinStat>[];
     for (final doc in docs) {
