@@ -1234,8 +1234,9 @@ class _SessionLeaderboardSection extends StatelessWidget {
     final excludedMain = sessions
         .where((s) => s.sessionId != mainCheckinSessionId)
         .toList();
+    // Sort by pre-registered count (popularity/sign-up intent).
     final sorted = excludedMain
-      ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
+      ..sort((a, b) => b.preRegisteredCount.compareTo(a.preRegisteredCount));
 
     return SizedBox(
       width: double.infinity,
@@ -1245,13 +1246,26 @@ class _SessionLeaderboardSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Session Leaderboard',
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: NlcColors.slate,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Session Leaderboard',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: NlcColors.slate,
+                    ),
+                  ),
+                ),
+                Text(
+                  'by pre-registration',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: NlcColors.mutedText,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             if (sorted.isEmpty)
@@ -1264,24 +1278,24 @@ class _SessionLeaderboardSection extends StatelessWidget {
                 final i = e.key;
                 final s = e.value;
                 final isTop = i == 0;
-                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-                // % of capacity (how full the session is). Hide when capacity is 0 (unlimited).
-                final pct = s.capacity > 0 ? (count / s.capacity) * 100 : -1.0;
-                // Bar fills relative to each session's own capacity; fallback to count for unlimited.
-                final barPct = s.capacity > 0 ? count / s.capacity : 0.0;
+                final preReg = s.preRegisteredCount;
+                // % of capacity filled by pre-registrations. Hide when capacity is 0 (unlimited).
+                final pct = s.capacity > 0 ? (preReg / s.capacity) * 100 : -1.0;
+                final barPct = s.capacity > 0 ? preReg / s.capacity : 0.0;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _SessionLeaderboardRow(
                     rank: i + 1,
                     sessionId: s.sessionId,
                     sessionName: s.name,
-                    count: count,
+                    count: preReg,
                     percent: pct,
                     barValue: barPct.clamp(0.0, 1.0),
                     isTop: isTop,
                     isActive: s.isActive,
                     capacity: s.capacity,
-                    preRegisteredCount: s.preRegisteredCount,
+                    preRegisteredCount: preReg,
+                    checkedInCount: s.checkInCount.clamp(0, 0x7FFFFFFF),
                   ),
                 );
               }),
@@ -1304,6 +1318,7 @@ class _SessionLeaderboardRow extends StatefulWidget {
     this.isActive = false,
     this.capacity = 0,
     this.preRegisteredCount = 0,
+    this.checkedInCount = 0,
   });
 
   final int rank;
@@ -1316,6 +1331,7 @@ class _SessionLeaderboardRow extends StatefulWidget {
   final bool isActive;
   final int capacity;
   final int preRegisteredCount;
+  final int checkedInCount;
 
   @override
   State<_SessionLeaderboardRow> createState() => _SessionLeaderboardRowState();
@@ -1440,25 +1456,25 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   Widget _buildStatsPills(Color sessionColor) {
     final pills = <({String label, Color bg, Color fg})>[];
 
-    if (widget.preRegisteredCount > 0) {
-      pills.add((
-        label: '${widget.preRegisteredCount} pre-registered',
-        bg: sessionColor.withValues(alpha: 0.10),
-        fg: sessionColor,
-      ));
-    }
+    // Primary metric: pre-registered
     pills.add((
-      label: '${widget.count} checked in',
+      label: '${widget.preRegisteredCount} pre-registered',
+      bg: sessionColor.withValues(alpha: 0.10),
+      fg: sessionColor,
+    ));
+    // Secondary: actual check-ins
+    pills.add((
+      label: '${widget.checkedInCount} checked in',
       bg: NlcColors.successGreen.withValues(alpha: 0.12),
       fg: NlcColors.successGreen,
     ));
     if (widget.capacity > 0) {
-      final physicalRemaining = (widget.capacity - widget.count).clamp(0, widget.capacity);
-      final isFull = physicalRemaining == 0;
+      final remaining = (widget.capacity - widget.preRegisteredCount).clamp(0, widget.capacity);
+      final isFull = remaining == 0;
       pills.add((
         label: isFull
             ? 'Full · ${widget.capacity} cap'
-            : '${widget.capacity} capacity · $physicalRemaining remaining',
+            : '${widget.capacity} capacity · $remaining open',
         bg: isFull
             ? const Color(0xFFEF4444).withValues(alpha: 0.10)
             : NlcColors.mutedText.withValues(alpha: 0.10),

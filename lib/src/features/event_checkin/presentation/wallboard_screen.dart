@@ -789,11 +789,9 @@ class _WallboardLeaderboard extends StatelessWidget {
     final excludedMain = sessions
         .where((s) => s.sessionId != mainCheckinSessionId)
         .toList();
+    // Sort by pre-registered count (sign-up intent).
     final sorted = excludedMain
-      ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
-    final maxCount = sorted.isNotEmpty
-        ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF))
-        : 1;
+      ..sort((a, b) => b.preRegisteredCount.compareTo(a.preRegisteredCount));
 
     return SizedBox(
       width: double.infinity,
@@ -803,13 +801,26 @@ class _WallboardLeaderboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Session Leaderboard',
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: NlcColors.slate,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Session Leaderboard',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: NlcColors.slate,
+                    ),
+                  ),
+                ),
+                Text(
+                  'by pre-registration',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: NlcColors.mutedText,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             if (sorted.isEmpty)
@@ -821,8 +832,8 @@ class _WallboardLeaderboard extends StatelessWidget {
               ...sorted.asMap().entries.map((e) {
                 final i = e.key;
                 final s = e.value;
-                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-                final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
+                final preReg = s.preRegisteredCount;
+                final barPct = s.capacity > 0 ? preReg / s.capacity : 0.0;
                 final sessionColor = _sessionColorFromId(s.sessionId);
 
                 return Padding(
@@ -830,7 +841,7 @@ class _WallboardLeaderboard extends StatelessWidget {
                   child: _WallboardLeaderboardRow(
                     rank: i + 1,
                     stat: s,
-                    count: count,
+                    count: preReg,
                     barValue: barPct.clamp(0.0, 1.0),
                     sessionColor: sessionColor,
                   ),
@@ -861,9 +872,9 @@ class _WallboardLeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remaining = stat.capacity > 0
-        ? (stat.capacity - count).clamp(0, stat.capacity)
+        ? (stat.capacity - stat.preRegisteredCount).clamp(0, stat.capacity)
         : null;
-    final isFull = stat.capacity > 0 && count >= stat.capacity;
+    final isFull = stat.capacity > 0 && stat.preRegisteredCount >= stat.capacity;
 
     return IntrinsicHeight(
       child: Row(
@@ -943,20 +954,19 @@ class _WallboardLeaderboardRow extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    if (stat.preRegisteredCount > 0)
-                      _WbPill(
-                        label: '${stat.preRegisteredCount} pre-registered',
-                        color: sessionColor,
-                      ),
+                        _WbPill(
+                      label: '$count pre-registered',
+                      color: sessionColor,
+                    ),
                     _WbPill(
-                      label: '$count checked in',
+                      label: '${stat.checkInCount.clamp(0, 0x7FFFFFFF)} checked in',
                       color: NlcColors.successGreen,
                     ),
                     if (stat.capacity > 0)
                       _WbPill(
                         label: isFull
                             ? 'Full · ${stat.capacity} cap'
-                            : '${stat.capacity} capacity · $remaining remaining',
+                            : '${stat.capacity} capacity · $remaining open',
                         color: isFull
                             ? const Color(0xFFEF4444)
                             : NlcColors.mutedText,
