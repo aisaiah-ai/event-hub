@@ -1,4 +1,13 @@
 # NLC dashboard live demo
+#seed
+SEED_FILE="docs/data2/nlc_main_clean.csv" SEED_NO_HASH=1 flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev
+
+
+node scripts/seed-gradual-checkins-dev.js "--database=(default)" --dev --duration=60 --max-pct=0.8
+node scripts/backfill-demo-top5-trend.js "--database=(default)" --dev
+
+#Demo fill
+cd functions && node scripts/seed-near-full-session-dev.js "--database=(default)" --dev
 
 **The app uses the (default) Firestore database.** All scripts below must use `"--database=(default)"` or the dashboard will not update.
 
@@ -23,6 +32,26 @@
 ```bash
 gcloud auth application-default login
 ```
+
+## Testing "Nearly Full / Full" session UI
+
+The smallest session is **Contraception/IVF/Abortion Dialogue** (capacity 72). To pre-fill it to 70/72 (2 slots left):
+
+```bash
+cd functions && node scripts/seed-near-full-session-dev.js "--database=(default)" --dev
+```
+
+Then open the session check-in page and confirm it shows **2 remaining**. Check in 2 more registrants to trigger the **Full** state.
+
+To undo, delete the attendance docs and reset `attendanceCount`:
+
+```bash
+node scripts/delete-seed-attendance-dev.js "--database=(default)" --dev
+```
+
+Then re-run `ensure-nlc-event-doc.js` to reset `attendanceCount: 0`.
+
+---
 
 ## Cleanup
 
@@ -66,3 +95,24 @@ This deletes all attendance docs **and** resets analytics (global, stats/overvie
 - **Script output:** The script should print `Check-ins: 1/xxx`, `2/xxx`, … If it exits with “No registrants found”, seed registrants into (default) (see above).
 - **Top 5 Regions / Check-In Trend empty after backfill:** (1) Run the demo backfill **after** the gradual check-in script (step 2): `node scripts/backfill-demo-top5-trend.js "--database=(default)" --dev`. (2) Use `"--database=(default)"`. (3) Check backfill output: it should print `regionCounts: N keys`, etc.; if N is 0, run the gradual script first. (4) Run `node scripts/inspect-analytics-global.js "--database=(default)" --dev` — if it shows keys but the app doesn’t, **restart the app**. (5) In Firebase Console → Firestore → **(default)** → `events/nlc-2026/analytics/global`, confirm `regionCounts`, `ministryCounts`, `hourlyCheckins` have data. (6) For full backfill (session summaries, totals): `node scripts/backfill-analytics-dev.js "--database=(default)" --dev`. (7) Deploy Cloud Functions for real-time updates: `cd functions && npm run build && firebase deploy --only functions`.
 - **Firebase Console:** In Firestore, switch to the **(default)** database and check that `events/nlc-2026/registrants` has documents and that `events/nlc-2026/sessions/main-checkin/attendance` gets new docs while the script runs.
+
+
+## Data counts (as of 2026-02-20)
+
+| | Count |
+|---|---|
+| NLC registrants seeded (`nlc_main_clean.csv`) | **454** |
+| Export sign-ups (`Export-20260219-...csv`) | **271** |
+| Export rows matched (`export_matched_to_nlc.csv`) | **268** |
+| Export still unmatched (`export_still_not_in_nlc.csv`) | **3** |
+| Session pre-registrations seeded | **266** |
+
+**Still unmatched (3 — intentional):**
+
+| Name | Note |
+|---|---|
+| Dave Guirao | Duplicate sign-up |
+| Vince Claudette West | Canceled |
+| Mel Tess Ebrada | Duplicate sign-up |
+
+See `docs/data2/summary_count.md` for full reconciliation details and gotchas.

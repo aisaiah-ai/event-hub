@@ -4,7 +4,8 @@
  * DEV ONLY — aborts if --dev not passed or database is prod.
  *
  * 1. Deletes all attendance subcollections (per session).
- * 2. Resets analytics/global, stats/overview, and each session's analytics/summary so Top 5 / metrics show no data.
+ * 2. Resets attendanceCount to 0 on each session doc (undoes seed-near-full-session-dev).
+ * 3. Resets analytics/global, stats/overview, and each session's analytics/summary so Top 5 / metrics show no data.
  *
  * Run:
  *   cd functions && node scripts/delete-seed-attendance-dev.js --dev
@@ -117,6 +118,8 @@ async function run() {
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
   for (const s of sessionsSnap.docs) {
+    // Reset attendanceCount on the session doc itself (seed-near-full-session-dev sets this directly).
+    await db.doc(`events/${EVENT_ID}/sessions/${s.id}`).update({ attendanceCount: 0 });
     await db.doc(`events/${EVENT_ID}/sessions/${s.id}/analytics/summary`).set({
       attendanceCount: 0,
       regionCounts: {},
@@ -124,7 +127,7 @@ async function run() {
       lastUpdated: FieldValue.serverTimestamp(),
     }, { merge: true });
   }
-  console.log('Done. Dashboard should show no Top 5 bars, 0 counts, and empty check-in trend.');
+  console.log('Done. Session attendanceCount reset to 0. Dashboard should show no Top 5 bars, 0 counts, and empty check-in trend.');
 }
 
 run().catch((err) => {

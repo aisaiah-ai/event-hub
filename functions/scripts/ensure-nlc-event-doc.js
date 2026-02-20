@@ -50,12 +50,16 @@ const EVENT_DATA = {
 const BREAKOUT_START = new Date(Date.UTC(2026, 1, 21, 22, 15, 0));  // 2:15 PM Pacific
 
 // ----- 2. Sessions (name, location, capacity, colorHex, order, isMain, startAt for breakouts) -----
-// Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Yellow).
+// Canonical colors from NlcSessionColors (session_colors.dart — single source of truth):
+//   Gender Identity  → Blue   #2F6FED
+//   Abortion & Contraception → Orange #F59E0B
+//   Immigration      → Yellow #FACC15
+//   Main Check-In    → Navy   #1E2F4F
 const SESSIONS = [
-  { id: 'main-checkin', name: 'Main Check-In', location: 'Registration', capacity: 0, colorHex: '#1E3A5F', order: 0, isMain: true },
-  { id: 'gender-ideology-dialogue', name: 'Gender Ideology Dialogue', location: 'Main Ballroom', capacity: 450, colorHex: '#2563EB', order: 1, isMain: false, startAt: BREAKOUT_START },
-  { id: 'immigration-dialogue', name: 'Immigration Dialogue', location: 'Valencia Ballroom', capacity: 192, colorHex: '#EAB308', order: 2, isMain: false, startAt: BREAKOUT_START },
-  { id: 'contraception-ivf-abortion-dialogue', name: 'Contraception/IVF/Abortion Dialogue', location: 'Saugus/Castaic', capacity: 72, colorHex: '#EA580C', order: 3, isMain: false, startAt: BREAKOUT_START },
+  { id: 'main-checkin', name: 'Main Check-In', location: 'Registration', capacity: 0, colorHex: '#1E2F4F', order: 0, isMain: true },
+  { id: 'gender-ideology-dialogue', name: 'Gender Ideology Dialogue', location: 'Main Ballroom', capacity: 450, colorHex: '#2F6FED', order: 1, isMain: false, startAt: BREAKOUT_START },
+  { id: 'immigration-dialogue', name: 'Immigration Dialogue', location: 'Valencia Ballroom', capacity: 192, colorHex: '#FACC15', order: 2, isMain: false, startAt: BREAKOUT_START },
+  { id: 'contraception-ivf-abortion-dialogue', name: 'Contraception/IVF/Abortion Dialogue', location: 'Saugus/Castaic', capacity: 72, colorHex: '#F59E0B', order: 3, isMain: false, startAt: BREAKOUT_START },
 ];
 
 // ----- 3. Stats overview (all fields — Cloud Functions require these) -----

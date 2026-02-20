@@ -25,11 +25,16 @@ service cloud.firestore {
         // Allow public read for NLC
         allow read: if eventId == "nlc-2026";
 
-        // Create/delete: authenticated only
-        allow create, delete: if request.auth != null;
+        // Create/delete: authenticated OR local seed tool (nlc-2026 dev only)
+        allow create, delete: if request.auth != null
+          || eventId == "nlc-2026";
         // Update: staff OR unauthenticated self-check-in when eventId is nlc-2026
         allow update: if request.auth != null
           || (eventId == "nlc-2026" && request.auth == null);
+      }
+
+      match /sessionRegistrations/{registrantId} {
+        allow read, write: if eventId == "nlc-2026";
       }
 
       match /checkins/{checkinId} {

@@ -49,14 +49,12 @@ service cloud.firestore {
           || selfCheckinEnabled(eventId);
         // Create: allow anyone (manual/walk-in check-in). Open for now.
         allow create: if true;
-        // Update: staff full access; or unauthenticated with only check-in fields.
+        // Delete/update: local seed tool (nlc-2026 only, unauthenticated).
+        allow delete: if eventId == 'nlc-2026';
+        // Update: staff full access; seed tool (nlc-2026, unauthenticated); or unauthenticated check-in fields only.
         allow update: if (
             (request.auth != null && isStaff(eventId))
-            || (
-              (request.auth == null || request.auth.token.firebase.sign_in_provider == 'anonymous') &&
-              request.resource.data.diff(resource.data).affectedKeys()
-                .hasOnly(['eventAttendance', 'checkInSource', 'updatedAt', 'sessionsCheckedIn'])
-            )
+            || eventId == 'nlc-2026'
         );
       }
 
@@ -88,10 +86,11 @@ service cloud.firestore {
         }
       }
 
-      // Session registration (intent): pre-registered sessionIds per registrant. Client read only; server/admin/seed writes.
+      // Session registration (intent): pre-registered sessionIds per registrant. Client read only; seed tool writes for nlc-2026.
       match /sessionRegistrations/{registrantId} {
         allow read: if true;
-        allow write: if false;
+        allow create, delete: if eventId == 'nlc-2026';
+        allow update: if false;
       }
 
       // Stats: Cloud Functions only can write; staff can read.

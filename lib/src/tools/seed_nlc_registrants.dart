@@ -50,7 +50,7 @@ String _hashPii(String value) {
 }
 
 String _normalizeKey(String k) =>
-    k.toLowerCase().replaceAll(RegExp(r'[\s\-]+'), '_');
+    k.toLowerCase().replaceAll(RegExp(r"[^a-z0-9]+"), '_');
 
 bool _isPii(String key) {
   final n = _normalizeKey(key);
