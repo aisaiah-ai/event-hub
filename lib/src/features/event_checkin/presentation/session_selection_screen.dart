@@ -344,12 +344,16 @@ class SessionSelectionCard extends StatelessWidget {
     final colorName = resolveSessionColorName(session.colorHex);
     final textOnColor = contrastTextColorOn(color);
 
-    // Full capacity line: "450 total · 102 pre-registered · 4 checked in · 446 remaining" or "Unlimited seating"
+    // Capacity line: capacity − pre-registered − non-registered-checked-in = remaining.
+    // nonRegisteredCheckedIn is derived from the pre-reg priority remainingSeats passed in.
+    final nonRegCheckedIn = session.capacity > 0
+        ? (session.capacity - preRegisteredCount - remainingSeats).clamp(0, session.attendanceCount)
+        : session.attendanceCount;
     final capacityText = session.capacity > 0
         ? (remainingSeats <= 0
-            ? 'Full'
-            : '${session.capacity} total · $preRegisteredCount pre-registered · ${session.attendanceCount} checked in · $remainingSeats remaining')
-        : 'Unlimited seating';
+            ? 'Full · ${session.capacity} capacity · $preRegisteredCount pre-registered'
+            : '${session.capacity} total · $preRegisteredCount pre-registered · $nonRegCheckedIn non-registered checked in · $remainingSeats remaining')
+        : 'Unlimited seating · ${session.attendanceCount} checked in';
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),

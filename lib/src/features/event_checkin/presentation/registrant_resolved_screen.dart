@@ -584,7 +584,12 @@ class _PreRegisteredSessionCard extends StatelessWidget {
     final dateTime = getSessionDateDisplay(session);
     final total = session.capacity;
     final checkedIn = session.attendanceCount;
+    // Pre-reg priority remaining: capacity − preRegistered − nonRegisteredCheckedIn.
     final remaining = remainingSeats ?? session.remainingSeats;
+    // Derive non-registered checked-in from the pre-reg priority formula.
+    final nonRegCheckedIn = total > 0
+        ? (total - preRegisteredCount - remaining).clamp(0, checkedIn)
+        : checkedIn;
 
     return Container(
       decoration: BoxDecoration(
@@ -681,7 +686,9 @@ class _PreRegisteredSessionCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 if (total > 0) ...[
                   Text(
-                    'Capacity: $total total · $preRegisteredCount pre-registered · $checkedIn checked in · ${remaining <= 0 ? "Full" : "$remaining remaining"}',
+                    remaining <= 0
+                        ? 'Full · $total capacity · $preRegisteredCount pre-registered'
+                        : '$total total · $preRegisteredCount pre-registered · $nonRegCheckedIn non-registered checked in · $remaining remaining',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: AppColors.textPrimary87.withValues(alpha: 0.9),
@@ -689,7 +696,7 @@ class _PreRegisteredSessionCard extends StatelessWidget {
                   ),
                 ] else
                   Text(
-                    'No capacity limit · $preRegisteredCount pre-registered · $checkedIn checked in',
+                    'Unlimited seating · $checkedIn checked in',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: AppColors.textPrimary87.withValues(alpha: 0.9),

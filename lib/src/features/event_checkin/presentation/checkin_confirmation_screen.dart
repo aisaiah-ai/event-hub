@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/session.dart';
@@ -110,11 +109,7 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
     final color = sessionColorFromHex(session.colorHex);
     final colorName = resolveSessionColorName(session.colorHex);
     final textOnColor = contrastTextColorOn(color);
-    final at = widget.checkedInAt ?? DateTime.now();
-    String dateTime = getSessionDateDisplay(session);
-    if (dateTime.isEmpty) {
-      dateTime = '${DateFormat.MMMd().format(at)} · ${DateFormat.jm().format(at)}';
-    }
+    final String dateTime = getSessionDateDisplay(session);
 
     return EventPageScaffold(
       event: widget.event,
