@@ -1423,10 +1423,14 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
       fg: NlcColors.successGreen,
     ));
     if (widget.capacity > 0) {
-      final remaining = (widget.capacity - widget.count).clamp(0, widget.capacity);
-      final isFull = remaining == 0;
+      final physicalRemaining = (widget.capacity - widget.count).clamp(0, widget.capacity);
+      // Full for walk-ins if physically full OR pre-registered reservations exceed remaining seats.
+      final isFull = physicalRemaining == 0 ||
+          widget.preRegisteredCount > physicalRemaining;
       pills.add((
-        label: isFull ? 'Full · ${widget.capacity} cap' : '${widget.capacity} capacity · $remaining remaining',
+        label: isFull
+            ? 'Full · ${widget.capacity} cap'
+            : '${widget.capacity} capacity · $physicalRemaining remaining',
         bg: isFull
             ? const Color(0xFFEF4444).withValues(alpha: 0.10)
             : NlcColors.mutedText.withValues(alpha: 0.10),
