@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/nlc_theme.dart';
+import '../../../core/theme/session_colors.dart';
 import '../../../theme/nlc_palette.dart';
 import '../../../models/analytics_aggregates.dart';
+import '../../../models/session.dart';
 import '../../../services/checkin_analytics_service.dart';
 import '../../../services/dashboard_layout_service.dart';
 import '../../../widgets/rolling_counter.dart';
@@ -734,6 +736,15 @@ class _WallboardGraph extends StatelessWidget {
 
 // --- Session Leaderboard ---
 
+/// Resolves session color from sessionId — mirrors resolveSessionColor but takes id directly.
+Color _sessionColorFromId(String sessionId) {
+  return resolveSessionColor(Session(
+    id: sessionId,
+    title: sessionId,
+    name: sessionId,
+  ));
+}
+
 class _WallboardLeaderboard extends StatelessWidget {
   const _WallboardLeaderboard({
     required this.sessions,
@@ -767,111 +778,203 @@ class _WallboardLeaderboard extends StatelessWidget {
             Text(
               'Session Leaderboard',
               style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: NlcColors.slate,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: NlcColors.slate,
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (sorted.isEmpty)
+              Text(
+                'No sessions yet',
+                style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 18),
+              )
+            else
+              ...sorted.asMap().entries.map((e) {
+                final i = e.key;
+                final s = e.value;
+                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+                final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
+                final sessionColor = _sessionColorFromId(s.sessionId);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: _WallboardLeaderboardRow(
+                    rank: i + 1,
+                    stat: s,
+                    count: count,
+                    barValue: barPct.clamp(0.0, 1.0),
+                    sessionColor: sessionColor,
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WallboardLeaderboardRow extends StatelessWidget {
+  const _WallboardLeaderboardRow({
+    required this.rank,
+    required this.stat,
+    required this.count,
+    required this.barValue,
+    required this.sessionColor,
+  });
+
+  final int rank;
+  final SessionCheckinStat stat;
+  final int count;
+  final double barValue;
+  final Color sessionColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFull = stat.capacity > 0 && count >= stat.capacity;
+    final remaining = stat.capacity > 0
+        ? (stat.capacity - count).clamp(0, stat.capacity)
+        : null;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Color stripe (session wayfinding color)
+          Container(
+            width: 6,
+            decoration: BoxDecoration(
+              color: sessionColor,
+              borderRadius: BorderRadius.circular(3),
             ),
           ),
-          const SizedBox(height: 24),
-          if (sorted.isEmpty)
-            Text(
-              'No sessions yet',
-              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 18),
-            )
-          else
-            ...sorted.asMap().entries.map((e) {
-              final i = e.key;
-              final s = e.value;
-              final isTop = i == 0;
-              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-              final pct = maxCount > 0 ? (count / maxCount) : 0.0;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Rank + name + live chip + count
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 32,
-                          child: Text(
-                            '${i + 1}.',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: NlcColors.slate,
-                            ),
-                          ),
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        '$rank.',
+                        style: GoogleFonts.inter(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: NlcColors.slate,
                         ),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  s.name,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 18,
-                                    fontWeight:
-                                        isTop ? FontWeight.w700 : FontWeight.w500,
-                                    color: NlcColors.slate,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (s.isActive)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: NlcColors.successGreen
-                                        .withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'LIVE',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: NlcColors.successGreen,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(width: 16),
-                              Text(
-                                NumberFormat.decimalPattern().format(count),
-                                style: GoogleFonts.inter(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: NlcPalette.brandBlue,
-                                  fontFeatures: [FontFeature.tabularFigures()],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: pct.clamp(0.0, 1.0),
-                        minHeight: 10,
-                        backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
+                    Expanded(
+                      child: Text(
+                        stat.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: NlcColors.slate,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (stat.isActive) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: NlcColors.successGreen.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'LIVE',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: NlcColors.successGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 16),
+                    Text(
+                      NumberFormat.decimalPattern().format(count),
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: sessionColor,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
                 ),
-              );
-            }),
-          ],
+                const SizedBox(height: 8),
+                // Stats pills
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (stat.preRegisteredCount > 0)
+                      _WbPill(
+                        label: '${stat.preRegisteredCount} pre-registered',
+                        color: sessionColor,
+                      ),
+                    _WbPill(
+                      label: '$count checked in',
+                      color: NlcColors.successGreen,
+                    ),
+                    if (stat.capacity > 0)
+                      _WbPill(
+                        label: isFull
+                            ? 'Full · ${stat.capacity} cap'
+                            : '${stat.capacity} capacity · $remaining remaining',
+                        color: isFull
+                            ? const Color(0xFFEF4444)
+                            : NlcColors.mutedText,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Progress bar in session color
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: barValue,
+                    minHeight: 10,
+                    backgroundColor: sessionColor.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation<Color>(sessionColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WbPill extends StatelessWidget {
+  const _WbPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
