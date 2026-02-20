@@ -46,13 +46,16 @@ const EVENT_DATA = {
   },
 };
 
-// ----- 2. Sessions (name, location, capacity, colorHex, order, isMain) -----
+// Breakout session date: February 21, 2026 2:15 PM Pacific (start only; stored as UTC).
+const BREAKOUT_START = new Date(Date.UTC(2026, 1, 21, 22, 15, 0));  // 2:15 PM Pacific
+
+// ----- 2. Sessions (name, location, capacity, colorHex, order, isMain, startAt for breakouts) -----
 // Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Yellow).
 const SESSIONS = [
   { id: 'main-checkin', name: 'Main Check-In', location: 'Registration', capacity: 0, colorHex: '#1E3A5F', order: 0, isMain: true },
-  { id: 'gender-ideology-dialogue', name: 'Gender Ideology Dialogue', location: 'Main Ballroom', capacity: 450, colorHex: '#2563EB', order: 1, isMain: false },
-  { id: 'immigration-dialogue', name: 'Immigration Dialogue', location: 'Valencia Ballroom', capacity: 192, colorHex: '#EAB308', order: 2, isMain: false },
-  { id: 'contraception-ivf-abortion-dialogue', name: 'Contraception/IVF/Abortion Dialogue', location: 'Saugus/Castaic', capacity: 72, colorHex: '#EA580C', order: 3, isMain: false },
+  { id: 'gender-ideology-dialogue', name: 'Gender Ideology Dialogue', location: 'Main Ballroom', capacity: 450, colorHex: '#2563EB', order: 1, isMain: false, startAt: BREAKOUT_START },
+  { id: 'immigration-dialogue', name: 'Immigration Dialogue', location: 'Valencia Ballroom', capacity: 192, colorHex: '#EAB308', order: 2, isMain: false, startAt: BREAKOUT_START },
+  { id: 'contraception-ivf-abortion-dialogue', name: 'Contraception/IVF/Abortion Dialogue', location: 'Saugus/Castaic', capacity: 72, colorHex: '#EA580C', order: 3, isMain: false, startAt: BREAKOUT_START },
 ];
 
 // ----- 3. Stats overview (all fields — Cloud Functions require these) -----
@@ -89,7 +92,7 @@ async function run() {
 
   for (const s of SESSIONS) {
     const ref = db.doc(`events/${EVENT_ID}/sessions/${s.id}`);
-    batch.set(ref, {
+    const sessionData = {
       name: s.name,
       location: s.location || '',
       order: s.order,
@@ -99,7 +102,9 @@ async function run() {
       attendanceCount: 0,
       status: 'open',
       colorHex: s.colorHex || '',
-    }, { merge: true });
+    };
+    if (s.startAt) sessionData.startAt = admin.firestore.Timestamp.fromDate(s.startAt);
+    batch.set(ref, sessionData, { merge: true });
   }
 
   const statsRef = db.doc(`events/${EVENT_ID}/stats/overview`);

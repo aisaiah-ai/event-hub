@@ -112,6 +112,18 @@ class SessionRegistrationService {
     });
   }
 
+  /// Registrant IDs that are pre-registered for [sessionId]. Used to compute pre-registered check-in count.
+  Future<Set<String>> getRegistrantIdsPreRegisteredForSession(
+    String eventId,
+    String sessionId,
+  ) async {
+    final snap = await _firestore
+        .collection('events/$eventId/sessionRegistrations')
+        .where('sessionIds', arrayContains: sessionId)
+        .get();
+    return snap.docs.map((d) => d.id).toSet();
+  }
+
   /// Pre-registered count per session: sessionId -> number of registrants who signed up.
   /// Used for display: "Total: X. Pre-registered: Y. Checked in: Z. Remaining: X − Z."
   Future<Map<String, int>> getPreRegisteredCountsPerSession(String eventId) async {

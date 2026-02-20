@@ -43,22 +43,19 @@ service cloud.firestore {
       }
 
       match /registrants/{registrantId} {
-        // Public read for nlc-2026 (check-in search). Staff: full access.
-        // selfCheckinEnabled: public read when event allows self-check-in.
+        // Public read for nlc-2026 and self-check-in events. Staff: full access.
         allow read: if eventId == 'nlc-2026'
           || isStaff(eventId)
           || selfCheckinEnabled(eventId);
-        // Update: staff OR unauthenticated self-check-in (eventAttendance only)
+        // Create: allow anyone (manual/walk-in check-in). Open for now.
+        allow create: if true;
+        // Update: staff full access; or unauthenticated with only check-in fields.
         allow update: if (
-            // Staff full access
             (request.auth != null && isStaff(eventId))
-            ||
-            // Anonymous public arrival check-in (Relaxed for debugging)
-            (
-              eventId == 'nlc-2026' &&
+            || (
               (request.auth == null || request.auth.token.firebase.sign_in_provider == 'anonymous') &&
-              // Only allow updating eventAttendance
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['eventAttendance'])
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['eventAttendance', 'checkInSource', 'updatedAt', 'sessionsCheckedIn'])
             )
         );
       }

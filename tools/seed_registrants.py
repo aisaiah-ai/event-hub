@@ -134,13 +134,16 @@ def read_csv(path):
     return rows
 
 
+# Breakout session date/time: February 21, 2026 2:15 PM Pacific (start only; stored as UTC).
+_BREAKOUT_START = datetime(2026, 2, 21, 22, 15, 0, tzinfo=timezone.utc)  # 2:15 PM Pacific
+
 # Event + sessions bootstrap (same as ensure-nlc-event-doc.js). Merge so we don't overwrite attendanceCount.
 # Official breakout colors: Gender Identity (Blue), Abortion & Contraception (Orange), Immigration (Yellow).
 BOOTSTRAP_SESSIONS = [
     {"id": "main-checkin", "name": "Main Check-In", "location": "Registration", "capacity": 0, "colorHex": "#1E3A5F", "order": 0, "isMain": True},
-    {"id": "gender-ideology-dialogue", "name": "Gender Ideology Dialogue", "location": "Main Ballroom", "capacity": 450, "colorHex": "#2563EB", "order": 1, "isMain": False},
-    {"id": "immigration-dialogue", "name": "Immigration Dialogue", "location": "Valencia Ballroom", "capacity": 192, "colorHex": "#EAB308", "order": 2, "isMain": False},
-    {"id": "contraception-ivf-abortion-dialogue", "name": "Contraception/IVF/Abortion Dialogue", "location": "Saugus/Castaic", "capacity": 72, "colorHex": "#EA580C", "order": 3, "isMain": False},
+    {"id": "gender-ideology-dialogue", "name": "Gender Ideology Dialogue", "location": "Main Ballroom", "capacity": 450, "colorHex": "#2563EB", "order": 1, "isMain": False, "startAt": _BREAKOUT_START},
+    {"id": "immigration-dialogue", "name": "Immigration Dialogue", "location": "Valencia Ballroom", "capacity": 192, "colorHex": "#EAB308", "order": 2, "isMain": False, "startAt": _BREAKOUT_START},
+    {"id": "contraception-ivf-abortion-dialogue", "name": "Contraception/IVF/Abortion Dialogue", "location": "Saugus/Castaic", "capacity": 72, "colorHex": "#EA580C", "order": 3, "isMain": False, "startAt": _BREAKOUT_START},
 ]
 
 
@@ -164,7 +167,7 @@ def ensure_event_and_sessions(db):
         # Merge: set capacity/location/colorHex/name so UI shows remaining seats.
         # Do NOT send attendanceCount so existing check-in counts are preserved when re-running seed.
         # New session docs have no attendanceCount field; app treats missing as 0.
-        ref.set({
+        data = {
             "name": s["name"],
             "location": s.get("location", ""),
             "order": s["order"],
@@ -173,7 +176,10 @@ def ensure_event_and_sessions(db):
             "capacity": s.get("capacity", 0),
             "status": "open",
             "colorHex": s.get("colorHex", ""),
-        }, merge=True)
+        }
+        if s.get("startAt") is not None:
+            data["startAt"] = s["startAt"]
+        ref.set(data, merge=True)
     print(f"  Sessions: main-checkin (isMain=true) + {len(BOOTSTRAP_SESSIONS) - 1} dialogue sessions", flush=True)
 
 

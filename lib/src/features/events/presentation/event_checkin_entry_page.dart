@@ -6,7 +6,7 @@ import '../../event_checkin/data/checkin_mode.dart' show CheckInFlowType;
 import '../../event_checkin/data/nlc_sessions.dart';
 import '../../event_checkin/data/session_name_mapping.dart';
 import '../../event_checkin/presentation/checkin_landing_page.dart';
-import '../../event_checkin/presentation/checkin_session_picker_page.dart';
+import '../../event_checkin/presentation/checkin_gate_page.dart';
 import '../data/event_model.dart';
 import '../data/event_repository.dart';
 import '../event_tokens.dart';
@@ -192,7 +192,7 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
     }
 
     if (widget.eventSlug == 'nlc' && widget.sessionSlug == null) {
-      return CheckinSessionPickerPage(
+      return CheckinGatePage(
         event: _event!,
         eventSlug: widget.eventSlug,
       );

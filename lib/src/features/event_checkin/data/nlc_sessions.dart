@@ -60,6 +60,22 @@ class NlcSessions {
     }
   }
 
+  /// Route slug for a session id (e.g. gender-ideology-dialogue → gender-ideology).
+  static String? slugForSessionId(String sessionId) {
+    switch (sessionId) {
+      case mainCheckInSessionId:
+        return 'main-checkin';
+      case 'gender-ideology-dialogue':
+        return genderIdeologySlug;
+      case 'contraception-ivf-abortion-dialogue':
+        return contraceptionIvfAbortionSlug;
+      case 'immigration-dialogue':
+        return immigrationSlug;
+      default:
+        return null;
+    }
+  }
+
   static bool isNlcSessionSlug(String slug) =>
       slug == genderIdeologySlug ||
       slug == contraceptionIvfAbortionSlug ||

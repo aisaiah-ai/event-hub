@@ -212,6 +212,7 @@ GoRouter createAppRouter() {
                     ?.map((e) => e.toString())
                     .where((e) => e.isNotEmpty)
                     .toList(),
+                isMainCheckIn: extra['isMainCheckIn'] as bool? ?? false,
               );
             },
           ),

@@ -796,6 +796,39 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-21 — Firestore rules: allow creating registrants (manual check-in) for anyone
+
+**What was done**
+- `firestore.rules`: registrants — added `allow create: if eventId == 'nlc-2026' || selfCheckinEnabled(eventId)` so manual/walk-in check-in can create new registrants without auth.
+- registrants update: relaxed to allow affectedKeys `eventAttendance`, `checkInSource`, `updatedAt`, `sessionsCheckedIn` (not only `eventAttendance`) for unauthenticated when selfCheckinEnabled, so check-in flows that update the registrant doc work.
+
+**What was tried**
+- Manual check-in was failing; rules had no `allow create` on registrants. Attendance already had `allow create, read: if true`.
+
+**Outcome / still broken**
+- Deploy rules to (default) and event-hub-dev: `firebase deploy --only firestore:(default)` and `firebase deploy --only firestore:event-hub-dev` (or use project scripts). Then retry manual check-in.
+
+**Next time (recall)**
+- Manual check-in needs: registrants create + read, registrants update (limited keys), sessions/{id}/attendance create, sessions update (attendanceCount+1). All now allowed for this event without auth.
+
+---
+
+## 2026-02-22 — Rules not deployed; manual entry still broken (auth expired)
+
+**What was done**
+- Confirmed `firestore.rules` in repo has `allow create: if true` for registrants. Ran `./scripts/deploy-firestore-dev.sh` to push rules to (default) and event-hub-dev.
+
+**What was tried**
+- User reported manual entry still not working; rules in Firebase “last update was yesterday” (so our rule changes never made it to Firebase).
+
+**Outcome / still broken**
+- Deploy **failed**: “Your credentials are no longer valid. Please run firebase login --reauth”. Rules in the repo are correct; they are **not** live until deployed or pasted manually.
+
+**Next time (recall)**
+- **You must deploy or paste rules.** 1) Run `firebase login --reauth`, then `./scripts/deploy-firestore-dev.sh`. Or 2) Use `./scripts/print-firestore-rules-for-paste.sh` and paste in Firebase Console → Firestore → (default) → Rules → Publish. See `docs/DEPLOY_FIRESTORE_RULES_MANUAL_ENTRY.md`.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

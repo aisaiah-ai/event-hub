@@ -13,20 +13,24 @@ enum SessionAvailabilityLabel {
 }
 
 /// Session with computed availability for UI.
-/// Remaining = total capacity − checked in (attendanceCount). Pre-registered is for display only.
+/// Remaining = capacity − preRegisteredCount − nonRegisteredCheckIn (pre-registered have priority).
 class SessionWithAvailability {
   const SessionWithAvailability({
     required this.session,
     required this.remainingSeats,
     required this.label,
     this.preRegisteredCount = 0,
+    this.preRegisteredCheckedIn = 0,
   });
 
   final Session session;
+  /// Remaining seats: capacity − preRegistered (reserved) − non‑registered check-ins.
   final int remainingSeats;
   final SessionAvailabilityLabel label;
   /// Number of registrants pre-registered for this session (from sessionRegistrations).
   final int preRegisteredCount;
+  /// Number of checked-in attendees who are pre-registered for this session.
+  final int preRegisteredCheckedIn;
 }
 
 /// Lists and watches sessions; computes availability (remaining seats, status label).
@@ -84,7 +88,19 @@ class SessionCatalogService {
     return snap.docs.first.id;
   }
 
-  /// Compute availability label from session.
+  /// Compute availability label from remaining seats (use remaining after pre-reg priority).
+  static SessionAvailabilityLabel availabilityLabelFromRemaining(
+    Session s,
+    int remainingSeats,
+  ) {
+    if (s.status == SessionStatus.closed) return SessionAvailabilityLabel.closed;
+    if (s.capacity <= 0) return SessionAvailabilityLabel.available;
+    if (remainingSeats <= 0) return SessionAvailabilityLabel.full;
+    if (remainingSeats <= 5) return SessionAvailabilityLabel.almostFull;
+    return SessionAvailabilityLabel.available;
+  }
+
+  /// Legacy: availability from session.remainingSeats (capacity − attendanceCount). Prefer listSessionsWithAvailability.
   static SessionAvailabilityLabel availabilityLabel(Session s) {
     if (s.status == SessionStatus.closed) return SessionAvailabilityLabel.closed;
     if (s.capacity <= 0) return SessionAvailabilityLabel.available;
@@ -92,6 +108,18 @@ class SessionCatalogService {
     final remaining = s.capacity - s.attendanceCount;
     if (remaining <= 5) return SessionAvailabilityLabel.almostFull;
     return SessionAvailabilityLabel.available;
+  }
+
+  /// Remaining seats with pre-registered priority: capacity − preRegisteredCount − (attendanceCount − preRegisteredCheckedIn).
+  static int remainingWithPreRegPriority({
+    required int capacity,
+    required int attendanceCount,
+    required int preRegisteredCount,
+    required int preRegisteredCheckedIn,
+  }) {
+    if (capacity <= 0) return 0x7FFFFFFF;
+    final nonRegisteredCheckIn = attendanceCount - preRegisteredCheckedIn;
+    return (capacity - preRegisteredCount - nonRegisteredCheckIn).clamp(0, 0x7FFFFFFF);
   }
 
   /// Status string for chip: Available / Almost Full / Full / Closed.
@@ -108,43 +136,75 @@ class SessionCatalogService {
     }
   }
 
-  /// List sessions with availability UI model (includes pre-registered count for display).
+  /// Attendance registrant IDs for a session (doc IDs in attendance subcollection).
+  Future<Set<String>> _getAttendanceRegistrantIds(
+    String eventId,
+    String sessionId,
+  ) async {
+    final snap = await _firestore
+        .collection(_sessionsPath(eventId))
+        .doc(sessionId)
+        .collection('attendance')
+        .get();
+    return snap.docs.map((d) => d.id).toSet();
+  }
+
+  /// List sessions with availability UI model. Remaining = capacity − preRegistered − nonRegisteredCheckIn (pre-reg priority).
   Future<List<SessionWithAvailability>> listSessionsWithAvailability(
     String eventId,
   ) async {
     final sessions = await listSessions(eventId);
     final preRegCounts =
         await _sessionRegistrationService.getPreRegisteredCountsPerSession(eventId);
-    return sessions.map((s) {
-      final remaining = s.remainingSeats;
-      final label = availabilityLabel(s);
-      return SessionWithAvailability(
+    final results = <SessionWithAvailability>[];
+    for (final s in sessions) {
+      final preRegisteredCount = preRegCounts[s.id] ?? 0;
+      int preRegisteredCheckedIn = 0;
+      int remainingSeats = s.capacity > 0 ? (s.capacity - s.attendanceCount).clamp(0, 0x7FFFFFFF) : 0x7FFFFFFF;
+      if (s.capacity > 0) {
+        final preRegIds = await _sessionRegistrationService
+            .getRegistrantIdsPreRegisteredForSession(eventId, s.id);
+        final attendanceIds = await _getAttendanceRegistrantIds(eventId, s.id);
+        preRegisteredCheckedIn = preRegIds.intersection(attendanceIds).length;
+        remainingSeats = remainingWithPreRegPriority(
+          capacity: s.capacity,
+          attendanceCount: s.attendanceCount,
+          preRegisteredCount: preRegisteredCount,
+          preRegisteredCheckedIn: preRegisteredCheckedIn,
+        );
+      }
+      final label = availabilityLabelFromRemaining(s, remainingSeats);
+      results.add(SessionWithAvailability(
         session: s,
-        remainingSeats: remaining,
+        remainingSeats: remainingSeats,
         label: label,
-        preRegisteredCount: preRegCounts[s.id] ?? 0,
-      );
-    }).toList();
+        preRegisteredCount: preRegisteredCount,
+        preRegisteredCheckedIn: preRegisteredCheckedIn,
+      ));
+    }
+    return results;
   }
 
-  /// Stream sessions with availability (includes pre-registered count).
+  /// Stream sessions with availability. Remaining = capacity − preRegistered − nonRegisteredCheckIn (pre-reg priority).
   Stream<List<SessionWithAvailability>> watchSessionsWithAvailability(
     String eventId,
   ) {
     return watchSessions(eventId).asyncMap((sessions) async {
-      final preRegCounts =
-          await _sessionRegistrationService.getPreRegisteredCountsPerSession(eventId);
-      return sessions.map((s) {
-        final remaining = s.remainingSeats;
-        final label = availabilityLabel(s);
-        return SessionWithAvailability(
-          session: s,
-          remainingSeats: remaining,
-          label: label,
-          preRegisteredCount: preRegCounts[s.id] ?? 0,
-        );
-      }).toList();
+      return listSessionsWithAvailability(eventId);
     });
+  }
+
+  /// Single session with availability (remaining with pre-reg priority). Use when only one session is needed.
+  Future<SessionWithAvailability?> getSessionWithAvailability(
+    String eventId,
+    String sessionId,
+  ) async {
+    final list = await listSessionsWithAvailability(eventId);
+    try {
+      return list.firstWhere((e) => e.session.id == sessionId);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Filter to sessions that are available (open and not full). Optionally filter to given ids.

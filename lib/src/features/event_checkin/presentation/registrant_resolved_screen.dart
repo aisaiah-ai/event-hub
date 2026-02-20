@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../data/nlc_sessions.dart';
 import '../../../models/session.dart';
@@ -13,7 +12,9 @@ import '../../../services/session_registration_service.dart';
 import '../../../theme/nlc_palette.dart';
 import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
+import 'session_selection_screen.dart';
 import 'theme/checkin_theme.dart';
+import 'utils/session_date_display.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
@@ -60,6 +61,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
   Session? _singleSession;
   String? _singleSessionId;
   int _singleSessionPreRegCount = 0;
+  int? _singleSessionRemainingSeats;
   List<SessionWithAvailability> _sessionsWithAvailability = [];
   String? _error;
   bool _actionLoading = false;
@@ -98,12 +100,14 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
               widget.sessionRegistrationService ?? SessionRegistrationService();
           final preRegCounts =
               await regService.getPreRegisteredCountsPerSession(widget.eventId);
+          final withAvail = await catalog.getSessionWithAvailability(widget.eventId, sessionId);
           if (!mounted) return;
           setState(() {
             _mode = _RegistrationMode.one;
             _singleSessionId = sessionId;
             _singleSession = session;
             _singleSessionPreRegCount = preRegCounts[sessionId] ?? 0;
+            _singleSessionRemainingSeats = withAvail?.remainingSeats;
           });
           return;
         }
@@ -125,6 +129,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
             'registrantName': widget.registrantName,
             'source': widget.source,
             'preRegisteredSessionIds': sessionIds,
+            'isMainCheckIn': widget.isMainCheckIn,
           },
         );
         return;
@@ -229,13 +234,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     if (disabled) return;
 
     HapticFeedback.mediumImpact();
-    String dateTime = '';
-    if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().add_jm().format(session.startAt!);
-      if (session.endAt != null) {
-        dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
-      }
-    }
+    final dateTime = getSessionDateDisplay(session);
     final remainingStr = session.capacity > 0
         ? 'Remaining Seats: ${item.remainingSeats}'
         : 'No capacity limit';
@@ -349,29 +348,6 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     }
   }
 
-  /// Chip label for MODE B: 10% threshold for Almost Full.
-  String _sessionChipLabel(SessionWithAvailability item) {
-    if (item.label == SessionAvailabilityLabel.closed) return 'CLOSED';
-    if (item.label == SessionAvailabilityLabel.full) return 'FULL';
-    final s = item.session;
-    if (s.capacity > 0 && item.remainingSeats <= (s.capacity * 0.1)) {
-      return 'Almost Full';
-    }
-    // Main Check-In is default for everyone when choosing from available sessions.
-    if (s.id == NlcSessions.mainCheckInSessionId) return 'Default';
-    return 'Available';
-  }
-
-  Color _sessionChipColor(SessionWithAvailability item) {
-    if (item.label == SessionAvailabilityLabel.closed) return AppColors.textPrimary87;
-    if (item.label == SessionAvailabilityLabel.full) return Colors.red;
-    final s = item.session;
-    if (s.capacity > 0 && item.remainingSeats <= (s.capacity * 0.1)) {
-      return Colors.orange;
-    }
-    return NlcPalette.success;
-  }
-
   @override
   Widget build(BuildContext context) {
     return EventPageScaffold(
@@ -381,10 +357,13 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: NlcPalette.cream),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: !widget.isMainCheckIn,
+        leading: widget.isMainCheckIn
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back, color: NlcPalette.cream),
+                onPressed: () => context.pop(),
+              ),
       ),
       body: SafeArea(
         child: Center(
@@ -413,6 +392,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                         session: _singleSession!,
                         color: sessionColorFromHex(_singleSession!.colorHex),
                         preRegisteredCount: _singleSessionPreRegCount,
+                        remainingSeats: _singleSessionRemainingSeats,
                       ),
                     ] else if (_singleSessionId != null) ...[
                       const SizedBox(height: 24),
@@ -451,7 +431,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                       ),
                     ),
                   ] else if (_mode == _RegistrationMode.none) ...[
-                    _buildHeader('Select Your Session', widget.registrantName, 'Choose an available session to continue.'),
+                    _buildSessionSelectionHeader(),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -471,7 +451,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ] else ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 18),
                       if (_actionLoading)
                         const Padding(
                           padding: EdgeInsets.all(24),
@@ -486,14 +466,12 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                           final color = sessionColorFromHex(item.session.colorHex);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _SelectableSessionCard(
+                            child: SessionSelectionCard(
                               session: item.session,
                               remainingSeats: item.remainingSeats,
                               preRegisteredCount: item.preRegisteredCount,
-                              chipLabel: _sessionChipLabel(item),
-                              chipColor: _sessionChipColor(item),
+                              label: item.label,
                               color: color,
-                              disabled: disabled,
                               onTap: disabled ? null : () => _onSessionSelected(item),
                             ),
                           );
@@ -509,6 +487,46 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Left-aligned header matching SessionSelectionScreen: "Select Your Session", name, subtitle.
+  Widget _buildSessionSelectionHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select Your Session',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+            color: NlcPalette.cream.withValues(alpha: 0.9),
+          ),
+          textAlign: TextAlign.left,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.registrantName,
+          style: GoogleFonts.inter(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            height: 1.05,
+            color: NlcPalette.cream,
+          ),
+          textAlign: TextAlign.left,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Choose an available session to continue.',
+          style: GoogleFonts.inter(
+            fontSize: 15,
+            height: 1.35,
+            color: NlcPalette.cream.withValues(alpha: 0.85),
+          ),
+          textAlign: TextAlign.left,
+        ),
+      ],
     );
   }
 
@@ -553,25 +571,20 @@ class _PreRegisteredSessionCard extends StatelessWidget {
     required this.session,
     required this.color,
     this.preRegisteredCount = 0,
+    this.remainingSeats,
   });
 
   final Session session;
   final Color color;
   final int preRegisteredCount;
+  final int? remainingSeats;
 
   @override
   Widget build(BuildContext context) {
-    String dateTime = '';
-    if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().add_jm().format(session.startAt!);
-      if (session.endAt != null) {
-        dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
-      }
-    }
-    // Remaining = total capacity − checked in (attendanceCount)
+    final dateTime = getSessionDateDisplay(session);
     final total = session.capacity;
     final checkedIn = session.attendanceCount;
-    final remaining = session.remainingSeats;
+    final remaining = remainingSeats ?? session.remainingSeats;
 
     return Container(
       decoration: BoxDecoration(
@@ -742,151 +755,6 @@ class _PlaceholderSessionCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SelectableSessionCard extends StatelessWidget {
-  const _SelectableSessionCard({
-    required this.session,
-    required this.remainingSeats,
-    this.preRegisteredCount = 0,
-    required this.chipLabel,
-    required this.chipColor,
-    required this.color,
-    required this.disabled,
-    this.onTap,
-  });
-
-  final Session session;
-  final int remainingSeats;
-  final int preRegisteredCount;
-  final String chipLabel;
-  final Color chipColor;
-  final Color color;
-  final bool disabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    String dateTime = '';
-    if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().add_jm().format(session.startAt!);
-      if (session.endAt != null) {
-        dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
-      }
-    }
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Opacity(
-          opacity: disabled ? 0.7 : 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Colored header (wayfinding identity)
-                Container(
-                  constraints: const BoxConstraints(minHeight: 56),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: BoxDecoration(color: color),
-                  child: Center(
-                    child: Text(
-                      session.displayName,
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                Container(height: 4, color: color),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: chipColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              chipLabel,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: chipColor,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (session.location != null && session.location!.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, size: 16, color: AppColors.textPrimary87),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                session.location!,
-                                style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
-                              ),
-                            ),
-                          ],
-                        ),
-                      if (dateTime.isNotEmpty) ...[
-                        if (session.location != null && session.location!.isNotEmpty) const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.schedule, size: 16, color: AppColors.textPrimary87),
-                            const SizedBox(width: 8),
-                            Text(
-                              dateTime,
-                              style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Text(
-                        session.capacity > 0
-                            ? '${session.capacity} total · $preRegisteredCount pre-registered · ${session.attendanceCount} checked in · ${remainingSeats <= 0 ? "Full" : "$remainingSeats remaining"}'
-                            : 'No capacity limit · $preRegisteredCount pre-registered · ${session.attendanceCount} checked in',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppColors.textPrimary87.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

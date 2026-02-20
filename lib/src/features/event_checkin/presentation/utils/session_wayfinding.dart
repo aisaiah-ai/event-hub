@@ -57,6 +57,7 @@ String resolveSessionColorName(String? hex) {
     case '#1e3a5f':
     case '#1e2f4f':
       return 'MAIN';
+    case '#2e5e7e':
     case '#2563eb':
     case '#2f6fed':
       return 'BLUE';

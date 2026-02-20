@@ -13,6 +13,7 @@ import '../../../core/utils/download_helper.dart';
 import '../../events/data/event_model.dart';
 import '../../events/widgets/event_page_scaffold.dart';
 import 'theme/checkin_theme.dart';
+import 'utils/session_date_display.dart';
 import 'utils/session_wayfinding.dart';
 import 'widgets/conference_header.dart';
 import 'widgets/footer_credits.dart';
@@ -110,14 +111,8 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
     final colorName = resolveSessionColorName(session.colorHex);
     final textOnColor = contrastTextColorOn(color);
     final at = widget.checkedInAt ?? DateTime.now();
-    String dateTime = '';
-    if (session.startAt != null) {
-      dateTime = DateFormat.MMMd().format(session.startAt!);
-      dateTime += ' · ${DateFormat.jm().format(session.startAt!)}';
-      if (session.endAt != null) {
-        dateTime += ' – ${DateFormat.jm().format(session.endAt!)}';
-      }
-    } else {
+    String dateTime = getSessionDateDisplay(session);
+    if (dateTime.isEmpty) {
       dateTime = '${DateFormat.MMMd().format(at)} · ${DateFormat.jm().format(at)}';
     }
 
