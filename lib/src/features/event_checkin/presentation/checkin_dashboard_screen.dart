@@ -1205,8 +1205,6 @@ class _SessionLeaderboardSection extends StatelessWidget {
         .toList();
     final sorted = excludedMain
       ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
-    final total = excludedMain.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
-    final maxCount = sorted.isNotEmpty ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF)) : 1;
 
     return SizedBox(
       width: double.infinity,
@@ -1218,42 +1216,44 @@ class _SessionLeaderboardSection extends StatelessWidget {
           children: [
             Text(
               'Session Leaderboard',
-            style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: NlcColors.slate,
+              style: GoogleFonts.inter(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: NlcColors.slate,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          if (sorted.isEmpty)
-            Text(
-              'No sessions yet',
-              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
-            )
-          else
-            ...sorted.asMap().entries.map((e) {
-              final i = e.key;
-              final s = e.value;
-              final isTop = i == 0;
-              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-              final pct = total > 0 ? (count / total) * 100 : 0.0;
-              final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _SessionLeaderboardRow(
-                  rank: i + 1,
-                  sessionId: s.sessionId,
-                  sessionName: s.name,
-                  count: count,
-                  percent: pct,
-                  barValue: barPct.clamp(0.0, 1.0),
-                  isTop: isTop,
-                  isActive: s.isActive,
-                  capacity: s.capacity,
-                  preRegisteredCount: s.preRegisteredCount,
-                ),
-              );
-            }),
+            const SizedBox(height: 24),
+            if (sorted.isEmpty)
+              Text(
+                'No sessions yet',
+                style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
+              )
+            else
+              ...sorted.asMap().entries.map((e) {
+                final i = e.key;
+                final s = e.value;
+                final isTop = i == 0;
+                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+                // % of capacity (how full the session is). Hide when capacity is 0 (unlimited).
+                final pct = s.capacity > 0 ? (count / s.capacity) * 100 : -1.0;
+                // Bar fills relative to each session's own capacity; fallback to count for unlimited.
+                final barPct = s.capacity > 0 ? count / s.capacity : 0.0;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _SessionLeaderboardRow(
+                    rank: i + 1,
+                    sessionId: s.sessionId,
+                    sessionName: s.name,
+                    count: count,
+                    percent: pct,
+                    barValue: barPct.clamp(0.0, 1.0),
+                    isTop: isTop,
+                    isActive: s.isActive,
+                    capacity: s.capacity,
+                    preRegisteredCount: s.preRegisteredCount,
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -1368,19 +1368,21 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     textAlign: TextAlign.right,
                   ),
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 48,
-                  child: Text(
-                    '${widget.percent.clamp(0.0, 100.0).toStringAsFixed(1)}%',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: NlcColors.mutedText,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                if (widget.percent >= 0) ...[
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 52,
+                    child: Text(
+                      '${widget.percent.clamp(0.0, 100.0).toStringAsFixed(1)}% full',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: NlcColors.mutedText,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                      textAlign: TextAlign.right,
                     ),
-                    textAlign: TextAlign.right,
                   ),
-                ),
+                ],
               ],
             ),
             const SizedBox(height: 6),
