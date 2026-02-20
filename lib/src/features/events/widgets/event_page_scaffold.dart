@@ -63,6 +63,7 @@ class EventPageScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: bgUrl != null ? Colors.transparent : primary,
+      extendBodyBehindAppBar: true,
       appBar: appBar,
       body: useNlcLocalAsset
           ? Stack(
