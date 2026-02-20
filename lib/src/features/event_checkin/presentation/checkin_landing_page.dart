@@ -258,11 +258,13 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                       color: NlcPalette.cream,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.qr_code_scanner, size: 28),
+                    child: const Icon(Icons.search, size: 28),
                   ),
-                  title: _primaryButtonTitle,
-                  subtitle: _primaryButtonSubtitle,
-                  onTap: _onScanQr,
+                  title: 'Search by Name',
+                  subtitle: _isSessionMode
+                      ? 'Enter at least 2 letters of your last name to check into $_effectiveSessionName.'
+                      : 'Enter at least 2 letters of your last name.',
+                  onTap: _onSearch,
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -272,17 +274,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                     ],
                   ),
                   isPrimary: true,
-                ),
-                const SizedBox(height: AppSpacing.betweenSections),
-                AnimatedCheckinCard(
-                  leading: const Icon(Icons.search, size: 28),
-                  title: 'Search by Name',
-                  subtitle: _isSessionMode
-                      ? 'Enter at least 2 letters of your last name to check into $_effectiveSessionName.'
-                      : 'Enter at least 2 letters of your last name.',
-                  onTap: _onSearch,
-                  backgroundColor: AppColors.surfaceCard,
-                  isPrimary: false,
                 ),
                 const SizedBox(height: AppSpacing.betweenSecondaryCards),
                 AnimatedCheckinCard(
@@ -335,16 +326,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                 const SizedBox(height: 16),
                 SlideTransition(
                   position: _cardSlideAnimations[1],
-                  child: _buildImmersiveSecondaryCard(
-                    icon: Icons.search,
-                    title: 'Search by Name',
-                    subtitle: 'Enter at least 2 letters of your last name to check in.',
-                    onTap: _onSearch,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SlideTransition(
-                  position: _cardSlideAnimations[2],
                   child: _buildImmersiveSecondaryCard(
                     icon: Icons.edit_note,
                     title: 'Enter Manually',
@@ -406,7 +387,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
         ),
         const SizedBox(height: 8),
         Text(
-          'Scan your CFC ID QR code or search by name to check in.',
+          'Search by name or enter manually to check in.',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: NlcPalette.cream.withValues(alpha: 0.7),
@@ -425,9 +406,10 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
 
   Widget _buildImmersivePrimaryCard() {
     return _ImmersivePrimaryQrCard(
-      title: 'Scan CFC ID QR Code',
-      subtitle: 'Fastest way to check in.',
-      onTap: _onScanQr,
+      title: 'Search by Name',
+      subtitle: 'Enter at least 2 letters of your last name to check in.',
+      onTap: _onSearch,
+      icon: Icons.search,
     );
   }
 
@@ -692,7 +674,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Scan your CFC ID QR code or search by name to check in.',
+              'Search by name or enter manually to check in.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
@@ -960,17 +942,19 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   }
 }
 
-/// Glass-style primary QR card for immersive main check-in.
+/// Glass-style primary card for immersive main check-in.
 class _ImmersivePrimaryQrCard extends StatefulWidget {
   const _ImmersivePrimaryQrCard({
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.icon = Icons.qr_code_scanner,
   });
 
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final IconData icon;
 
   @override
   State<_ImmersivePrimaryQrCard> createState() => _ImmersivePrimaryQrCardState();
@@ -1044,7 +1028,7 @@ class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          Icons.qr_code_scanner,
+                          widget.icon,
                           size: 26,
                           color: NlcPalette.cream,
                         ),
