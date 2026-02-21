@@ -377,9 +377,9 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
     );
   }
 
-  void _onEnterManually() {
+  Future<void> _onEnterManually() async {
     HapticFeedback.mediumImpact();
-    context.push<Map<String, dynamic>>(
+    final result = await context.push<Map<String, dynamic>>(
       '/events/${widget.eventSlug}/checkin/manual',
       extra: {
         'eventId': _event?.id ?? widget.eventId,
@@ -388,6 +388,23 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         'sessionName': widget.mode.displayName,
       },
     );
+    if (!mounted || result == null) return;
+    final success = result['success'] as bool? ?? false;
+    final registrantId = result['registrantId'] as String?;
+    if (success && registrantId != null && _event != null) {
+      context.push(
+        '/events/${widget.eventSlug}/checkin/registrant-resolved',
+        extra: {
+          'event': _event,
+          'eventId': _event!.id,
+          'eventSlug': widget.eventSlug,
+          'registrantId': registrantId,
+          'registrantName': result['name'] as String? ?? 'Guest',
+          'source': 'manual',
+          'isMainCheckIn': widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
+        },
+      );
+    }
   }
 
   Widget _buildResultList() {
