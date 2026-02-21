@@ -659,6 +659,7 @@ class _MetricsTiles extends StatelessWidget {
     final totalPreRegistered = breakouts.fold<int>(0, (sum, s) => sum + s.preRegisteredCount);
 
     final registrantDisplay = registrantCount.clamp(0, 0x7FFFFFFF);
+    final manualRegCount = global.manualRegistrationCount;
     final tiles = [
       _MetricTile(
         icon: Icons.people_rounded,
@@ -666,6 +667,13 @@ class _MetricsTiles extends StatelessWidget {
         value: registrantDisplay,
         subtext: null,
         showDashWhenZero: true,
+      ),
+      _MetricTile(
+        icon: Icons.person_add_rounded,
+        label: 'Non-Registered',
+        value: manualRegCount,
+        subtext: 'Walk-In / On-Site',
+        showDashWhenZero: false,
       ),
       _MetricTile(
         icon: Icons.how_to_reg_rounded,
@@ -708,15 +716,17 @@ class _MetricsTiles extends StatelessWidget {
                   Expanded(child: tiles[0]),
                   const SizedBox(width: 16),
                   Expanded(child: tiles[1]),
+                  const SizedBox(width: 16),
+                  Expanded(child: tiles[2]),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: tiles[2]),
-                  const SizedBox(width: 16),
                   Expanded(child: tiles[3]),
+                  const SizedBox(width: 16),
+                  Expanded(child: tiles[4]),
                 ],
               ),
             ],
@@ -725,13 +735,10 @@ class _MetricsTiles extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: tiles[0]),
-            const SizedBox(width: 20),
-            Expanded(child: tiles[1]),
-            const SizedBox(width: 20),
-            Expanded(child: tiles[2]),
-            const SizedBox(width: 20),
-            Expanded(child: tiles[3]),
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) const SizedBox(width: 16),
+              Expanded(child: tiles[i]),
+            ],
           ],
         );
       },
@@ -1278,24 +1285,16 @@ class _SessionLeaderboardSection extends StatelessWidget {
                 final i = e.key;
                 final s = e.value;
                 final isTop = i == 0;
-                final preReg = s.preRegisteredCount;
-                // % of capacity filled by pre-registrations. Hide when capacity is 0 (unlimited).
-                final pct = s.capacity > 0 ? (preReg / s.capacity) * 100 : -1.0;
-                final barPct = s.capacity > 0 ? preReg / s.capacity : 0.0;
+                final pct = s.capacityPct != null ? s.capacityPct! * 100 : -1.0;
+                final barPct = s.capacityPct ?? 0.0;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _SessionLeaderboardRow(
                     rank: i + 1,
-                    sessionId: s.sessionId,
-                    sessionName: s.name,
-                    count: preReg,
-                    percent: pct,
+                    stat: s,
                     barValue: barPct.clamp(0.0, 1.0),
+                    percent: pct,
                     isTop: isTop,
-                    isActive: s.isActive,
-                    capacity: s.capacity,
-                    preRegisteredCount: preReg,
-                    checkedInCount: s.checkInCount.clamp(0, 0x7FFFFFFF),
                   ),
                 );
               }),
@@ -1309,29 +1308,17 @@ class _SessionLeaderboardSection extends StatelessWidget {
 class _SessionLeaderboardRow extends StatefulWidget {
   const _SessionLeaderboardRow({
     required this.rank,
-    required this.sessionId,
-    required this.sessionName,
-    required this.count,
-    required this.percent,
+    required this.stat,
     required this.barValue,
+    required this.percent,
     required this.isTop,
-    this.isActive = false,
-    this.capacity = 0,
-    this.preRegisteredCount = 0,
-    this.checkedInCount = 0,
   });
 
   final int rank;
-  final String sessionId;
-  final String sessionName;
-  final int count;
-  final double percent;
+  final SessionCheckinStat stat;
   final double barValue;
+  final double percent;
   final bool isTop;
-  final bool isActive;
-  final int capacity;
-  final int preRegisteredCount;
-  final int checkedInCount;
 
   @override
   State<_SessionLeaderboardRow> createState() => _SessionLeaderboardRowState();
@@ -1341,12 +1328,19 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   bool _hover = false;
 
   Color get _sessionColor => resolveSessionColor(
-        Session(id: widget.sessionId, title: widget.sessionName, name: widget.sessionName),
+        Session(id: widget.stat.sessionId, title: widget.stat.name, name: widget.stat.name),
       );
 
   @override
   Widget build(BuildContext context) {
+    final s = widget.stat;
     final sessionColor = _sessionColor;
+    final open = s.openSeats;
+    final pctStr = s.capacityPct != null
+        ? '${(s.capacityPct! * 100).toStringAsFixed(0)}%'
+        : null;
+    final combined = s.remainingPreReg + s.nonPreRegCheckedIn;
+
     return MouseRegion(
       hitTestBehavior: HitTestBehavior.opaque,
       onEnter: (_) => setState(() => _hover = true),
@@ -1376,7 +1370,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 ),
                 Expanded(
                   child: Text(
-                    widget.sessionName,
+                    s.name,
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -1385,7 +1379,7 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (widget.isActive)
+                if (s.isActive)
                   Container(
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1402,40 +1396,42 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                       ),
                     ),
                   ),
-                SizedBox(
-                  width: 56,
-                  child: Text(
-                    NumberFormat.decimalPattern().format(widget.count.clamp(0, 0x7FFFFFFF)),
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: sessionColor,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                if (widget.percent >= 0) ...[
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 52,
-                    child: Text(
-                      '${widget.percent.clamp(0.0, 100.0).toStringAsFixed(1)}% full',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      NumberFormat.decimalPattern().format(combined),
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: NlcColors.mutedText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: sessionColor,
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
-                      textAlign: TextAlign.right,
                     ),
-                  ),
-                ],
+                    Text(
+                      'remaining + non pre-reg',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: NlcColors.mutedText,
+                      ),
+                    ),
+                    if (pctStr != null)
+                      Text(
+                        '$pctStr of capacity',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: sessionColor,
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 6),
             _buildStatsPills(sessionColor),
             const SizedBox(height: 6),
-            if (widget.count > 0)
+            if (s.checkInCount > 0)
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
@@ -1454,29 +1450,41 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   }
 
   Widget _buildStatsPills(Color sessionColor) {
+    final s = widget.stat;
+    final open = s.openSeats;
     final pills = <({String label, Color bg, Color fg})>[];
 
-    // Primary metric: pre-registered
+    if (s.capacity > 0) {
+      pills.add((
+        label: '${s.capacity} capacity',
+        bg: NlcColors.mutedText.withValues(alpha: 0.10),
+        fg: NlcColors.mutedText,
+      ));
+    }
     pills.add((
-      label: '${widget.preRegisteredCount} pre-registered',
+      label: '${s.preRegisteredCount} pre-reg',
       bg: sessionColor.withValues(alpha: 0.10),
       fg: sessionColor,
     ));
-    // Secondary: actual check-ins
     pills.add((
-      label: '${widget.checkedInCount} checked in',
+      label: '${s.checkInCount} total check-in',
       bg: NlcColors.successGreen.withValues(alpha: 0.12),
       fg: NlcColors.successGreen,
     ));
-    if (widget.capacity > 0) {
-      // Open seats = capacity − checkedIn. checkedIn is the live occupancy count;
-      // preReg is static and must not be mixed in (pre-reg people are also in checkedIn).
-      final remaining = (widget.capacity - widget.checkedInCount).clamp(0, widget.capacity);
-      final isFull = remaining == 0;
+    pills.add((
+      label: '${s.preRegisteredCheckedIn} pre-reg check-in',
+      bg: const Color(0xFF2563EB).withValues(alpha: 0.10),
+      fg: const Color(0xFF2563EB),
+    ));
+    pills.add((
+      label: '${s.nonPreRegCheckedIn} non-pre-reg check-in',
+      bg: const Color(0xFFF59E0B).withValues(alpha: 0.10),
+      fg: const Color(0xFFF59E0B),
+    ));
+    if (open != null) {
+      final isFull = open <= 0;
       pills.add((
-        label: isFull
-            ? 'Full · ${widget.capacity} cap'
-            : '${widget.capacity} capacity · $remaining open',
+        label: isFull ? 'Full' : '$open open',
         bg: isFull
             ? const Color(0xFFEF4444).withValues(alpha: 0.10)
             : NlcColors.mutedText.withValues(alpha: 0.10),

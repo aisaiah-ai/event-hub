@@ -33,6 +33,30 @@ class SessionWithAvailability {
   final int preRegisteredCheckedIn;
 }
 
+/// All four attendance numbers per session in one place.
+/// Use [getSessionAttendanceBreakdowns] to fetch.
+class SessionAttendanceBreakdown {
+  const SessionAttendanceBreakdown({
+    required this.sessionId,
+    required this.sessionName,
+    required this.totalPreRegistered,
+    required this.totalCheckedIn,
+    required this.preRegisteredCheckedIn,
+    required this.walkInCheckedIn,
+  });
+
+  final String sessionId;
+  final String sessionName;
+  /// Total registrants pre-registered for this session (sessionRegistrations).
+  final int totalPreRegistered;
+  /// Total check-ins for this session (attendance subcollection count).
+  final int totalCheckedIn;
+  /// Check-ins who were pre-registered for this session.
+  final int preRegisteredCheckedIn;
+  /// Check-ins who were not pre-registered (walk-ins).
+  final int walkInCheckedIn;
+}
+
 /// Lists and watches sessions; computes availability (remaining seats, status label).
 class SessionCatalogService {
   SessionCatalogService({
@@ -183,6 +207,34 @@ class SessionCatalogService {
       ));
     }
     return results;
+  }
+
+  /// All four numbers per session: total pre-registered, total check-in, pre-reg check-in, walk-in check-in.
+  /// Single API for dashboards, exports, or reports.
+  Future<List<SessionAttendanceBreakdown>> getSessionAttendanceBreakdowns(
+    String eventId,
+  ) async {
+    final list = await listSessionsWithAvailability(eventId);
+    return list
+        .map((e) => SessionAttendanceBreakdown(
+              sessionId: e.session.id,
+              sessionName: e.session.displayName,
+              totalPreRegistered: e.preRegisteredCount,
+              totalCheckedIn: e.session.attendanceCount,
+              preRegisteredCheckedIn: e.preRegisteredCheckedIn,
+              walkInCheckedIn:
+                  e.session.attendanceCount - e.preRegisteredCheckedIn,
+            ))
+        .toList();
+  }
+
+  /// Stream of the same breakdown for reactive UIs (e.g. dashboard).
+  Stream<List<SessionAttendanceBreakdown>> watchSessionAttendanceBreakdowns(
+    String eventId,
+  ) {
+    return watchSessionsWithAvailability(eventId).asyncMap((_) async {
+      return getSessionAttendanceBreakdowns(eventId);
+    });
   }
 
   /// Stream sessions with availability. Remaining = capacity − preRegistered − nonRegisteredCheckIn (pre-reg priority).

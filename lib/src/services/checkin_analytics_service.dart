@@ -20,6 +20,7 @@ class SessionCheckinStat {
     this.isActive = true,
     this.capacity = 0,
     this.preRegisteredCount = 0,
+    this.preRegisteredCheckedIn = 0,
   });
 
   final String sessionId;
@@ -32,6 +33,20 @@ class SessionCheckinStat {
   final int capacity;
   /// Number of registrants pre-registered for this session.
   final int preRegisteredCount;
+  /// Pre-registered registrants who have checked in to this session.
+  final int preRegisteredCheckedIn;
+
+  /// Check-ins from non-pre-registered attendees.
+  int get nonPreRegCheckedIn => checkInCount - preRegisteredCheckedIn;
+
+  /// Pre-registered registrants who have NOT checked in yet.
+  int get remainingPreReg => preRegisteredCount - preRegisteredCheckedIn;
+
+  /// Open seats (capacity − total check-in). Null when unlimited.
+  int? get openSeats => capacity > 0 ? (capacity - checkInCount).clamp(0, capacity) : null;
+
+  /// % of capacity filled by check-ins. Null when unlimited.
+  double? get capacityPct => capacity > 0 ? checkInCount / capacity : null;
 }
 
 /// Event-level analytics summary. Reads from analytics/global only.
@@ -59,6 +74,27 @@ class CheckinAnalyticsService {
 
   final FirebaseFirestore _firestore;
   final StreamController<void> _refreshTrigger = StreamController<void>.broadcast();
+
+  int? _registrantCountCache;
+  Future<int> _getRegistrantCountCached(String eventId) async {
+    _registrantCountCache ??= await getRegistrantCount(eventId);
+    return _registrantCountCache!;
+  }
+
+  /// Count of manual/walk-in registrants (source == 'MANUAL'). Live query — walk-ins can happen anytime.
+  Future<int> getManualCheckinCount(String eventId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('events/$eventId/registrants')
+          .where('source', isEqualTo: 'MANUAL')
+          .count()
+          .get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      _log('getManualCheckinCount failed: $e');
+      return 0;
+    }
+  }
 
   /// Trigger a manual refresh. Causes watch streams to emit fresh data.
   void triggerRefresh() {
@@ -93,12 +129,10 @@ class CheckinAnalyticsService {
     final fromSnapshots = _firestore.doc(path).snapshots().asyncMap((doc) async {
       final base = GlobalAnalytics.fromFirestore(doc.data());
       final liveTotal = await _totalCheckinsFromAttendance(eventId);
-      // When pre-computed totalRegistrants is 0 (e.g. before backfill or old doc), fill from live count
-      final registrants = base.totalRegistrants > 0
-          ? base.totalRegistrants
-          : await getRegistrantCount(eventId);
-      _log('watchGlobalAnalytics: totalCheckins=$liveTotal (from attendance) totalRegistrants=$registrants');
-      return base.copyWith(totalCheckins: liveTotal, totalRegistrants: registrants);
+      final registrants = await _getRegistrantCountCached(eventId);
+      final manualCount = await getManualCheckinCount(eventId);
+      _log('watchGlobalAnalytics: totalCheckins=$liveTotal totalRegistrants=$registrants manual=$manualCount');
+      return base.copyWith(totalCheckins: liveTotal, totalRegistrants: registrants, manualRegistrationCount: manualCount);
     });
     final fromPoll = Stream.periodic(_pollInterval)
         .asyncMap((_) => getGlobalAnalytics(eventId));
@@ -118,20 +152,32 @@ class CheckinAnalyticsService {
 
   // Cache pre-reg counts so we don't re-query sessionRegistrations on every session doc change.
   Map<String, int>? _preRegCountsCache;
+  Map<String, Set<String>>? _preRegIdsCache;
   DateTime? _preRegCountsCachedAt;
   static const _preRegCacheTtl = Duration(minutes: 2);
 
   Future<Map<String, int>> _getPreRegCountsCached(String eventId) async {
+    await _ensurePreRegCache(eventId);
+    return _preRegCountsCache!;
+  }
+
+  Future<Map<String, Set<String>>> _getPreRegIdsCached(String eventId) async {
+    await _ensurePreRegCache(eventId);
+    return _preRegIdsCache!;
+  }
+
+  Future<void> _ensurePreRegCache(String eventId) async {
     final now = DateTime.now();
     if (_preRegCountsCache != null &&
+        _preRegIdsCache != null &&
         _preRegCountsCachedAt != null &&
         now.difference(_preRegCountsCachedAt!) < _preRegCacheTtl) {
-      return _preRegCountsCache!;
+      return;
     }
-    final counts = await _fetchPreRegCounts(eventId);
-    _preRegCountsCache = counts;
+    final result = await _fetchPreRegCountsAndIds(eventId);
+    _preRegCountsCache = result.counts;
+    _preRegIdsCache = result.ids;
     _preRegCountsCachedAt = now;
-    return counts;
   }
 
   /// Real-time stream of session-level check-in stats.
@@ -161,6 +207,7 @@ class CheckinAnalyticsService {
   ) async {
     if (snap.docs.isEmpty) return [];
     final preRegCounts = await _getPreRegCountsCached(eventId);
+    final preRegIds = await _getPreRegIdsCached(eventId);
     final docs = snap.docs.toList()
       ..sort((a, b) {
         final orderA = (a.data()['order'] as num?)?.toInt() ?? 999;
@@ -172,6 +219,7 @@ class CheckinAnalyticsService {
       final data = doc.data();
       final session = Session.fromFirestore(doc.id, data);
       final startAt = (data['startAt'] as Timestamp?)?.toDate();
+      final preRegCheckedIn = await _preRegCheckedInCount(eventId, doc.id, preRegIds);
       results.add(SessionCheckinStat(
         sessionId: doc.id,
         name: session.displayName,
@@ -181,9 +229,35 @@ class CheckinAnalyticsService {
         isActive: session.isActive,
         capacity: session.capacity,
         preRegisteredCount: preRegCounts[doc.id] ?? 0,
+        preRegisteredCheckedIn: preRegCheckedIn,
       ));
     }
     return results;
+  }
+
+  /// Attendance registrant IDs for a session (doc IDs in attendance subcollection).
+  Future<Set<String>> _getAttendanceIds(String eventId, String sessionId) async {
+    try {
+      final snap = await _firestore
+          .collection('events/$eventId/sessions/$sessionId/attendance')
+          .get();
+      return snap.docs.map((d) => d.id).toSet();
+    } catch (e) {
+      _log('_getAttendanceIds failed for $sessionId: $e');
+      return {};
+    }
+  }
+
+  /// Pre-reg checked-in count: intersection of attendance IDs and pre-reg IDs.
+  Future<int> _preRegCheckedInCount(
+    String eventId,
+    String sessionId,
+    Map<String, Set<String>> preRegIds,
+  ) async {
+    final preRegSet = preRegIds[sessionId];
+    if (preRegSet == null || preRegSet.isEmpty) return 0;
+    final attendanceIds = await _getAttendanceIds(eventId, sessionId);
+    return attendanceIds.intersection(preRegSet).length;
   }
 
   /// Count docs in attendance subcollection. Uses count() aggregation (no document transfer).
@@ -216,20 +290,19 @@ class CheckinAnalyticsService {
         return orderA.compareTo(orderB);
       });
 
-    // Use cached pre-reg counts (refreshed every 2 min) to avoid a query on every poll.
     final preRegCounts = await _getPreRegCountsCached(eventId);
+    final preRegIds = await _getPreRegIdsCached(eventId);
 
     final results = <SessionCheckinStat>[];
     for (final doc in docs) {
       final data = doc.data();
       final session = Session.fromFirestore(doc.id, data);
-      // Use attendanceCount from the freshly-fetched session doc.
-      // Fall back to counting the attendance subcollection only when attendanceCount is missing (0).
       final count = session.attendanceCount > 0
           ? session.attendanceCount
           : await _countAttendance(eventId, doc.id);
       _log('fetchSessionStats: session=${doc.id} attendanceCount=$count (from ${session.attendanceCount > 0 ? "sessionDoc" : "attendance collection"})');
       final startAt = (data['startAt'] as Timestamp?)?.toDate();
+      final preRegCheckedIn = await _preRegCheckedInCount(eventId, doc.id, preRegIds);
       results.add(SessionCheckinStat(
         sessionId: doc.id,
         name: session.displayName,
@@ -239,18 +312,21 @@ class CheckinAnalyticsService {
         isActive: session.isActive,
         capacity: session.capacity,
         preRegisteredCount: preRegCounts[doc.id] ?? 0,
+        preRegisteredCheckedIn: preRegCheckedIn,
       ));
     }
     return results;
   }
 
-  /// Counts pre-registered registrants per session from sessionRegistrations collection.
-  Future<Map<String, int>> _fetchPreRegCounts(String eventId) async {
+  /// Counts and registrantId sets per session from sessionRegistrations.
+  Future<({Map<String, int> counts, Map<String, Set<String>> ids})>
+      _fetchPreRegCountsAndIds(String eventId) async {
     try {
       final snap = await _firestore
           .collection('events/$eventId/sessionRegistrations')
           .get();
       final counts = <String, int>{};
+      final ids = <String, Set<String>>{};
       for (final doc in snap.docs) {
         final list = doc.data()['sessionIds'];
         if (list is! List) continue;
@@ -258,20 +334,22 @@ class CheckinAnalyticsService {
           final id = e?.toString();
           if (id == null || id.isEmpty) continue;
           counts[id] = (counts[id] ?? 0) + 1;
+          (ids[id] ??= <String>{}).add(doc.id);
         }
       }
-      return counts;
+      return (counts: counts, ids: ids);
     } catch (e) {
-      _log('_fetchPreRegCounts failed: $e');
-      return {};
+      _log('_fetchPreRegCountsAndIds failed: $e');
+      return (counts: <String, int>{}, ids: <String, Set<String>>{});
     }
   }
 
-  /// Count of registrants. Uses count() aggregation.
+  /// Count of registered (imported) registrants. Excludes manual/walk-in entries.
   Future<int> getRegistrantCount(String eventId) async {
     try {
       final snapshot = await _firestore
           .collection('events/$eventId/registrants')
+          .where('source', isEqualTo: 'import')
           .count()
           .get();
       return snapshot.count ?? 0;
@@ -303,10 +381,9 @@ class CheckinAnalyticsService {
         await _firestore.doc('events/$eventId/analytics/global').get();
     final base = GlobalAnalytics.fromFirestore(snap.data());
     final liveTotal = await _totalCheckinsFromAttendance(eventId);
-    final registrants = base.totalRegistrants > 0
-        ? base.totalRegistrants
-        : await getRegistrantCount(eventId);
-    return base.copyWith(totalCheckins: liveTotal, totalRegistrants: registrants);
+    final registrants = await _getRegistrantCountCached(eventId);
+    final manualCount = await getManualCheckinCount(eventId);
+    return base.copyWith(totalCheckins: liveTotal, totalRegistrants: registrants, manualRegistrationCount: manualCount);
   }
 
   /// Top 3 earliest registrations (name + timestamp). Sorted ascending.

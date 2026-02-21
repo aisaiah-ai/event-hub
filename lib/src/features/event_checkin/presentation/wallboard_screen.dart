@@ -564,11 +564,19 @@ class _WallboardMetrics extends StatelessWidget {
     final sessionCheckins = breakouts.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
     final totalPreRegistered = breakouts.fold<int>(0, (sum, s) => sum + s.preRegisteredCount);
 
+    final manualRegCount = global.manualRegistrationCount;
+
     final tiles = [
       _WallboardMetricTile(
         icon: Icons.people_rounded,
         label: 'Total Registrants',
         value: registrantCount.clamp(0, 0x7FFFFFFF),
+      ),
+      _WallboardMetricTile(
+        icon: Icons.person_add_rounded,
+        label: 'Non-Registered',
+        value: manualRegCount,
+        subtext: 'Walk-In / On-Site',
       ),
       _WallboardMetricTile(
         icon: Icons.how_to_reg_rounded,
@@ -608,15 +616,17 @@ class _WallboardMetrics extends StatelessWidget {
                   Expanded(child: tiles[0]),
                   const SizedBox(width: 20),
                   Expanded(child: tiles[1]),
+                  const SizedBox(width: 20),
+                  Expanded(child: tiles[2]),
                 ],
               ),
               const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: tiles[2]),
-                  const SizedBox(width: 20),
                   Expanded(child: tiles[3]),
+                  const SizedBox(width: 20),
+                  Expanded(child: tiles[4]),
                 ],
               ),
             ],
@@ -625,13 +635,10 @@ class _WallboardMetrics extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: tiles[0]),
-            const SizedBox(width: 24),
-            Expanded(child: tiles[1]),
-            const SizedBox(width: 24),
-            Expanded(child: tiles[2]),
-            const SizedBox(width: 24),
-            Expanded(child: tiles[3]),
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) const SizedBox(width: 20),
+              Expanded(child: tiles[i]),
+            ],
           ],
         );
       },
@@ -871,16 +878,16 @@ class _WallboardLeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = stat.capacity > 0
-        ? (stat.capacity - stat.preRegisteredCount).clamp(0, stat.capacity)
-        : null;
-    final isFull = stat.capacity > 0 && stat.preRegisteredCount >= stat.capacity;
+    final open = stat.openSeats;
+    final pct = stat.capacityPct;
+    final pctStr = pct != null ? '${(pct * 100).toStringAsFixed(0)}%' : null;
+    final remainingPreReg = stat.remainingPreReg;
+    final nonPreReg = stat.nonPreRegCheckedIn;
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Color stripe (session wayfinding color)
           Container(
             width: 6,
             decoration: BoxDecoration(
@@ -893,7 +900,6 @@ class _WallboardLeaderboardRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Rank + name + live chip + count
                 Row(
                   children: [
                     SizedBox(
@@ -936,49 +942,84 @@ class _WallboardLeaderboardRow extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(width: 16),
-                    Text(
-                      NumberFormat.decimalPattern().format(count),
-                      style: GoogleFonts.inter(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: sessionColor,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          NumberFormat.decimalPattern().format(remainingPreReg + nonPreReg),
+                          style: GoogleFonts.inter(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: sessionColor,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'remaining + non pre-reg',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: NlcColors.mutedText,
+                          ),
+                        ),
+                        if (pctStr != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '$pctStr of capacity',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: sessionColor,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                // Stats pills
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                        _WbPill(
-                      label: '$count pre-registered',
+                    if (stat.capacity > 0)
+                      _WbPill(
+                        label: '${stat.capacity} capacity',
+                        color: NlcColors.mutedText,
+                      ),
+                    _WbPill(
+                      label: '${stat.preRegisteredCount} pre-reg',
                       color: sessionColor,
                     ),
                     _WbPill(
-                      label: '${stat.checkInCount.clamp(0, 0x7FFFFFFF)} checked in',
+                      label: '${stat.checkInCount} total check-in',
                       color: NlcColors.successGreen,
                     ),
-                    if (stat.capacity > 0)
+                    _WbPill(
+                      label: '${stat.preRegisteredCheckedIn} pre-reg check-in',
+                      color: const Color(0xFF2563EB),
+                    ),
+                    _WbPill(
+                      label: '$nonPreReg non-pre-reg check-in',
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    if (open != null)
                       _WbPill(
-                        label: isFull
-                            ? 'Full · ${stat.capacity} cap'
-                            : '${stat.capacity} capacity · $remaining open',
-                        color: isFull
+                        label: open <= 0
+                            ? 'Full'
+                            : '$open open',
+                        color: open <= 0
                             ? const Color(0xFFEF4444)
                             : NlcColors.mutedText,
                       ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Progress bar in session color
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
-                    value: barValue,
+                    value: (pct ?? 0.0).clamp(0.0, 1.0),
                     minHeight: 10,
                     backgroundColor: sessionColor.withValues(alpha: 0.15),
                     valueColor: AlwaysStoppedAnimation<Color>(sessionColor),

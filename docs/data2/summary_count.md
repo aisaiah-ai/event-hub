@@ -48,6 +48,23 @@ _Generated: 2026-02-20_
 
 ---
 
+## Session attendance breakdown
+
+| Session | Capacity | Pre-reg | Total check-in | Pre-reg ✓ | Non Pre-reg ✓ |
+|---------|--------:|--------:|---------------:|----------:|--------------:|
+| Gender Identity | 450 | 108 | 153 | 86 | 67 |
+| Contraception / Abortion | 72 | 54 | 59 | 41 | 18 |
+| Immigration | 192 | 104 | 146 | 77 | 69 |
+| **Total** | **714** | **266** | **358** | **204** | **154** |
+
+Main Check-In attendance: **358** (capacity: unlimited)
+
+_Source: (default) database, `events/nlc-2026`._
+
+**Analytics backup guarantee:** Every check-in (pre-registered or not) writes an attendance doc at `sessions/{sessionId}/attendance/{registrantId}` where the doc ID is the NLC registrant ID. This raw attendance data is the single source of truth. If `attendanceCount` or analytics ever drift, all counts can be recomputed by querying the attendance subcollection per session and cross-referencing `sessionRegistrations` for the pre-reg / non-pre-reg split.
+
+---
+
 ## Intentionally unmatched (3 rows)
 
 | Name | Reason |

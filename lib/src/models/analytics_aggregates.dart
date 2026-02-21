@@ -61,6 +61,7 @@ class GlobalAnalytics {
     this.totalUniqueAttendees = 0,
     this.totalCheckins = 0,
     this.totalRegistrants = 0,
+    this.manualRegistrationCount = 0,
     this.lastUpdated,
     this.earliestCheckin,
     this.earliestRegistration,
@@ -71,8 +72,9 @@ class GlobalAnalytics {
 
   final int totalUniqueAttendees;
   final int totalCheckins;
-  /// Pre-computed count of registrants (events/{eventId}/registrants). Updated by backfill + onRegistrantCreate.
   final int totalRegistrants;
+  /// Walk-in / manual registrations (source == 'MANUAL').
+  final int manualRegistrationCount;
   final DateTime? lastUpdated;
   final EarliestCheckin? earliestCheckin;
   final EarliestRegistration? earliestRegistration;
@@ -109,6 +111,7 @@ class GlobalAnalytics {
     int? totalUniqueAttendees,
     int? totalCheckins,
     int? totalRegistrants,
+    int? manualRegistrationCount,
     DateTime? lastUpdated,
     EarliestCheckin? earliestCheckin,
     EarliestRegistration? earliestRegistration,
@@ -120,6 +123,7 @@ class GlobalAnalytics {
       totalUniqueAttendees: totalUniqueAttendees ?? this.totalUniqueAttendees,
       totalCheckins: totalCheckins ?? this.totalCheckins,
       totalRegistrants: totalRegistrants ?? this.totalRegistrants,
+      manualRegistrationCount: manualRegistrationCount ?? this.manualRegistrationCount,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       earliestCheckin: earliestCheckin ?? this.earliestCheckin,
       earliestRegistration: earliestRegistration ?? this.earliestRegistration,

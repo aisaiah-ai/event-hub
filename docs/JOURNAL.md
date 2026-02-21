@@ -829,6 +829,28 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-21 — Session attendance breakdown + dashboard/wallboard update
+
+**What was done**
+- `SessionCheckinStat`: added `preRegisteredCheckedIn` (computed from attendance ∩ sessionRegistrations, cached 2 min). Derived getters: `nonPreRegCheckedIn`, `remainingPreReg`, `openSeats`, `capacityPct`.
+- `CheckinAnalyticsService`: pre-reg cache now stores both counts and registrantId sets per session (`_fetchPreRegCountsAndIds`). `_preRegCheckedInCount` computes intersection of attendance doc IDs with pre-reg IDs. Both `_statsFromSnapshot` and `fetchSessionStats` use it.
+- `CheckinAnalyticsService`: `totalRegistrants` now cached once on first call (`_registrantCountCache`). Registration is closed; no need to re-query every 4 seconds.
+- `SessionCatalogService`: added `SessionAttendanceBreakdown` model and `getSessionAttendanceBreakdowns(eventId)` / `watchSessionAttendanceBreakdowns(eventId)`.
+- Wallboard + Dashboard leaderboard rows: pills show capacity, pre-reg, total check-in, pre-reg check-in, non-pre-reg check-in, open. Right side next to LIVE: single number (remainingPreReg + nonPreRegCheckedIn), % of capacity. Progress bar = check-in / capacity.
+- `docs/data2/summary_count.md`: added session attendance breakdown table with live numbers from (default) DB. Added analytics backup guarantee note.
+- `scripts/session-attendance-breakdown.mjs`: supports `EVENT_HUB_DB`, `EVENT_HUB_EVENT` env vars, `OUTPUT_MD=1` for markdown output.
+
+**What was tried**
+- Provide all four numbers per session (pre-reg, total check-in, pre-reg check-in, non-pre-reg check-in) on dashboard and wallboard. Fix registrant count inflation.
+
+**Outcome / still broken**
+- Logic correct. No lint errors. Data lives in (default) database (not event-hub-dev or event-hub-prod for the NLC breakout sessions). Registrant count is 511 in (default) DB (454 seeded + 57 from manual/walk-in creates via relaxed rules). Check-in numbers match attendance doc counts exactly (no drift).
+
+**Next time (recall)**
+- NLC breakout session data (sessions, sessionRegistrations, attendance) is in **(default)** database. event-hub-dev has different sessions (Opening Plenary, etc.). Registrant count is static (cached once); if you re-seed, restart the app to pick up new count.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown
