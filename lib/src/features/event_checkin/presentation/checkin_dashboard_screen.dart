@@ -1335,7 +1335,6 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
   Widget build(BuildContext context) {
     final s = widget.stat;
     final sessionColor = _sessionColor;
-    final open = s.openSeats;
     final pctStr = s.capacityPct != null
         ? '${(s.capacityPct! * 100).toStringAsFixed(0)}%'
         : null;
