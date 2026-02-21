@@ -113,32 +113,25 @@ class SessionService {
     return attended;
   }
 
-  /// Session-only check-in. Writes attendance doc and atomically increments attendanceCount on the session doc.
+  /// Session-only check-in. Writes to attendance subcollection only.
+  /// Does NOT update attendanceCount on the session doc — safe to call when
+  /// attendanceCount was never initialized (dashboard falls back to count()).
   Future<void> checkInSessionOnly(
     String eventId,
     String sessionId,
     String registrantId,
     String checkedInBy,
   ) async {
-    final attPath = '${_attendancePath(eventId, sessionId)}/$registrantId';
-    final attRef = _firestore.doc(attPath);
-    final sessionRef = _firestore.doc('${_sessionsPath(eventId)}/$sessionId');
+    final path = '${_attendancePath(eventId, sessionId)}/$registrantId';
+    final ref = _firestore.doc(path);
     try {
-      await _firestore.runTransaction((tx) async {
-        final attSnap = await tx.get(attRef);
-        if (attSnap.exists) return;
-        tx.set(attRef, {
-          'checkedInAt': FieldValue.serverTimestamp(),
-          'checkedInBy': checkedInBy,
-        });
-        tx.update(sessionRef, {
-          'attendanceCount': FieldValue.increment(1),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      });
+      await ref.set({
+        'checkedInAt': FieldValue.serverTimestamp(),
+        'checkedInBy': checkedInBy,
+      }, SetOptions(merge: true));
     } catch (e, st) {
-      _log('checkInSessionOnly FAILED');
-      _log('  path: $attPath');
+      _log('checkInSessionOnly ATTENDANCE FAILED');
+      _log('  path: $path');
       _log('  database: ${FirestoreConfig.databaseId}');
       _log('  error: $e');
       _log('  stack: $st');
