@@ -1469,7 +1469,12 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
       fg: NlcColors.successGreen,
     ));
     if (widget.capacity > 0) {
-      final remaining = (widget.capacity - widget.preRegisteredCount).clamp(0, widget.capacity);
+      // Seats are occupied by: pre-registered (reserved) OR actual check-ins (walk-ins fill
+      // non-reserved seats). open = capacity − max(preReg, checkedIn).
+      final occupied = widget.preRegisteredCount > widget.checkedInCount
+          ? widget.preRegisteredCount
+          : widget.checkedInCount;
+      final remaining = (widget.capacity - occupied).clamp(0, widget.capacity);
       final isFull = remaining == 0;
       pills.add((
         label: isFull
