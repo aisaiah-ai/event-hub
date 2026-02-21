@@ -257,15 +257,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   ),
                   isPrimary: true,
                 ),
-                const SizedBox(height: AppSpacing.betweenSecondaryCards),
-                AnimatedCheckinCard(
-                  leading: const Icon(Icons.edit_note, size: 28),
-                  title: 'Enter Manually',
-                  subtitle: 'For walk-ins or unregistered attendees.',
-                  onTap: _onManualEntry,
-                  backgroundColor: AppColors.surfaceCard,
-                  isPrimary: false,
-                ),
                 const SizedBox(height: AppSpacing.betweenSections),
                 _buildRecentCheckinsLog(),
                 const SizedBox(height: AppSpacing.footerTop),
@@ -321,16 +312,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                 const SizedBox(height: 16),
                 SlideTransition(
                   position: _cardSlideAnimations[1],
-                  child: _buildImmersiveSecondaryCard(
-                    icon: Icons.edit_note,
-                    title: 'Enter Manually',
-                    subtitle: 'For walk-ins or unregistered attendees.',
-                    onTap: _onManualEntry,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SlideTransition(
-                  position: _cardSlideAnimations[2],
                   child: _buildConferenceGuideCard(),
                 ),
                 const SizedBox(height: 32),
@@ -410,66 +391,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       subtitle: 'Enter at least 2 letters of your last name to check in.',
       onTap: _onSearch,
       icon: Icons.search,
-    );
-  }
-
-  Widget _buildImmersiveSecondaryCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: NlcPalette.cream2,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: NlcPalette.shadow,
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 28, color: NlcPalette.brandBlueDark),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: NlcPalette.brandBlueDark,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: NlcPalette.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: NlcPalette.brandBlueDark, size: 24),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -815,42 +736,6 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     final registrantId = result['registrantId'] as String?;
     if (registrantId != null) {
       await _performCheckin(registrantId: registrantId, method: CheckinMethod.search);
-    }
-  }
-
-  Future<void> _onManualEntry() async {
-    if (!_ensureSessionSelected()) return;
-    HapticFeedback.mediumImpact();
-    final result = await context.push<Map<String, dynamic>>(
-      '/events/${widget.eventSlug}/checkin/manual',
-      extra: {
-        'eventId': widget.event.id,
-        'eventSlug': widget.eventSlug,
-        'sessionId': _effectiveSessionId,
-        'sessionName': _effectiveSessionName,
-      },
-    );
-    if (!mounted || result == null) return;
-    final success = result['success'] as bool? ?? false;
-    final registrantId = result['registrantId'] as String?;
-    if (success && registrantId != null) {
-      context.push(
-        '/events/${widget.eventSlug}/checkin/registrant-resolved',
-        extra: {
-          'event': widget.event,
-          'eventId': widget.event.id,
-          'eventSlug': widget.eventSlug,
-          'registrantId': registrantId,
-          'registrantName': result['name'] as String? ?? 'Guest',
-          'source': 'manual',
-          'isMainCheckIn': _isMainCheckIn,
-        },
-      );
-    } else if (success) {
-      await _showSuccessAndReturn(
-        name: result['name'] as String? ?? 'Guest',
-        sessionName: _effectiveSessionName,
-      );
     }
   }
 
