@@ -229,14 +229,14 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
 
   Future<void> _onSessionSelected(SessionWithAvailability item) async {
     final session = item.session;
-    final disabled = item.label == SessionAvailabilityLabel.full ||
-        item.label == SessionAvailabilityLabel.closed;
-    if (disabled) return;
+    final isFull = session.capacity > 0 && session.attendanceCount >= session.capacity;
+    if (isFull) return;
 
     HapticFeedback.mediumImpact();
     final dateTime = getSessionDateDisplay(session);
-    final remainingStr = session.capacity > 0
-        ? 'Remaining Seats: ${item.remainingSeats}'
+    final open = session.capacity > 0 ? (session.capacity - session.attendanceCount).clamp(0, session.capacity) : null;
+    final remainingStr = open != null
+        ? (open <= 0 ? 'Session Full' : '$open seats open')
         : 'No capacity limit';
     final location = session.location ?? '';
 
@@ -461,18 +461,19 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                         )
                       else
                         ..._sessionsWithAvailability.map((item) {
-                          final disabled = item.label == SessionAvailabilityLabel.full ||
-                              item.label == SessionAvailabilityLabel.closed;
-                          final color = resolveSessionColor(item.session);
+                          final session = item.session;
+                          final isFull = session.capacity > 0 && session.attendanceCount >= session.capacity;
+                          final color = resolveSessionColor(session);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: SessionSelectionCard(
-                              session: item.session,
+                              session: session,
                               remainingSeats: item.remainingSeats,
                               preRegisteredCount: item.preRegisteredCount,
-                              label: item.label,
+                              preRegisteredCheckedIn: item.preRegisteredCheckedIn,
+                              label: isFull ? SessionAvailabilityLabel.full : item.label,
                               color: color,
-                              onTap: disabled ? null : () => _onSessionSelected(item),
+                              onTap: isFull ? null : () => _onSessionSelected(item),
                             ),
                           );
                         }),

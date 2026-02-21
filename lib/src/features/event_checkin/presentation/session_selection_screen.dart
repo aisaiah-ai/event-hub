@@ -102,20 +102,18 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
 
   Future<void> _onTapSession(SessionWithAvailability item) async {
     final session = item.session;
-    // Disable when full, closed, or !session.isAvailable (capacity/status).
-    final disabled = !session.isAvailable ||
-        item.label == SessionAvailabilityLabel.full ||
-        item.label == SessionAvailabilityLabel.closed;
-    if (disabled) return;
+    final isFull = session.capacity > 0 && session.attendanceCount >= session.capacity;
+    if (isFull) return;
 
     HapticFeedback.mediumImpact();
+    final open = session.capacity > 0 ? (session.capacity - session.attendanceCount).clamp(0, session.capacity) : null;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm Session'),
         content: Text(
           'Check in to "${session.displayName}"?\n'
-          '${session.capacity > 0 ? (item.remainingSeats <= 0 ? "Session is full." : "${item.remainingSeats} seats remaining.") : "Unlimited seating."}',
+          '${open != null ? (open <= 0 ? "Session is full." : "$open seats open.") : "Unlimited seating."}',
         ),
         actions: [
           TextButton(
@@ -286,9 +284,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                     else
                       ..._sessions.map((item) {
                         final session = item.session;
-                        final disabled = !session.isAvailable ||
-                            item.label == SessionAvailabilityLabel.full ||
-                            item.label == SessionAvailabilityLabel.closed;
+                        final isFull = session.capacity > 0 && session.attendanceCount >= session.capacity;
+                        final disabled = isFull || item.label == SessionAvailabilityLabel.full;
                         final color = resolveSessionColor(session);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
@@ -296,7 +293,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                             session: session,
                             remainingSeats: item.remainingSeats,
                             preRegisteredCount: item.preRegisteredCount,
-                            label: item.label,
+                            preRegisteredCheckedIn: item.preRegisteredCheckedIn,
+                            label: disabled ? SessionAvailabilityLabel.full : item.label,
                             color: color,
                             onTap: disabled ? null : () => _onTapSession(item),
                           ),
@@ -326,6 +324,7 @@ class SessionSelectionCard extends StatelessWidget {
     required this.label,
     required this.color,
     this.preRegisteredCount = 0,
+    this.preRegisteredCheckedIn = 0,
     this.onTap,
     this.isPreview = false,
   });
@@ -335,6 +334,7 @@ class SessionSelectionCard extends StatelessWidget {
   final SessionAvailabilityLabel label;
   final Color color;
   final int preRegisteredCount;
+  final int preRegisteredCheckedIn;
   final VoidCallback? onTap;
   /// When true, card is non-interactive and full opacity (e.g. preview on main check-in).
   final bool isPreview;
@@ -345,16 +345,15 @@ class SessionSelectionCard extends StatelessWidget {
     final colorName = resolveSessionColorName(resolveSessionColorHex(session));
     final textOnColor = contrastTextColorOn(color);
 
-    // Capacity line: capacity − pre-registered − non-registered-checked-in = remaining.
-    // nonRegisteredCheckedIn is derived from the pre-reg priority remainingSeats passed in.
-    final nonRegCheckedIn = session.capacity > 0
-        ? (session.capacity - preRegisteredCount - remainingSeats).clamp(0, session.attendanceCount)
-        : session.attendanceCount;
-    final capacityText = session.capacity > 0
-        ? (remainingSeats <= 0
-            ? 'Full · ${session.capacity} capacity · $preRegisteredCount pre-registered'
-            : '${session.capacity} total · $preRegisteredCount pre-registered · $nonRegCheckedIn non-registered checked in · $remainingSeats remaining')
-        : 'Unlimited seating · ${session.attendanceCount} checked in';
+    final cap = session.capacity;
+    final totalCheckIn = session.attendanceCount;
+    final preRegCheckIn = preRegisteredCheckedIn;
+    final nonPreRegCheckIn = totalCheckIn - preRegCheckIn;
+    final open = cap > 0 ? (cap - totalCheckIn).clamp(0, cap) : null;
+
+    final capacityText = cap > 0
+        ? '$cap capacity · $preRegisteredCount pre-reg · $totalCheckIn check-in · $preRegCheckIn pre-reg check-in · $nonPreRegCheckIn non-pre-reg check-in · ${open! <= 0 ? "Full" : "$open open"}'
+        : 'Unlimited seating · $totalCheckIn checked in';
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
