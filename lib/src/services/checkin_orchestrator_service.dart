@@ -112,7 +112,7 @@ class CheckinOrchestratorService {
 
       tx.set(attendanceRef, _attendanceData(registrantId, source));
       tx.update(sessionRef, {
-        'attendanceCount': count + 1,
+        'attendanceCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -194,7 +194,7 @@ class CheckinOrchestratorService {
 
         tx.set(attendanceRef, _attendanceData(registrantId, source));
         tx.update(sessionRef, {
-          'attendanceCount': count + 1,
+          'attendanceCount': FieldValue.increment(1),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       });
