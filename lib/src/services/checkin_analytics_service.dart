@@ -208,6 +208,7 @@ class CheckinAnalyticsService {
     if (snap.docs.isEmpty) return [];
     final preRegCounts = await _getPreRegCountsCached(eventId);
     final preRegIds = await _getPreRegIdsCached(eventId);
+    final attendanceIds = await _getAttendanceIdsCached(eventId);
     final docs = snap.docs.toList()
       ..sort((a, b) {
         final orderA = (a.data()['order'] as num?)?.toInt() ?? 999;
@@ -219,7 +220,7 @@ class CheckinAnalyticsService {
       final data = doc.data();
       final session = Session.fromFirestore(doc.id, data);
       final startAt = (data['startAt'] as Timestamp?)?.toDate();
-      final preRegCheckedIn = await _preRegCheckedInCount(eventId, doc.id, preRegIds);
+      final preRegCheckedIn = _preRegCheckedInCount(doc.id, preRegIds, attendanceIds);
       results.add(SessionCheckinStat(
         sessionId: doc.id,
         name: session.displayName,
@@ -235,29 +236,46 @@ class CheckinAnalyticsService {
     return results;
   }
 
-  /// Attendance registrant IDs for a session (doc IDs in attendance subcollection).
-  Future<Set<String>> _getAttendanceIds(String eventId, String sessionId) async {
-    try {
-      final snap = await _firestore
-          .collection('events/$eventId/sessions/$sessionId/attendance')
-          .get();
-      return snap.docs.map((d) => d.id).toSet();
-    } catch (e) {
-      _log('_getAttendanceIds failed for $sessionId: $e');
-      return {};
+  /// Cached attendance IDs per session. Refreshed every 30 seconds.
+  Map<String, Set<String>>? _attendanceIdsCache;
+  DateTime? _attendanceIdsCachedAt;
+  static const _attendanceIdsCacheTtl = Duration(seconds: 30);
+
+  Future<Map<String, Set<String>>> _getAttendanceIdsCached(String eventId) async {
+    final now = DateTime.now();
+    if (_attendanceIdsCache != null &&
+        _attendanceIdsCachedAt != null &&
+        now.difference(_attendanceIdsCachedAt!) < _attendanceIdsCacheTtl) {
+      return _attendanceIdsCache!;
     }
+    final sessionsSnap = await _firestore.collection('events/$eventId/sessions').get();
+    final result = <String, Set<String>>{};
+    for (final s in sessionsSnap.docs) {
+      try {
+        final attSnap = await _firestore
+            .collection('events/$eventId/sessions/${s.id}/attendance')
+            .get();
+        result[s.id] = attSnap.docs.map((d) => d.id).toSet();
+      } catch (e) {
+        _log('_getAttendanceIdsCached failed for ${s.id}: $e');
+        result[s.id] = {};
+      }
+    }
+    _attendanceIdsCache = result;
+    _attendanceIdsCachedAt = now;
+    return result;
   }
 
   /// Pre-reg checked-in count: intersection of attendance IDs and pre-reg IDs.
-  Future<int> _preRegCheckedInCount(
-    String eventId,
+  int _preRegCheckedInCount(
     String sessionId,
     Map<String, Set<String>> preRegIds,
-  ) async {
+    Map<String, Set<String>> attendanceIds,
+  ) {
     final preRegSet = preRegIds[sessionId];
     if (preRegSet == null || preRegSet.isEmpty) return 0;
-    final attendanceIds = await _getAttendanceIds(eventId, sessionId);
-    return attendanceIds.intersection(preRegSet).length;
+    final attSet = attendanceIds[sessionId] ?? {};
+    return attSet.intersection(preRegSet).length;
   }
 
   /// Count docs in attendance subcollection. Uses count() aggregation (no document transfer).
@@ -292,6 +310,7 @@ class CheckinAnalyticsService {
 
     final preRegCounts = await _getPreRegCountsCached(eventId);
     final preRegIds = await _getPreRegIdsCached(eventId);
+    final attendanceIds = await _getAttendanceIdsCached(eventId);
 
     final results = <SessionCheckinStat>[];
     for (final doc in docs) {
@@ -302,7 +321,7 @@ class CheckinAnalyticsService {
           : await _countAttendance(eventId, doc.id);
       _log('fetchSessionStats: session=${doc.id} attendanceCount=$count (from ${session.attendanceCount > 0 ? "sessionDoc" : "attendance collection"})');
       final startAt = (data['startAt'] as Timestamp?)?.toDate();
-      final preRegCheckedIn = await _preRegCheckedInCount(eventId, doc.id, preRegIds);
+      final preRegCheckedIn = _preRegCheckedInCount(doc.id, preRegIds, attendanceIds);
       results.add(SessionCheckinStat(
         sessionId: doc.id,
         name: session.displayName,
