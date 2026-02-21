@@ -112,15 +112,15 @@ class SessionCatalogService {
     return snap.docs.first.id;
   }
 
-  /// Compute availability label from remaining seats (use remaining after pre-reg priority).
+  /// Availability label based on actual open seats (capacity − attendanceCount).
   static SessionAvailabilityLabel availabilityLabelFromRemaining(
     Session s,
     int remainingSeats,
   ) {
-    if (s.status == SessionStatus.closed) return SessionAvailabilityLabel.closed;
     if (s.capacity <= 0) return SessionAvailabilityLabel.available;
-    if (remainingSeats <= 0) return SessionAvailabilityLabel.full;
-    if (remainingSeats <= 5) return SessionAvailabilityLabel.almostFull;
+    final open = (s.capacity - s.attendanceCount).clamp(0, s.capacity);
+    if (open <= 0) return SessionAvailabilityLabel.full;
+    if (open <= 5) return SessionAvailabilityLabel.almostFull;
     return SessionAvailabilityLabel.available;
   }
 
