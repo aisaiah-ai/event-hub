@@ -60,6 +60,22 @@ events (collection)
 
 **Dart model:** `Event`
 
+### Event (landing / RSVP — EventModel)
+
+Used by the event detail page and RSVP flow. **Path:** `events/{eventId}`.
+
+| Field | Type | Description |
+|-------|------|--------------|
+| name, slug | string | Display name and URL slug |
+| startDate, endDate | timestamp | Event dates |
+| locationName, address | string | Legacy location text |
+| venue | map or string | Optional structured venue: name, street, city, state, zip (for Get Directions) |
+| shortDescription | string | Optional; shown below header on event detail page |
+| branding | map | logoUrl, primaryColor, accentColor, cardBackgroundColor, checkInButtonColor, etc. |
+| isRegistered, registrationStatus | * | Optional; set when user context is available (e.g. from registration API) |
+
+**Dart model:** `EventModel` in `lib/src/features/events/data/event_model.dart`. **Venue:** `Venue` in `venue_model.dart`. See `docs/EVENT_DETAIL_PAGE.md` and `docs/MARCH_ASSEMBLY_MOCK_DATA.md`.
+
 ---
 
 ### Registration Schema

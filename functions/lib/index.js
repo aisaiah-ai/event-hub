@@ -49,10 +49,14 @@ var __importStar = (this && this.__importStar) || (function () {
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.backfillAnalytics = exports.backfillStats = exports.onAttendanceCreate = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
+exports.e = exports.api = exports.backfillAnalytics = exports.backfillStats = exports.onAttendanceCreate = exports.onRegistrantCreate = exports.onRegistrantCheckIn = exports.initializeNlc2026 = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const api_1 = __importDefault(require("./api"));
 admin.initializeApp();
 const db = admin.firestore();
 /** Look up string from registrant doc: top-level, profile, or answers. Keys tried in order. */
@@ -570,4 +574,36 @@ exports.backfillAnalytics = functions.https.onCall(async (data, context) => {
     };
 });
 __exportStar(require("./checkinAnalytics"), exports);
+// —— /v1 API (Express) ———
+exports.api = functions.runWith({ invoker: "public" }).https.onRequest(api_1.default);
+// —— Deep link landing: GET /e/:eventId (QR → app or fallback page) ———
+exports.e = functions.runWith({ invoker: "public" }).https.onRequest((req, res) => {
+    if (req.method !== "GET") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+    const path = req.path || req.url || "";
+    const eventId = path.replace(/^\/e\/?/, "").split("/")[0] || path.slice(1).split("/")[0];
+    if (!eventId) {
+        res.status(400).send("Missing event ID. Use /e/:eventId");
+        return;
+    }
+    const ua = (req.get("user-agent") || "").toLowerCase();
+    const isApp = ua.includes("spiritual") || ua.includes("events-hub");
+    if (isApp) {
+        res.redirect(302, `https://events.aisaiah.org/events/${eventId}`);
+        return;
+    }
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(`
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Event</title></head>
+<body style="font-family:system-ui;max-width:480px;margin:2rem auto;padding:1rem;text-align:center">
+  <h1>Event</h1>
+  <p>Open in the Spiritual App for the best experience.</p>
+  <p><a href="https://events.aisaiah.org/events/${eventId}">Continue in browser</a></p>
+</body>
+</html>`);
+});
 //# sourceMappingURL=index.js.map

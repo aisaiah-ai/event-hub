@@ -56,7 +56,7 @@ To use Firestore (and for production), add this document to your `events` collec
   "allowCheckin": false,
   "metadata": {
     "rallyTime": "3:00 PM - 6:00 PM",
-    "dinnerTime": "6:00 PM - 9:00 PM",
+    "dinnerTime": "7:00 PM - 9:00 PM",
     "rsvpDeadline": "March 10"
   },
   "branding": {
