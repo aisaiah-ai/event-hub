@@ -321,9 +321,16 @@ class _EventHeader extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: _kCard,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.cardBackgroundColor.withOpacity(0.68),
+            theme.cardBackgroundColor.withOpacity(0.62),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kBorder, width: 1),
+        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x66000000),
@@ -347,7 +354,7 @@ class _EventHeader extends StatelessWidget {
                 Text(
                   event.name,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.92),
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     height: 1.3,
@@ -359,7 +366,7 @@ class _EventHeader extends StatelessWidget {
                 Text(
                   event.displayDate,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.92),
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -369,7 +376,7 @@ class _EventHeader extends StatelessWidget {
                   Text(
                     venue.name,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.92),
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -377,8 +384,8 @@ class _EventHeader extends StatelessWidget {
                 if (venue.street.isNotEmpty)
                   Text(
                     venue.street,
-                    style: const TextStyle(
-                      color: _kTextMuted,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.70),
                       fontSize: 14,
                     ),
                   ),
@@ -387,8 +394,8 @@ class _EventHeader extends StatelessWidget {
                     [venue.city, venue.state, venue.zip]
                         .where((s) => s.isNotEmpty)
                         .join(' '),
-                    style: const TextStyle(
-                      color: _kTextMuted,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.70),
                       fontSize: 14,
                     ),
                   ),
@@ -467,10 +474,17 @@ class _ShortDescriptionBlock extends StatelessWidget {
       margin: const EdgeInsets.only(top: 12, bottom: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.cardBackgroundColor.withValues(alpha: 0.75),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.cardBackgroundColor.withOpacity(0.68),
+            theme.cardBackgroundColor.withOpacity(0.62),
+          ],
+        ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Colors.white.withOpacity(0.05),
         ),
       ),
       child: Text(
@@ -478,7 +492,7 @@ class _ShortDescriptionBlock extends StatelessWidget {
         style: TextStyle(
           fontSize: 15,
           height: 1.4,
-          color: Colors.white.withValues(alpha: 0.85),
+          color: Colors.white.withOpacity(0.92),
         ),
       ),
     );
@@ -569,9 +583,16 @@ class _TabsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: _kCard,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.cardBackgroundColor.withOpacity(0.68),
+            theme.cardBackgroundColor.withOpacity(0.62),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kBorder, width: 1),
+        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
       ),
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 14),
       child: Column(
@@ -582,8 +603,8 @@ class _TabsHeader extends StatelessWidget {
               Expanded(
                 child: TabBar(
                   controller: tab,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: _kTextMuted,
+                  labelColor: Colors.white.withOpacity(0.92),
+                  unselectedLabelColor: Colors.white.withOpacity(0.70),
                   labelStyle: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -620,9 +641,9 @@ class _TabsHeader extends StatelessWidget {
                 height: 28,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: _kChipBg,
+                  color: theme.cardBackgroundColor.withOpacity(0.68),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: _kBorder, width: 1),
+                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -651,28 +672,28 @@ class _TabsHeader extends StatelessWidget {
                 height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF11111A),
+                  color: theme.cardBackgroundColor.withOpacity(0.68),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: _kBorder, width: 1),
+                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.calendar_month_rounded, size: 16, color: theme.primary),
                     const SizedBox(width: 6),
-                    const Text(
+                    Text(
                       'Today',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.white.withOpacity(0.92),
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 18,
-                      color: _kTextMuted,
+                      color: Colors.white.withOpacity(0.70),
                     ),
                   ],
                 ),
@@ -716,7 +737,7 @@ class _ScheduleTab extends StatelessWidget {
         child: Text(
           'No sessions yet.',
           style: TextStyle(
-            color: EventTokens.textOffWhite.withValues(alpha: 0.8),
+            color: Colors.white.withOpacity(0.70),
             fontSize: 14,
           ),
         ),
@@ -768,12 +789,34 @@ class _SessionTimelineCard extends StatelessWidget {
     final hasContent = sessionSpeakers.isNotEmpty ||
         session.materials.isNotEmpty ||
         (session.description != null && session.description!.isNotEmpty);
+    final isMainCheckIn = session.id == 'main-checkin';
 
     return Container(
       decoration: BoxDecoration(
-        color: _kCard,
+        gradient: isMainCheckIn
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.checkInButtonColor.withOpacity(0.11),
+                  theme.cardBackgroundColor.withOpacity(0.68),
+                ],
+              )
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.cardBackgroundColor.withOpacity(0.68),
+                  theme.cardBackgroundColor.withOpacity(0.62),
+                ],
+              ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kBorder, width: 1),
+        border: Border.all(
+          color: isMainCheckIn
+              ? theme.checkInButtonColor.withOpacity(0.25)
+              : Colors.white.withOpacity(0.05),
+          width: 1,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x55000000),
@@ -791,8 +834,8 @@ class _SessionTimelineCard extends StatelessWidget {
             width: 76,
             child: Text(
               _formatTime(session.startAt),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.92),
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
@@ -815,7 +858,7 @@ class _SessionTimelineCard extends StatelessWidget {
               const SizedBox(height: 6),
               Container(
                 width: 2,
-                height: hasContent ? 80 : 30,
+                height: hasContent ? 48 : 24,
                 color: _kRail,
               ),
             ],
@@ -830,8 +873,8 @@ class _SessionTimelineCard extends StatelessWidget {
                 // Title row
                 Text(
                   session.displayName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.92),
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.2,
@@ -841,7 +884,7 @@ class _SessionTimelineCard extends StatelessWidget {
                 if (sessionSpeakers.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   for (final sp in sessionSpeakers) ...[
-                    _SpeakerRow(speaker: sp),
+                    _SpeakerRow(speaker: sp, theme: theme),
                     if (sp != sessionSpeakers.last) const SizedBox(height: 8),
                   ],
                 ],
@@ -850,6 +893,7 @@ class _SessionTimelineCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   for (final m in session.materials) ...[
                     _MaterialRow(
+                      theme: theme,
                       title: m.title,
                       typeLabel: m.type.toUpperCase(),
                       onTap: () {},
@@ -865,8 +909,8 @@ class _SessionTimelineCard extends StatelessWidget {
                     session.description!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _kTextMuted,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.70),
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -907,48 +951,83 @@ class _SessionCheckInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMainCheckIn = session.id == 'main-checkin';
     final checkedIn = session.sessionCheckedIn;
-    final backgroundColor = checkedIn
-        ? theme.checkInButtonColor.withValues(alpha: 0.35)
-        : theme.checkInButtonColor;
 
-    final button = SizedBox(
-      height: 38,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: backgroundColor,
-          disabledForegroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    if (isMainCheckIn) {
+      final brighter = Color.lerp(
+        theme.checkInButtonColor,
+        Colors.white,
+        0.2,
+      )!;
+      return SizedBox(
+        height: 42,
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: checkedIn ? null : onCheckIn,
+          style: OutlinedButton.styleFrom(
+            backgroundColor: brighter.withOpacity(0.40),
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: brighter.withOpacity(0.12),
+            disabledForegroundColor: Colors.white,
+            side: BorderSide(
+              color: brighter.withOpacity(0.45),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
           ),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            checkedIn ? 'Checked In ✓' : 'Event Check In',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
-        onPressed: checkedIn ? null : onCheckIn,
-        child: Text(
-          checkedIn ? 'Checked In ✓' : 'Check In',
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
+      );
+    }
+
+    final backgroundColor = checkedIn
+        ? theme.checkInButtonColor.withOpacity(0.35)
+        : theme.checkInButtonColor.withOpacity(0.9);
+
+    return IntrinsicWidth(
+      child: SizedBox(
+        height: 36,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: Colors.white.withOpacity(0.92),
+            disabledBackgroundColor: backgroundColor,
+            disabledForegroundColor: Colors.white.withOpacity(0.92),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+          ),
+          onPressed: checkedIn ? null : onCheckIn,
+          child: Text(
+            checkedIn ? 'Checked In ✓' : 'Check In',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),
     );
-
-    if (isMainCheckIn) {
-      return SizedBox(width: double.infinity, child: button);
-    }
-    return IntrinsicWidth(child: button);
   }
 }
 
 // ─── Speaker Row ──────────────────────────────────────────────────────────────
 
 class _SpeakerRow extends StatelessWidget {
-  const _SpeakerRow({required this.speaker});
+  const _SpeakerRow({required this.speaker, required this.theme});
 
   final EventSpeaker speaker;
+  final _EventTheme theme;
 
   @override
   Widget build(BuildContext context) {
@@ -959,9 +1038,9 @@ class _SpeakerRow extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2A3A),
+            color: theme.cardBackgroundColor.withOpacity(0.68),
             shape: BoxShape.circle,
-            border: Border.all(color: _kBorder, width: 1),
+            border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
           ),
           clipBehavior: Clip.antiAlias,
           child: _speakerPhoto(speaker),
@@ -974,8 +1053,8 @@ class _SpeakerRow extends StatelessWidget {
             children: [
               Text(
                 speaker.name,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.92),
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -983,8 +1062,8 @@ class _SpeakerRow extends StatelessWidget {
               if (speaker.title != null && speaker.title!.isNotEmpty)
                 Text(
                   speaker.title!,
-                  style: const TextStyle(
-                    color: _kTextMuted,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.70),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1084,11 +1163,13 @@ class _SpeakerInitialsAvatar extends StatelessWidget {
 
 class _MaterialRow extends StatelessWidget {
   const _MaterialRow({
+    required this.theme,
     required this.title,
     required this.typeLabel,
     required this.onTap,
   });
 
+  final _EventTheme theme;
   final String title;
   final String typeLabel;
   final VoidCallback onTap;
@@ -1102,9 +1183,16 @@ class _MaterialRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
-            color: const Color(0xFF10101A),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.cardBackgroundColor.withOpacity(0.68),
+                theme.cardBackgroundColor.withOpacity(0.62),
+              ],
+            ),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _kBorder, width: 1),
+            border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
@@ -1114,9 +1202,9 @@ class _MaterialRow extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2B24),
+                  color: theme.cardBackgroundColor.withOpacity(0.65),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _kBorder, width: 1),
+                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
                 ),
                 child: const Icon(
                   Icons.download_rounded,
@@ -1128,18 +1216,13 @@ class _MaterialRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   '$title ($typeLabel)',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.92),
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: _kTextMuted,
-                size: 20,
               ),
             ],
           ),
@@ -1162,7 +1245,7 @@ class _AnnouncementsEmpty extends StatelessWidget {
         child: Text(
           'No announcements yet.',
           style: TextStyle(
-            color: EventTokens.textOffWhite.withValues(alpha: 0.7),
+            color: Colors.white.withOpacity(0.70),
             fontSize: 14,
           ),
         ),
