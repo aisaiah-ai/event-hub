@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/nlc_theme.dart';
+import '../event_tokens.dart';
 import '../../../theme/nlc_palette.dart';
 import '../data/event_model.dart';
 
@@ -109,7 +111,10 @@ class EventPageScaffold extends StatelessWidget {
             )
           : Stack(
               fit: StackFit.expand,
-              children: [_buildBackground(primary), body ?? const SizedBox.shrink()],
+              children: [
+                _buildBackground(primary),
+                body ?? const SizedBox.shrink(),
+              ],
             ),
     );
   }
@@ -117,10 +122,15 @@ class EventPageScaffold extends StatelessWidget {
   /// NLC 2026: local asset only (weekend-safe). No network images.
   static const String nlcBackgroundAsset = 'assets/images/nlc_background.png';
 
+  /// March Assembly: teal/gold sparkle background.
+  static const String marchAssemblyBackgroundAsset =
+      'assets/images/march_assembly_background.png';
+
   String? _effectiveBackgroundImageUrl() {
     var url = event?.backgroundImageUrl;
     if (url != null && url.isNotEmpty) {
       if (url.contains('background2.svg')) return nlcBackgroundAsset;
+      if (url.contains('march_assembly_background')) return marchAssemblyBackgroundAsset;
       return url;
     }
     final slug = event?.slug ?? eventSlug;
@@ -128,11 +138,19 @@ class EventPageScaffold extends StatelessWidget {
         slug == 'nlc-2026' ||
         (event?.name.toLowerCase().contains('national leaders conference') ?? false))
       return nlcBackgroundAsset;
+    if (slug == 'march-cluster-2026' ||
+        (event?.name.toLowerCase().contains('march cluster assembly') ?? false))
+      return marchAssemblyBackgroundAsset;
     return null;
   }
 
   Widget _buildBackground(Color primary) {
     final bgUrl = _effectiveBackgroundImageUrl();
+    // Overlay settings: prefer event branding, then scaffold params, then defaults.
+    final overlayTintColor =
+        event?.backgroundOverlayColor ?? overlayTint ?? NlcPalette.brandBlueDark;
+    final overlayAlpha = overlayOpacity ?? event?.effectiveOverlayOpacity ?? 0.55;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -151,10 +169,26 @@ class EventPageScaffold extends StatelessWidget {
               ),
             ),
           ),
-        // Optional full background image (NLC fallback when slug is 'nlc')
+        // Optional full background image
         if (bgUrl case final url?)
           _buildBackgroundImage(url),
-        // Pattern overlay (skip when using full background image; it often has its own pattern)
+        // Dark overlay for background images so content cards are legible
+        if (bgUrl != null)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    overlayTintColor.withValues(alpha: overlayAlpha + 0.15),
+                    overlayTintColor.withValues(alpha: overlayAlpha),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Pattern overlay (skip when using full background image)
         if (bgUrl == null)
           _buildPatternOverlay(
             event?.backgroundPatternUrl ?? 'assets/checkin/mossaic.svg',
@@ -191,10 +225,11 @@ class EventPageScaffold extends StatelessWidget {
       );
     }
     return Positioned.fill(
-      child: Image.network(
-        url,
+      child: CachedNetworkImage(
+        imageUrl: url,
         fit: BoxFit.cover,
-        errorBuilder: (_, e, st) => const SizedBox.expand(),
+        fadeInDuration: const Duration(milliseconds: 400),
+        errorWidget: (_, _, _) => const SizedBox.expand(),
       ),
     );
   }
@@ -250,7 +285,15 @@ class EventLogo extends StatelessWidget {
       return SizedBox(
         height: size,
         width: size,
-        child: Image.asset(url, fit: BoxFit.contain),
+        child: Image.asset(
+          url,
+          fit: BoxFit.contain,
+          errorBuilder: (_, _, _) => Icon(
+            Icons.celebration,
+            size: size * 0.6,
+            color: EventTokens.accentGold,
+          ),
+        ),
       );
     }
 
@@ -264,7 +307,16 @@ class EventLogo extends StatelessWidget {
     return SizedBox(
       height: size,
       width: size,
-      child: Image.network(url, fit: BoxFit.contain),
+      child: CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.contain,
+        fadeInDuration: const Duration(milliseconds: 300),
+        errorWidget: (_, _, _) => Icon(
+          Icons.celebration,
+          size: size * 0.6,
+          color: EventTokens.accentGold,
+        ),
+      ),
     );
   }
 

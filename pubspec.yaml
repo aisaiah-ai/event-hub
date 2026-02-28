@@ -48,6 +48,8 @@ dependencies:
   spreadsheet_decoder: ^2.3.0
   fl_chart: ^0.69.0
   shared_preferences: ^2.2.2
+  cached_network_image: ^3.4.1
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:
@@ -78,7 +80,8 @@ flutter:
     - assets/checkin/nlc_logo.png
     - assets/checkin/mossaic.svg
     - assets/checkin/background2.svg
-    - assets/images/nlc_background.png
+    - assets/images/
+    - assets/images/speakers/
     - tools/sample_nlc_registrants.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see

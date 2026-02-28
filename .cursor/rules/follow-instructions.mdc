@@ -1,0 +1,18 @@
+---
+description: Follow user instructions exactly; minimal changes only
+alwaysApply: true
+---
+
+# Follow Instructions Exactly
+
+- **Only change what the user asked for.** If they say "make X 7:00 PM", change only the time to 7:00 PM. Do not rename, remove, or replace X or related labels.
+- **Do not rename or remove things unless the user explicitly asks** (e.g. "rename Y to Z" or "remove Y").
+- **Keep existing names and structure** unless the user clearly requests a different name or structure.
+- When in doubt, make the smallest change that satisfies the request and ask if they want anything else.
+
+# Verify Before Saying Complete
+
+- **Do not rush.** After making changes, verify they match what was asked before declaring done.
+- **Check the actual state:** re-read the changed code or run relevant commands (e.g. list files, run seed, analyze) to confirm behavior.
+- **Cross-check all affected places:** if the user asked for "X at 7 PM", confirm the time is 7 PM in every place it appears (fallback, seed, metadata), not just one.
+- Only say a task is complete once verification shows the request is fully satisfied.

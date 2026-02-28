@@ -38,4 +38,23 @@ class EventRsvp {
     if (area != null) 'area': area,
     if (cfcId != null) 'cfcId': cfcId,
   };
+
+  /// Parse from Firestore document (id + data).
+  static EventRsvp fromFirestore(String id, Map<String, dynamic> data) {
+    final createdAt = data['createdAt'];
+    return EventRsvp(
+      name: data['name'] as String? ?? '',
+      household: data['household'] as String? ?? '',
+      attendingRally: data['attendingRally'] as bool? ?? true,
+      attendingDinner: data['attendingDinner'] as bool? ?? true,
+      attendeesCount: (data['attendeesCount'] as num?)?.toInt() ?? 1,
+      celebrationType: data['celebrationType'] as String?,
+      createdAt: createdAt is Timestamp
+          ? createdAt.toDate()
+          : (DateTime.tryParse(createdAt?.toString() ?? '') ?? DateTime.now()),
+      source: data['source'] as String?,
+      area: data['area'] as String?,
+      cfcId: data['cfcId'] as String?,
+    );
+  }
 }

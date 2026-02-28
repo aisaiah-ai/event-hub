@@ -217,6 +217,13 @@ class HomeScreen extends StatelessWidget {
                       context.go('/admin/registrants/new?eventId=$eventId'),
                 ),
                 _ActionTile(
+                  icon: Icons.list_alt_rounded,
+                  label: 'Registrant Report',
+                  subtitle: 'List & export registrants',
+                  onTap: () =>
+                      context.go('/admin/registrants?eventId=$eventId'),
+                ),
+                _ActionTile(
                   icon: Icons.upload_file_rounded,
                   label: 'Import',
                   subtitle: 'CSV bulk import',

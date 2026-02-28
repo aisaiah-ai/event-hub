@@ -126,6 +126,12 @@ service cloud.firestore {
           || (selfCheckinEnabled(eventId) && request.auth == null);
       }
 
+      // Event speakers (e.g. March Assembly, NLC) — public read; staff write.
+      match /speakers/{speakerId} {
+        allow read: if true;
+        allow write: if isStaff(eventId);
+      }
+
       match /admins/{email} {
         allow read: if isAdmin(eventId);
         allow write: if isAdmin(eventId);

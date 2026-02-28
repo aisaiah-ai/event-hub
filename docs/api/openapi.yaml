@@ -1,0 +1,507 @@
+openapi: 3.0.3
+info:
+  title: Events Hub API
+  description: HTTP API for the Spiritual App — events, RSVP, check-in, schedule, announcements. Served by Firebase Cloud Functions.
+  version: 1.0.0
+
+servers:
+  - url: https://us-central1-aisaiah-event-hub.cloudfunctions.net/api
+    description: Cloud Functions (replace with your project region/project id)
+
+tags:
+  - name: events
+    description: Event listing and details
+  - name: schedule
+    description: Sessions / schedule
+  - name: announcements
+    description: Event announcements
+  - name: registrations
+    description: RSVP and my registrations
+  - name: checkin
+    description: Main and session check-in
+
+paths:
+  /:
+    get:
+      summary: Discovery
+      operationId: getDiscovery
+      responses:
+        '200':
+          description: API discovery with v1 endpoint hints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessDiscovery'
+
+  /v1/events:
+    get:
+      summary: List events
+      tags: [events]
+      operationId: listEvents
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: chapter
+          in: query
+          schema: { type: string }
+        - name: region
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEventList'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}:
+    get:
+      summary: Get event by ID
+      tags: [events]
+      operationId: getEvent
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEventDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/sessions:
+    get:
+      summary: List sessions (schedule)
+      tags: [schedule]
+      operationId: listSessions
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Sessions ordered by start time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessSessionList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/schedule:
+    get:
+      summary: List schedule (alias for sessions)
+      tags: [schedule]
+      operationId: listSchedule
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Same as listSessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessSessionList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/events/{eventId}/announcements:
+    get:
+      summary: List announcements
+      tags: [announcements]
+      operationId: listAnnouncements
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Announcements (pinned first, then newest)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessAnnouncementList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/events/{eventId}/register:
+    post:
+      summary: Register for event
+      tags: [registrations]
+      operationId: register
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '201':
+          description: Registered (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessRegistration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Capacity exceeded or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/me/registrations:
+    get:
+      summary: My registrations
+      tags: [registrations]
+      operationId: listMyRegistrations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of my registrations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessRegistrationList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/my-registration:
+    get:
+      summary: My registration for this event
+      tags: [registrations]
+      operationId: getMyRegistration
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Registration for event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessRegistration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/events/{eventId}/checkin/main:
+    post:
+      summary: Main check-in
+      tags: [checkin]
+      operationId: checkinMain
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '201':
+          description: Check-in recorded (idempotent)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessCheckinMain'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/checkin/sessions/{sessionId}:
+    post:
+      summary: Session check-in
+      tags: [checkin]
+      operationId: checkinSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '201':
+          description: Session check-in recorded (idempotent; may auto main check-in)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessCheckinSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/checkin/status:
+    get:
+      summary: Check-in status
+      tags: [checkin]
+      operationId: getCheckinStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Current user check-in status for event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessCheckinStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID token
+      description: Firebase Auth ID token from client (e.g. user.getIdToken())
+
+  parameters:
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            ok: false
+            error: { code: unauthenticated, message: Invalid or expired token }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RateLimited:
+      description: Too many check-in requests
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    InternalError:
+      description: Server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    SuccessDiscovery:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            name: { type: string }
+            version: { type: string }
+            v1: { type: string }
+            endpoints: { type: object }
+
+    SuccessEventList:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/EventSummary' }
+
+    SuccessEventDetail:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/EventDetail' }
+
+    EventSummary:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        chapter: { type: string }
+        region: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        venue: { type: string }
+        visibility: { type: string }
+
+    EventDetail:
+      allOf:
+        - { $ref: '#/components/schemas/EventSummary' }
+        - type: object
+          properties:
+            registrationSettings: { type: object }
+
+    SuccessSessionList:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Session' }
+
+    Session:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        room: { type: string }
+        capacity: { type: integer }
+        tags: { type: array, items: { type: string } }
+
+    SuccessAnnouncementList:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Announcement' }
+
+    Announcement:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        pinned: { type: boolean }
+        priority: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    SuccessRegistration:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/Registration' }
+
+    SuccessRegistrationList:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Registration' }
+
+    Registration:
+      type: object
+      properties:
+        eventId: { type: string }
+        registrationId: { type: string }
+        status: { type: string, enum: [registered, canceled] }
+        createdAt: { type: string, format: date-time }
+        eventStartAt: { type: string, format: date-time }
+        profile:
+          type: object
+          properties:
+            name: { type: string }
+            email: { type: string }
+
+    SuccessCheckinMain:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            already: { type: boolean }
+
+    SuccessCheckinSession:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            mainCreated: { type: boolean }
+            already: { type: boolean }
+
+    SuccessCheckinStatus:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            eventId: { type: string }
+            mainCheckedIn: { type: boolean }
+            mainCheckedInAt: { type: string, format: date-time }
+            sessionIds: { type: array, items: { type: string } }
+
+    ErrorResponse:
+      type: object
+      required: [ok, error]
+      properties:
+        ok: { type: boolean, example: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - unauthenticated
+                - forbidden
+                - not_found
+                - invalid_argument
+                - conflict
+                - capacity_exceeded
+                - rate_limited
+                - internal
+            message: { type: string }

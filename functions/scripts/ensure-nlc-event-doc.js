@@ -34,10 +34,13 @@ if (databaseId !== '(default)') {
 const EVENT_ID = 'nlc-2026';
 
 // ----- 1. Event document (all required fields) -----
+// NLC 2026: March 27–29, 2026
 const EVENT_DATA = {
   name: 'National Leaders Conference 2026',
   slug: 'nlc-2026',
   venue: 'Hyatt Regency Valencia',
+  startAt: admin.firestore.Timestamp.fromDate(new Date('2026-03-27T00:00:00.000Z')),
+  endAt: admin.firestore.Timestamp.fromDate(new Date('2026-03-29T23:59:59.999Z')),
   createdAt: admin.firestore.FieldValue.serverTimestamp(),
   isActive: true,
   metadata: {

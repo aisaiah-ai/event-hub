@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'config/auth_notifier.dart';
 import 'features/checkin/checkin_screen.dart';
 import 'features/events/data/event_model.dart';
 import 'features/event_checkin/presentation/checkin_dashboard_screen.dart';
@@ -22,9 +23,11 @@ import 'screens/admin/import_registrants_screen.dart';
 import 'screens/admin/manual_checkin_screen.dart';
 import 'screens/admin/registrant_edit_screen.dart';
 import 'screens/admin/registrant_new_screen.dart';
+import 'screens/admin/registrant_report_screen.dart';
 import 'screens/admin/schema_editor_screen.dart';
 import 'models/role_override.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 /// Event ID for development. Must match seeded data (nlc-2026).
 const defaultEventId = 'nlc-2026';
@@ -42,29 +45,65 @@ DateTime? _parseEventDate(String? s) {
 
 String get _initialLocation {
   final host = Uri.base.host;
-  if (host == 'nlc.aisaiah.org' ||
-      host == 'localhost' ||
-      host == '127.0.0.1') {
-    return '/events/nlc/main-checkin';
+  if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
+  if (host == 'localhost' || host == '127.0.0.1') {
+    return '/events/$_defaultRsvpEventSlug';
   }
   if (host == 'rsvp.aisaiah.org') return '/';
   return '/admin/dashboard';
 }
 
 GoRouter createAppRouter() {
+  final authNotifier = AuthNotifier();
   return GoRouter(
     initialLocation: _initialLocation,
+    refreshListenable: authNotifier,
+    redirect: (context, state) {
+      final loc = state.matchedLocation;
+      if (loc == '/login') return null;
+      if (loc.startsWith('/admin') && !authNotifier.isStaffSignedIn) {
+        return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+      }
+      return null;
+    },
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Page not found')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'No page for ${state.uri.path}',
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => context.go('/'),
+              icon: const Icon(Icons.home),
+              label: const Text('Go to home'),
+            ),
+          ],
+        ),
+      ),
+    ),
     routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) {
+          final redirect = state.uri.queryParameters['redirect'];
+          return LoginScreen(redirect: redirect);
+        },
+      ),
       // rsvp.aisaiah.org: / shows RSVP. nlc.aisaiah.org: / -> session picker. Otherwise / -> dashboard
       GoRoute(
         path: '/',
         redirect: (context, state) {
           final host = Uri.base.host;
           if (host == 'rsvp.aisaiah.org') return null;
-          if (host == 'nlc.aisaiah.org' ||
-              host == 'localhost' ||
-              host == '127.0.0.1') {
-            return '/events/nlc/main-checkin';
+          if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
+          if (host == 'localhost' || host == '127.0.0.1') {
+            return '/events/$_defaultRsvpEventSlug';
           }
           return '/admin/dashboard';
         },
@@ -324,6 +363,18 @@ GoRouter createAppRouter() {
           final eventId =
               state.uri.queryParameters['eventId'] ?? defaultEventId;
           return SchemaEditorScreen(eventId: eventId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/registrants',
+        builder: (context, state) {
+          final eventId =
+              state.uri.queryParameters['eventId'] ?? defaultEventId;
+          final eventTitle = state.uri.queryParameters['eventTitle'];
+          return RegistrantReportScreen(
+            eventId: eventId,
+            eventTitle: eventTitle,
+          );
         },
       ),
       GoRoute(

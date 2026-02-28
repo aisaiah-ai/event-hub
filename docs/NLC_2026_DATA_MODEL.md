@@ -12,7 +12,7 @@
 
 | Document | Firestore path | Created by |
 |----------|----------------|------------|
-| Event | **Collection** `events` → **document** `nlc-2026` (fields: name, venue, createdAt, isActive, metadata) | `functions/scripts/ensure-nlc-event-doc.js` or callable `initializeNlc2026` |
+| Event | **Collection** `events` → **document** `nlc-2026` (name, venue, startAt, endAt, createdAt, isActive, metadata) | `functions/scripts/ensure-nlc-event-doc.js` or callable `initializeNlc2026` |
 | Sessions | `events` → `nlc-2026` → **subcollection** `sessions` → docs `opening-plenary`, `leadership-session-1`, `mass`, `closing` | Same |
 | Stats overview | `events` → `nlc-2026` → **subcollection** `stats` → **document** `overview` | Same |
 
@@ -30,10 +30,13 @@ All three are written in one batch. **Database:** app uses **event-hub-dev** (de
 |-----------|--------|----------|
 | name      | string | yes      |
 | venue     | string | yes      |
+| startAt   | timestamp | recommended (API/display; e.g. 2026-03-27) |
+| endAt     | timestamp | recommended (API/display; e.g. 2026-03-29) |
 | createdAt | timestamp (server) | yes |
 | isActive  | boolean | yes     |
 | metadata.selfCheckinEnabled | boolean | for self-check-in |
 | metadata.sessionsEnabled    | boolean | for session selector |
+| shortDescription           | string  | optional; shown on event detail page below header |
 
 **Example:**
 
@@ -41,6 +44,8 @@ All three are written in one batch. **Database:** app uses **event-hub-dev** (de
 {
   "name": "National Leaders Conference 2026",
   "venue": "Hyatt Regency Valencia",
+  "startAt": "2026-03-27T00:00:00.000Z",
+  "endAt": "2026-03-29T23:59:59.999Z",
   "createdAt": "<serverTimestamp>",
   "isActive": true,
   "metadata": {

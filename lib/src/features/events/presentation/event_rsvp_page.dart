@@ -244,8 +244,8 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
   }
 
   Widget _buildForm(EventModel event) {
-    final rallyTime = event.rallyTimeText ?? '3:00 PM - 6:00 PM';
-    final dinnerTime = event.dinnerTimeText ?? '6:00 PM - 9:00 PM';
+    final rallyTime = event.rallyTimeText ?? '3:00 – 6:00 PM';
+    final dinnerTime = event.dinnerTimeText ?? '7:00 PM – 9:00 PM';
     final rsvpDeadline = event.rsvpDeadlineText ?? 'March 10';
 
     return SingleChildScrollView(
@@ -254,7 +254,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: EventTokens.spacingS),
-          Center(child: EventLogo(logoUrl: event.logoUrl, size: 72)),
+          Center(child: EventLogo(logoUrl: event.effectiveLogoUrl, size: 72)),
           const SizedBox(height: EventTokens.spacingM),
           Center(
             child: Text(
@@ -297,14 +297,14 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
             icon: Icons.volunteer_activism,
             title: 'Evangelization Rally',
             time: rallyTime,
-            description: 'Join us for an afternoon of faith and fellowship.',
+            description: 'A time of worship, inspiration, and renewal as we recommit ourselves to the call to evangelize.',
           ),
           const SizedBox(height: EventTokens.spacingM),
           _ScheduleRow(
             icon: Icons.restaurant,
-            title: 'Dinner & Fellowship',
+            title: 'Birthdays & Anniversaries Celebration',
             time: dinnerTime,
-            description: 'Birthdays & Anniversaries Celebration.',
+            description: 'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
           ),
           const SizedBox(height: EventTokens.spacingL),
           _SectionHeader(icon: Icons.people, title: 'Please RSVP'),
@@ -338,7 +338,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
           ),
           const SizedBox(height: EventTokens.spacingS),
           _RsvpCheckbox(
-            label: 'Dinner & Fellowship ($dinnerTime)',
+            label: 'Birthdays & Anniversaries Celebration ($dinnerTime)',
             value: _attendingDinner,
             onChanged: (v) => setState(() => _attendingDinner = v ?? true),
           ),

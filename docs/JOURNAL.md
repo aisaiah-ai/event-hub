@@ -735,6 +735,24 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-26 — March Assembly mock data (sessions, materials, speakers)
+
+**What was done**
+- Added `functions/scripts/seed-march-assembly.js`: seeds event `march-assembly` with branding (flier-style #0E3A5D / #F4A340), mock logo URL, sessions (main-checkin, evangelization-rally, dinner-fellowship) with `startAt`/`endAt` and **materials** (array of PDF links), and **speakers** subcollection (name, title, bio, photoUrl). Also creates `stats/overview`.
+- Firestore rules: added `match /events/{eventId}/speakers/{speakerId}` with read: true, write: isStaff(eventId).
+- Docs: `docs/MARCH_ASSEMBLY_MOCK_DATA.md` — data model, how to run seed, how app finds event.
+
+**What was tried**
+- Providing a test event for the bigger National Youth Conference in Portland: same schedule/flier style as March Cluster Assembly, with session PDF materials and speaker profiles in the database.
+
+**Outcome / still broken**
+- Script and rules ready. Run seed with `cd functions && node scripts/seed-march-assembly.js` (use `--database=(default)` if app uses default). Deploy rules so speakers are readable.
+
+**Next time (recall)**
+- March Assembly event id is `march-assembly`, slug `march-cluster-2026`. Materials are stored as session doc field `materials: [{ title, url, type: 'pdf' }]`. Speakers in `events/march-assembly/speakers`.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

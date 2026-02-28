@@ -15,6 +15,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import apiApp from "./api";
 
 admin.initializeApp();
 
@@ -145,16 +146,22 @@ export const initializeNlc2026 = functions.https.onCall(async (data, context) =>
 
   const batch = db.batch();
 
+  const nlcStartAt = admin.firestore.Timestamp.fromDate(new Date("2026-03-27T00:00:00.000Z"));
+  const nlcEndAt = admin.firestore.Timestamp.fromDate(new Date("2026-03-29T23:59:59.999Z"));
   if (!eventSnap.exists) {
     batch.set(eventRef, {
       name: "National Leaders Conference 2026",
       venue: "Hyatt Regency Valencia",
+      startAt: nlcStartAt,
+      endAt: nlcEndAt,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       isActive: true,
       metadata: { selfCheckinEnabled: true, sessionsEnabled: true },
     }, { merge: true });
   } else {
     batch.set(eventRef, {
+      startAt: nlcStartAt,
+      endAt: nlcEndAt,
       metadata: { selfCheckinEnabled: true, sessionsEnabled: true },
     }, { merge: true });
   }
@@ -612,3 +619,37 @@ export const backfillAnalytics = functions.https.onCall(async (data, context) =>
 });
 
 export * from "./checkinAnalytics";
+
+// —— /v1 API (Express) ———
+export const api = functions.runWith({ invoker: "public" }).https.onRequest(apiApp);
+
+// —— Deep link landing: GET /e/:eventId (QR → app or fallback page) ———
+export const e = functions.runWith({ invoker: "public" }).https.onRequest((req, res) => {
+  if (req.method !== "GET") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+  const path = req.path || req.url || "";
+  const eventId = path.replace(/^\/e\/?/, "").split("/")[0] || path.slice(1).split("/")[0];
+  if (!eventId) {
+    res.status(400).send("Missing event ID. Use /e/:eventId");
+    return;
+  }
+  const ua = (req.get("user-agent") || "").toLowerCase();
+  const isApp = ua.includes("spiritual") || ua.includes("events-hub");
+  if (isApp) {
+    res.redirect(302, `https://events.aisaiah.org/events/${eventId}`);
+    return;
+  }
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(200).send(`
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Event</title></head>
+<body style="font-family:system-ui;max-width:480px;margin:2rem auto;padding:1rem;text-align:center">
+  <h1>Event</h1>
+  <p>Open in the Spiritual App for the best experience.</p>
+  <p><a href="https://events.aisaiah.org/events/${eventId}">Continue in browser</a></p>
+</body>
+</html>`);
+});

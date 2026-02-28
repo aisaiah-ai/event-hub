@@ -27,23 +27,26 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
     _redirectOrShow();
   }
 
+  /// Default event slug when starting from /events (March Assembly landing with schedule & speakers).
+  static const String _defaultEventSlug = 'march-cluster-2026';
+
   Future<void> _redirectOrShow() async {
-    // Dev: default to NLC check-in. Prod: use active event (RSVP).
+    // Default: show March Assembly landing (event page with schedule and speakers).
     if (Environment.isDev) {
       if (!mounted) return;
-      context.go('/events/nlc/main-checkin');
+      context.go('/events/$_defaultEventSlug');
       return;
     }
     try {
       final event = await _repo.getActiveEvent();
       if (!mounted) return;
       if (event != null) {
-        context.go('/events/${event.slug}/rsvp');
+        context.go('/events/${event.slug}');
         return;
       }
     } catch (_) {
       if (!mounted) return;
-      context.go('/events/march-cluster-2026/rsvp');
+      context.go('/events/$_defaultEventSlug');
       return;
     }
     if (!mounted) return;
