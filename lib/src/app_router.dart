@@ -19,6 +19,7 @@ import 'features/events/presentation/event_checkin_entry_page.dart';
 import 'features/events/presentation/event_landing_page.dart';
 import 'features/events/presentation/event_rsvp_page.dart';
 import 'features/events/presentation/events_index_page.dart';
+import 'features/speakers/presentation/speaker_details_page.dart';
 import 'screens/admin/import_registrants_screen.dart';
 import 'screens/admin/manual_checkin_screen.dart';
 import 'screens/admin/registrant_edit_screen.dart';
@@ -115,6 +116,17 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/events',
         builder: (context, state) => const EventsIndexPage(),
+      ),
+      GoRoute(
+        path: '/speaker/:speakerId',
+        builder: (context, state) {
+          final speakerId = state.pathParameters['speakerId'] ?? '';
+          final eventSlug = state.uri.queryParameters['eventSlug'];
+          return SpeakerDetailsPage(
+            speakerId: speakerId,
+            eventSlug: eventSlug,
+          );
+        },
       ),
       GoRoute(
         path: '/events/:eventSlug',

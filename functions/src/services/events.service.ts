@@ -33,6 +33,8 @@ function toDetail(doc: admin.firestore.DocumentSnapshot): EventDetailDto {
   const d = doc.data() ?? {};
   return {
     ...summary,
+    description: (d.description as string) || null,
+    address: (d.address as string) || null,
     registrationSettings: d.registrationSettings as Record<string, unknown> | undefined,
   };
 }

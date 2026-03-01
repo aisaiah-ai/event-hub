@@ -30,6 +30,10 @@ All stable endpoints live under **`/v1`**. The root path `GET /` returns a short
 - **Success:** `{ "ok": true, "data": <payload> }`
 - **Error:** `{ "ok": false, "error": { "code": "<code>", "message": "<message>" } }`
 
+## Data availability
+
+Which fields (event description, address, session description, speaker, etc.) come from which endpoints: [DATA_VIA_API.md](./DATA_VIA_API.md).
+
 ## Endpoints
 
 | Method | Path | Auth | Description |

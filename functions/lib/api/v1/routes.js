@@ -43,6 +43,7 @@ const rateLimit_1 = require("../../middleware/rateLimit");
 const eventsRoutes = __importStar(require("./events.routes"));
 const scheduleRoutes = __importStar(require("./schedule.routes"));
 const announcementsRoutes = __importStar(require("./announcements.routes"));
+const speakersRoutes = __importStar(require("./speakers.routes"));
 const registrationsRoutes = __importStar(require("./registrations.routes"));
 const checkinRoutes = __importStar(require("./checkin.routes"));
 const router = (0, express_1.Router)();
@@ -52,6 +53,8 @@ router.get("/events/:eventId", validate_1.requireEventId, eventsRoutes.getById);
 router.get("/events/:eventId/sessions", validate_1.requireEventId, scheduleRoutes.listSessions);
 router.get("/events/:eventId/schedule", validate_1.requireEventId, scheduleRoutes.listSessions);
 router.get("/events/:eventId/announcements", validate_1.requireEventId, announcementsRoutes.list);
+router.get("/events/:eventId/speakers", validate_1.requireEventId, speakersRoutes.list);
+router.get("/events/:eventId/speakers/:speakerId", validate_1.requireEventId, validate_1.requireSpeakerId, speakersRoutes.getById);
 // —— Member (auth required) ———
 router.post("/events/:eventId/register", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.register);
 router.get("/me/registrations", auth_1.requireAuth, registrationsRoutes.listMyRegistrations);

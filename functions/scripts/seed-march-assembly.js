@@ -11,8 +11,10 @@
  * Session materials are PDF URLs (mock); speakers have name, bio, photoUrl.
  *
  * Database: (default) or --database=event-hub-dev / event-hub-prod.
- * Run: cd functions && node scripts/seed-march-assembly.js
- *      cd functions && node scripts/seed-march-assembly.js "--database=(default)"
+ * Run from project root (event-hub):
+ *   cd functions && node scripts/seed-march-assembly.js
+ *   cd functions && node scripts/seed-march-assembly.js "--database=(default)"
+ * If you see "no such file or directory: functions", you are not in event-hub; run: cd path/to/event-hub first.
  * Requires: gcloud auth application-default login (or GOOGLE_APPLICATION_CREDENTIALS).
  */
 
@@ -126,22 +128,52 @@ const SESSIONS = [
   },
 ];
 
-// ----- 3. Speakers (match app fallback: Bro Rommel Dolar, Bro. Mike Suela) -----
+// ----- 3. Speakers (full profile for Speaker Details page + list) -----
 const SPEAKERS = [
   {
     id: 'rommel-dolar',
     name: 'Bro Rommel Dolar',
+    fullName: 'Rommel Dolar',
+    displayName: 'Bro Rommel Dolar',
     title: 'House Hold Head',
-    bio: '',
+    cluster: 'Central B Cluster',
     photoUrl: 'assets/images/speakers/rommel_dolar.png',
+    bio:
+      'Bro Rommel serves as House Hold Head for the Central B Cluster, supporting families in BBS, Tampa, and Port Charlotte. ' +
+      'He has been active in Couples for Christ for over a decade, with a heart for evangelization and community building.',
+    yearsInCfc: 12,
+    familiesMentored: 8,
+    talksGiven: 24,
+    location: 'Tampa, FL',
+    topics: ['Evangelization', 'Household Leadership', 'Community Life', 'Worship'],
+    quote:
+      'In the One we are one — when we walk together in Christ, our families and our cluster become a light to the world.',
+    email: 'rommel.dolar@example.com',
+    phone: '+1 (813) 555-0101',
+    facebookUrl: 'https://www.facebook.com/example.rommel',
     order: 0,
   },
   {
     id: 'mike-suela',
     name: 'Bro. Mike Suela',
+    fullName: 'Mike Suela',
+    displayName: 'Bro. Mike Suela',
     title: 'Unit Head',
-    bio: '',
+    cluster: 'Central B Cluster',
     photoUrl: 'assets/images/speakers/mike_suela.png',
+    bio:
+      'Bro. Mike Suela leads as Unit Head, coordinating birthdays, anniversaries, and fellowship events for the cluster. ' +
+      'He is passionate about celebrating milestones and strengthening bonds within the community.',
+    yearsInCfc: 8,
+    familiesMentored: 5,
+    talksGiven: 12,
+    location: 'Port Charlotte, FL',
+    topics: ['Fellowship', 'Celebration', 'Family Life', 'Service'],
+    quote:
+      'Every birthday and anniversary is a chance to thank God for His faithfulness and to encourage one another in the mission.',
+    email: 'mike.suela@example.com',
+    phone: '+1 (941) 555-0102',
+    facebookUrl: null,
     order: 1,
   },
 ];

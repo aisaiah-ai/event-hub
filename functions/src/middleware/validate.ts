@@ -24,3 +24,7 @@ export function requireEventId(req: Request, res: Response, next: NextFunction):
 export function requireSessionId(req: Request, res: Response, next: NextFunction): void {
   requireParam("sessionId")(req, res, next);
 }
+
+export function requireSpeakerId(req: Request, res: Response, next: NextFunction): void {
+  requireParam("speakerId")(req, res, next);
+}

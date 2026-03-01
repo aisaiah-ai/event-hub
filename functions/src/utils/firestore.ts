@@ -54,6 +54,14 @@ export function announcementsRef(eventId: string): admin.firestore.CollectionRef
   return eventRef(eventId).collection("announcements");
 }
 
+export function speakersRef(eventId: string): admin.firestore.CollectionReference {
+  return eventRef(eventId).collection("speakers");
+}
+
+export function speakerRef(eventId: string, speakerId: string): admin.firestore.DocumentReference {
+  return speakersRef(eventId).doc(speakerId);
+}
+
 /** Mirror for fast "my registrations": users/{uid}/registrations/{eventId} */
 export function userRegistrationsRef(uid: string): admin.firestore.CollectionReference {
   return getDb().collection("users").doc(uid).collection("registrations");

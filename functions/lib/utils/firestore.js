@@ -49,6 +49,8 @@ exports.registrantRef = registrantRef;
 exports.attendanceRef = attendanceRef;
 exports.attendanceDocRef = attendanceDocRef;
 exports.announcementsRef = announcementsRef;
+exports.speakersRef = speakersRef;
+exports.speakerRef = speakerRef;
 exports.userRegistrationsRef = userRegistrationsRef;
 exports.userRegistrationRef = userRegistrationRef;
 const admin = __importStar(require("firebase-admin"));
@@ -81,6 +83,12 @@ function attendanceDocRef(eventId, sessionId, registrantId) {
 }
 function announcementsRef(eventId) {
     return eventRef(eventId).collection("announcements");
+}
+function speakersRef(eventId) {
+    return eventRef(eventId).collection("speakers");
+}
+function speakerRef(eventId, speakerId) {
+    return speakersRef(eventId).doc(speakerId);
 }
 /** Mirror for fast "my registrations": users/{uid}/registrations/{eventId} */
 function userRegistrationsRef(uid) {

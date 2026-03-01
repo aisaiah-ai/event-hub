@@ -33,6 +33,12 @@ service cloud.firestore {
             .hasOnly(['eventAttendance', 'checkInSource', 'updatedAt', 'sessionsCheckedIn']);
     }
 
+    // Top-level speakers collection (Speaker Details page: /speaker/:speakerId).
+    match /speakers/{speakerId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /events/{eventId} {
 
       allow read: if true;

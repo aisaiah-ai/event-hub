@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Speaker profile images ──────────────────────────────────────────
+    // Public read so any device (web, mobile, CDN) can load the photo URL.
+    // Write requires Firebase Auth — only signed-in admins call the upload.
+    // Constraints enforced at the Flutter layer (type + 2 MB) before putData.
+    match /events/{eventId}/speakers/{speakerId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Default: deny everything else ──────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

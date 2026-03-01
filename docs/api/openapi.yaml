@@ -15,6 +15,8 @@ tags:
     description: Sessions / schedule
   - name: announcements
     description: Event announcements
+  - name: speakers
+    description: Event speakers (profiles, bio, photo)
   - name: registrations
     description: RSVP and my registrations
   - name: checkin
@@ -132,6 +134,48 @@ paths:
                 $ref: '#/components/schemas/SuccessAnnouncementList'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /v1/events/{eventId}/speakers:
+    get:
+      summary: List speakers
+      tags: [speakers]
+      operationId: listSpeakers
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Speakers for the event (ordered by order field)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessSpeakerList'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/events/{eventId}/speakers/{speakerId}:
+    get:
+      summary: Get speaker by ID
+      tags: [speakers]
+      operationId: getSpeaker
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - name: speakerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Speaker profile (bio, photo, topics, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessSpeaker'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /v1/events/{eventId}/register:
     post:
@@ -379,7 +423,47 @@ components:
         - { $ref: '#/components/schemas/EventSummary' }
         - type: object
           properties:
+            description: { type: string, description: Event description (markdown or plain text) }
+            address: { type: string, description: Full address or venue address }
             registrationSettings: { type: object }
+
+    SuccessSpeakerList:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Speaker' }
+
+    SuccessSpeaker:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/Speaker' }
+
+    Speaker:
+      type: object
+      required: [id, fullName]
+      properties:
+        id: { type: string }
+        fullName: { type: string }
+        displayName: { type: string }
+        title: { type: string }
+        cluster: { type: string }
+        photoUrl: { type: string }
+        bio: { type: string }
+        yearsInCfc: { type: integer }
+        familiesMentored: { type: integer }
+        talksGiven: { type: integer }
+        location: { type: string }
+        topics: { type: array, items: { type: string } }
+        quote: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        facebookUrl: { type: string }
+        order: { type: integer }
 
     SuccessSessionList:
       type: object
@@ -395,11 +479,14 @@ components:
       properties:
         id: { type: string }
         title: { type: string }
+        description: { type: string }
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
         room: { type: string }
         capacity: { type: integer }
         tags: { type: array, items: { type: string } }
+        speaker: { type: string, description: Session speaker name }
+        speakerTitle: { type: string, description: Session speaker title }
 
     SuccessAnnouncementList:
       type: object

@@ -4,11 +4,12 @@
 
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
-import { requireEventId, requireSessionId } from "../../middleware/validate";
+import { requireEventId, requireSessionId, requireSpeakerId } from "../../middleware/validate";
 import { checkInRateLimit } from "../../middleware/rateLimit";
 import * as eventsRoutes from "./events.routes";
 import * as scheduleRoutes from "./schedule.routes";
 import * as announcementsRoutes from "./announcements.routes";
+import * as speakersRoutes from "./speakers.routes";
 import * as registrationsRoutes from "./registrations.routes";
 import * as checkinRoutes from "./checkin.routes";
 
@@ -20,6 +21,8 @@ router.get("/events/:eventId", requireEventId, eventsRoutes.getById);
 router.get("/events/:eventId/sessions", requireEventId, scheduleRoutes.listSessions);
 router.get("/events/:eventId/schedule", requireEventId, scheduleRoutes.listSessions);
 router.get("/events/:eventId/announcements", requireEventId, announcementsRoutes.list);
+router.get("/events/:eventId/speakers", requireEventId, speakersRoutes.list);
+router.get("/events/:eventId/speakers/:speakerId", requireEventId, requireSpeakerId, speakersRoutes.getById);
 
 // —— Member (auth required) ———
 router.post("/events/:eventId/register", requireAuth, requireEventId, registrationsRoutes.register);

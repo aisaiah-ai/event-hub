@@ -213,6 +213,78 @@ describe("API", () => {
             expect(res.body).toEqual({ ok: true, data: [] });
         });
     });
+    describe("GET /v1/events/:eventId/speakers", () => {
+        it("returns 404 when event does not exist", async () => {
+            mockDocGet.mockReturnValue(makeSnapshot(false));
+            const res = await (0, supertest_1.default)(api_1.default).get("/v1/events/nonexistent/speakers");
+            expect(res.status).toBe(404);
+        });
+        it("returns 200 and array when event exists", async () => {
+            mockDocGet.mockReturnValue(makeSnapshot(true, {}));
+            mockCollectionGet.mockReturnValue(makeQuerySnapshot([
+                {
+                    id: "rommel-dolar",
+                    data: {
+                        fullName: "Rommel Dolar",
+                        displayName: "Bro Rommel Dolar",
+                        title: "House Hold Head",
+                        photoUrl: "https://example.com/rommel.jpg",
+                        order: 0,
+                    },
+                },
+            ]));
+            const res = await (0, supertest_1.default)(api_1.default).get("/v1/events/march-assembly/speakers");
+            expect(res.status).toBe(200);
+            expect(res.body.ok).toBe(true);
+            expect(Array.isArray(res.body.data)).toBe(true);
+            expect(res.body.data[0]).toMatchObject({
+                id: "rommel-dolar",
+                fullName: "Rommel Dolar",
+                displayName: "Bro Rommel Dolar",
+                title: "House Hold Head",
+                photoUrl: "https://example.com/rommel.jpg",
+            });
+        });
+    });
+    describe("GET /v1/events/:eventId/speakers/:speakerId", () => {
+        it("returns 404 when event does not exist", async () => {
+            mockDocGet.mockReturnValue(makeSnapshot(false));
+            const res = await (0, supertest_1.default)(api_1.default).get("/v1/events/nonexistent/speakers/rommel-dolar");
+            expect(res.status).toBe(404);
+        });
+        it("returns 404 when speaker does not exist", async () => {
+            mockDocGet
+                .mockReturnValueOnce(makeSnapshot(true, {}))
+                .mockReturnValueOnce(makeSnapshot(false));
+            const res = await (0, supertest_1.default)(api_1.default).get("/v1/events/march-assembly/speakers/unknown");
+            expect(res.status).toBe(404);
+        });
+        it("returns 200 and speaker when found", async () => {
+            mockDocGet
+                .mockReturnValueOnce(makeSnapshot(true, {}))
+                .mockReturnValueOnce(makeSnapshot(true, {
+                fullName: "Rommel Dolar",
+                displayName: "Bro Rommel Dolar",
+                title: "House Hold Head",
+                bio: "Bro Rommel serves as House Hold Head.",
+                photoUrl: "https://example.com/rommel.jpg",
+                topics: ["Evangelization", "Leadership"],
+                order: 0,
+            }, "rommel-dolar"));
+            const res = await (0, supertest_1.default)(api_1.default).get("/v1/events/march-assembly/speakers/rommel-dolar");
+            expect(res.status).toBe(200);
+            expect(res.body.ok).toBe(true);
+            expect(res.body.data).toMatchObject({
+                id: "rommel-dolar",
+                fullName: "Rommel Dolar",
+                displayName: "Bro Rommel Dolar",
+                title: "House Hold Head",
+                bio: "Bro Rommel serves as House Hold Head.",
+                photoUrl: "https://example.com/rommel.jpg",
+                topics: ["Evangelization", "Leadership"],
+            });
+        });
+    });
     describe("Auth-required routes", () => {
         it("POST /v1/events/:eventId/register returns 401 without token", async () => {
             const res = await (0, supertest_1.default)(api_1.default)

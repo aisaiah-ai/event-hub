@@ -160,10 +160,52 @@ class EventRepository {
   // ignore: avoid_print
   static void _log(String msg) => print('[EventRepository] $msg');
 
-  /// List sessions for an event (events/{eventId}/sessions), ordered by order.
-  /// [slug] is the original route slug (e.g. 'march-cluster-2026') used for
-  /// fallback matching when the Firestore doc ID differs from the slug.
+  /// List sessions for an event, with [SessionSpeaker] resolved and embedded
+  /// in each [EventSession] from the speakers sub-collection.
   Future<List<EventSession>> getSessions(String eventId, {String? slug}) async {
+    final raw = await _getSessionsRaw(eventId, slug: slug);
+    return _enrichSessionsWithSpeakers(raw, eventId, slug: slug);
+  }
+
+  /// Resolves the first [speakerId] for each session into a [SessionSpeaker]
+  /// and returns enriched copies. Sessions without speakerIds are unchanged.
+  ///
+  /// Matching uses the Firestore document ID directly — no name matching.
+  // TODO: If the API ever returns a speakerId field in SessionDto, wire it
+  // through EventSession.fromApiJson so the API path can also resolve full
+  // profiles. Currently the API only returns speaker/speakerTitle strings,
+  // so sessions arriving via the API path always have speakerId == null and
+  // show the lightweight bottom-sheet preview instead of navigating.
+  Future<List<EventSession>> _enrichSessionsWithSpeakers(
+    List<EventSession> sessions,
+    String eventId, {
+    String? slug,
+  }) async {
+    final hasAnySpeakerIds = sessions.any((s) => s.speakerIds.isNotEmpty);
+    if (!hasAnySpeakerIds) return sessions;
+
+    final eventSpeakers = await getSpeakers(eventId, slug: slug);
+    final byId = {for (final sp in eventSpeakers) sp.id: sp};
+
+    return sessions.map((s) {
+      if (s.speakerIds.isEmpty) return s;
+      final firstId = s.speakerIds.first;
+      final sp = byId[firstId];
+      if (sp == null) {
+        // Speaker document ID from session does not match any loaded speaker.
+        // This can happen if the speakers sub-collection is not yet seeded.
+        _log('WARNING: speakerId "$firstId" not found in speakers map for session "${s.id}" — no speaker will be shown');
+        return s;
+      }
+      final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(sp));
+      _log('Enriched session "${s.id}" → speakerId=${enriched.speaker?.speakerId} name=${enriched.speaker?.name}');
+      return enriched;
+    }).toList();
+  }
+
+  /// Internal: fetches raw sessions without speaker resolution.
+  Future<List<EventSession>> _getSessionsRaw(
+      String eventId, {String? slug}) async {
     _log('getSessions: eventId=$eventId slug=$slug');
     // March Cluster: always use fallback for correct session names (incl. Birthdays & Anniversaries Celebration at 7 PM) and ids.
     if (_isMarchCluster(eventId) || (slug != null && _isMarchCluster(slug))) {
@@ -210,6 +252,7 @@ class EventRepository {
               endAt: s.endAt,
               materials: s.materials,
               speakerIds: fb.speakerIds,
+              speaker: s.speaker,
             );
           }
           return s;

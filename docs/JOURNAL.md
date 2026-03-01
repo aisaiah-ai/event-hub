@@ -753,6 +753,38 @@ R## 2026-02-16 — NLC Dashboard v4.1 — Tile Width Alignment & Structural Refi
 
 ---
 
+## 2026-02-28 — Speaker Details page: permission-denied on speakers collection
+
+**What was done**
+- Added Firestore rule for **top-level** `speakers/{speakerId}` in `firestore.rules`: `allow read: if true; allow write: if false;`. The Speaker Details page reads from `speakers/{speakerId}`; rules only had `events/{eventId}/speakers/{speakerId}` defined, so top-level reads were denied by default.
+
+**What was tried**
+- Fixing permission-denied when opening Speaker Details (tap speaker row on event landing). Error: `[cloud_firestore/permission-denied] Missing or insufficient permissions.`
+
+**Outcome / still broken**
+- Rules file updated. Deploy must be run locally: `firebase login --reauth` if needed, then `./scripts/deploy-firestore-dev.sh` or `firebase deploy --only 'firestore:(default)'`. After deploy, if the app still fails, ensure **(default)** has speaker documents at `speakers/{speakerId}` (or copy from `events/{eventId}/speakers` if data lives there and consider changing app to read from event subcollection).
+
+**Next time (recall)**
+- Speaker Details uses **top-level** `speakers` collection. Rules must include `match /speakers/{speakerId}` for (default). Data must exist at `speakers/{id}` in (default) for getSpeakerById to succeed.
+
+---
+
+## 2026-02-28 — API 401 handling: app-side behavior and backend auth fix
+
+**What was done**
+- Added `docs/API_401_HANDLING.md`: documents (1) **app-side** 401 handling so the event detail page doesn’t error or retry in a loop — `events_hub_registration_service` (getMyRegistration → null, getMyRegistrations → [] on 401) and `events_hub_checkin_service` (getCheckInStatus → empty status on 401); (2) **backend fix** for 401: same Firebase project as app, token freshness, and auth middleware in `functions/src/middleware/auth.ts` (Bearer + `verifyIdToken`).
+
+**What was tried**
+- Recording API authentication behavior: 401 is treated as “not authenticated for Events Hub” in the consumer app so UI shows “not registered” / “not checked in” without permanent error or refetch loops; fixing 401 at source (project alignment, token, backend middleware).
+
+**Outcome / still broken**
+- Doc is in place for any app that consumes the Events Hub API. This Flutter repo’s event landing currently uses Firestore/EventRepository for event data; when an app (this or another) calls the HTTP API for registration/check-in, follow the doc for 401 handling and backend alignment.
+
+**Next time (recall)**
+- Before changing API auth or registration/check-in client code, read `docs/API_401_HANDLING.md`. Backend auth: `functions/src/middleware/auth.ts`; ensure app and Cloud Functions use the same Firebase project for tokens.
+
+---
+
 ## Template for new entries (copy below this line)
 
 ```markdown

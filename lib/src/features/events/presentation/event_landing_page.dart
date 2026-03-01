@@ -40,7 +40,6 @@ class _EventLandingPageState extends State<EventLandingPage>
 
   EventModel? _event;
   List<EventSession> _sessions = [];
-  List<EventSpeaker> _speakers = [];
   bool _loading = true;
   String? _error;
   DateTime _scheduleUpdatedAt = DateTime.now();
@@ -81,7 +80,6 @@ class _EventLandingPageState extends State<EventLandingPage>
       _loading = true;
       _error = null;
       _sessions = [];
-      _speakers = [];
     });
     try {
       // ignore: avoid_print
@@ -90,18 +88,17 @@ class _EventLandingPageState extends State<EventLandingPage>
       // ignore: avoid_print
       print('[EventLandingPage] event: id=${event?.id} name=${event?.name}');
       if (event != null) {
+        // getSessions internally resolves speakers and embeds SessionSpeaker.
         final sessions = await _repo.getSessions(event.id, slug: widget.eventSlug);
-        final speakers = await _repo.getSpeakers(event.id, slug: widget.eventSlug);
         // ignore: avoid_print
-        print('[EventLandingPage] loaded ${sessions.length} sessions, ${speakers.length} speakers');
+        print('[EventLandingPage] loaded ${sessions.length} sessions');
         for (final s in sessions) {
           // ignore: avoid_print
-          print('[EventLandingPage]   session: ${s.id} speakerIds=${s.speakerIds}');
+          print('[EventLandingPage]   session: ${s.id} speaker=${s.speaker?.name}');
         }
         setState(() {
           _event = event;
           _sessions = sessions;
-          _speakers = speakers;
           _scheduleUpdatedAt = DateTime.now();
           _loading = false;
         });
@@ -252,7 +249,6 @@ class _EventLandingPageState extends State<EventLandingPage>
                   _ScheduleTab(
                     event: event,
                     sessions: _sessions,
-                    speakers: _speakers,
                     theme: theme,
                     onCheckIn: () =>
                         context.push('/events/${event.slug}/checkin'),
@@ -712,22 +708,14 @@ class _ScheduleTab extends StatelessWidget {
   const _ScheduleTab({
     required this.event,
     required this.sessions,
-    required this.speakers,
     required this.theme,
     required this.onCheckIn,
   });
 
   final EventModel event;
   final List<EventSession> sessions;
-  final List<EventSpeaker> speakers;
   final _EventTheme theme;
   final VoidCallback onCheckIn;
-
-  List<EventSpeaker> _speakersForSession(EventSession session) {
-    if (session.speakerIds.isEmpty) return [];
-    final ids = session.speakerIds.toSet();
-    return speakers.where((s) => ids.contains(s.id)).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +740,7 @@ class _ScheduleTab extends StatelessWidget {
         final s = sessions[i];
         return _SessionTimelineCard(
           session: s,
-          sessionSpeakers: _speakersForSession(s),
+          eventSlug: event.slug,
           showCheckIn: event.allowCheckin,
           theme: theme,
           onCheckIn: onCheckIn,
@@ -767,14 +755,16 @@ class _ScheduleTab extends StatelessWidget {
 class _SessionTimelineCard extends StatelessWidget {
   const _SessionTimelineCard({
     required this.session,
-    required this.sessionSpeakers,
+    required this.eventSlug,
     required this.showCheckIn,
     required this.theme,
     required this.onCheckIn,
   });
 
   final EventSession session;
-  final List<EventSpeaker> sessionSpeakers;
+  /// Event slug forwarded to [_SpeakerRow] so it can pass [eventSlug] to
+  /// [SpeakerDetailsPage] for branding and speaker sub-collection lookup.
+  final String eventSlug;
   final bool showCheckIn;
   final _EventTheme theme;
   final VoidCallback onCheckIn;
@@ -786,7 +776,7 @@ class _SessionTimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasContent = sessionSpeakers.isNotEmpty ||
+    final hasContent = session.speaker != null ||
         session.materials.isNotEmpty ||
         (session.description != null && session.description!.isNotEmpty);
     final isMainCheckIn = session.id == 'main-checkin';
@@ -881,12 +871,29 @@ class _SessionTimelineCard extends StatelessWidget {
                   ),
                 ),
 
-                if (sessionSpeakers.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  for (final sp in sessionSpeakers) ...[
-                    _SpeakerRow(speaker: sp, theme: theme),
-                    if (sp != sessionSpeakers.last) const SizedBox(height: 8),
-                  ],
+                if (session.speaker != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.mic_rounded, size: 13, color: _kTextMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Guest Speaker',
+                        style: TextStyle(
+                          color: _kTextMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _SpeakerRow(
+                    speaker: session.speaker!,
+                    eventSlug: eventSlug,
+                    theme: theme,
+                  ),
                 ],
 
                 if (session.materials.isNotEmpty) ...[
@@ -1024,81 +1031,119 @@ class _SessionCheckInButton extends StatelessWidget {
 // ─── Speaker Row ──────────────────────────────────────────────────────────────
 
 class _SpeakerRow extends StatelessWidget {
-  const _SpeakerRow({required this.speaker, required this.theme});
+  const _SpeakerRow({
+    required this.speaker,
+    required this.eventSlug,
+    required this.theme,
+  });
 
-  final EventSpeaker speaker;
+  final SessionSpeaker speaker;
+  /// Event slug passed to [SpeakerDetailsPage] for branding + sub-collection lookup.
+  final String eventSlug;
   final _EventTheme theme;
+
+  void _navigate(BuildContext context) {
+    final speakerId = speaker.speakerId;
+    if (speakerId != null && speakerId.isNotEmpty) {
+      // Full profile: fetch speaker document from Firestore.
+      context.push(
+        Uri(
+          path: '/speaker/$speakerId',
+          queryParameters: {'eventSlug': eventSlug},
+        ).toString(),
+      );
+    } else {
+      // Fallback: speaker came from denormalized API strings — no document ID.
+      // Show the lightweight preview we already have.
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (_) => _SpeakerBottomSheet(speaker: speaker, theme: theme),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Avatar
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: theme.cardBackgroundColor.withOpacity(0.68),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+    return InkWell(
+      onTap: () => _navigate(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: theme.cardBackgroundColor.withOpacity(0.68),
+              shape: BoxShape.circle,
+              border:
+                  Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _speakerPhoto(speaker, size: 38),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: _speakerPhoto(speaker),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                speaker.name,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.92),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (speaker.title != null && speaker.title!.isNotEmpty)
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  speaker.title!,
+                  speaker.name,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.70),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.92),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-            ],
+                if (speaker.title != null && speaker.title!.isNotEmpty)
+                  Text(
+                    speaker.title!,
+                    style: const TextStyle(
+                      color: _kTextMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
+          // Chevron only when a full profile is navigable (speakerId known).
+          if (speaker.speakerId != null)
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: _kTextMuted,
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// Returns the correct image widget for a speaker photo:
-/// - asset path  → Image.asset  (bundled, works offline, no CORS)
-/// - network URL → Image.network (Firebase Storage URL in production)
+/// Returns the correct image widget for a [SessionSpeaker] photo:
+/// - asset path  → Image.asset  (bundled, works offline)
+/// - network URL → Image.network (Firebase Storage download URL)
 /// - absent      → initials avatar fallback
-Widget _speakerPhoto(EventSpeaker speaker) {
-  final url = speaker.photoUrl;
+Widget _speakerPhoto(SessionSpeaker speaker, {double size = 38}) {
+  final url = speaker.imageUrl;
   if (url == null || url.isEmpty) return _SpeakerInitialsAvatar(speaker.name);
 
   if (url.startsWith('assets/')) {
     return Image.asset(
       url,
-      width: 38,
-      height: 38,
+      width: size,
+      height: size,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) => _SpeakerInitialsAvatar(speaker.name),
     );
   }
 
-  // Network URL (Firebase Storage download URL)
   return Image.network(
     url,
-    width: 38,
-    height: 38,
+    width: size,
+    height: size,
     fit: BoxFit.cover,
     errorBuilder: (_, _, _) => _SpeakerInitialsAvatar(speaker.name),
   );
@@ -1153,6 +1198,115 @@ class _SpeakerInitialsAvatar extends StatelessWidget {
             fontSize: 14,
             letterSpacing: 0.5,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Speaker Bottom Sheet ─────────────────────────────────────────────────────
+
+class _SpeakerBottomSheet extends StatelessWidget {
+  const _SpeakerBottomSheet({
+    required this.speaker,
+    required this.theme,
+  });
+
+  final SessionSpeaker speaker;
+  final _EventTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Large avatar
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.primary.withOpacity(0.30),
+                  width: 2,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _speakerPhoto(speaker, size: 80),
+            ),
+            const SizedBox(height: 14),
+
+            // Name
+            Text(
+              speaker.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            // Title
+            if (speaker.title != null && speaker.title!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                speaker.title!,
+                style: const TextStyle(
+                  color: _kTextMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
+            // Bio
+            if (speaker.bio != null && speaker.bio!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.06),
+                  ),
+                ),
+                child: Text(
+                  speaker.bio!,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.80),
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 28),
+          ],
         ),
       ),
     );

@@ -29,7 +29,7 @@ function toDetail(doc) {
     var _a;
     const summary = toSummary(doc);
     const d = (_a = doc.data()) !== null && _a !== void 0 ? _a : {};
-    return Object.assign(Object.assign({}, summary), { registrationSettings: d.registrationSettings });
+    return Object.assign(Object.assign({}, summary), { description: d.description || null, address: d.address || null, registrationSettings: d.registrationSettings });
 }
 async function listEvents(query) {
     let ref = (0, firestore_1.eventsRef)();

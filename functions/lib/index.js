@@ -172,10 +172,14 @@ exports.initializeNlc2026 = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("permission-denied", "Only admin can run initializeNlc2026");
     }
     const batch = db.batch();
+    const nlcStartAt = admin.firestore.Timestamp.fromDate(new Date("2026-03-27T00:00:00.000Z"));
+    const nlcEndAt = admin.firestore.Timestamp.fromDate(new Date("2026-03-29T23:59:59.999Z"));
     if (!eventSnap.exists) {
         batch.set(eventRef, {
             name: "National Leaders Conference 2026",
             venue: "Hyatt Regency Valencia",
+            startAt: nlcStartAt,
+            endAt: nlcEndAt,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             isActive: true,
             metadata: { selfCheckinEnabled: true, sessionsEnabled: true },
@@ -183,6 +187,8 @@ exports.initializeNlc2026 = functions.https.onCall(async (data, context) => {
     }
     else {
         batch.set(eventRef, {
+            startAt: nlcStartAt,
+            endAt: nlcEndAt,
             metadata: { selfCheckinEnabled: true, sessionsEnabled: true },
         }, { merge: true });
     }
