@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>March 14 Assembly — RSVP Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0a0e1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+      color: #fff;
+    }
+
+    /* ── Background pattern ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(14,58,93,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(244,163,64,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .page { width: 100%; max-width: 680px; position: relative; }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .header .eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #F4A340;
+      margin-bottom: 12px;
+    }
+    .header h1 {
+      font-size: clamp(26px, 5vw, 38px);
+      font-weight: 900;
+      line-height: 1.15;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .header h1 span { color: #F4A340; }
+    .header .sub {
+      margin-top: 10px;
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      font-weight: 500;
+    }
+    .date-badge {
+      display: inline-block;
+      margin-top: 16px;
+      background: rgba(244,163,64,0.15);
+      border: 1px solid rgba(244,163,64,0.35);
+      border-radius: 999px;
+      padding: 6px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #F4A340;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media (min-width: 520px) {
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 22px 16px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .stat-card .value {
+      font-size: clamp(28px, 6vw, 38px);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+    .stat-card .label {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+    .stat-card.highlight { border-color: rgba(244,163,64,0.35); background: rgba(244,163,64,0.08); }
+    .stat-card.highlight .value { color: #F4A340; }
+
+    /* ── Section header ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    /* ── Area cards ── */
+    .area-grid {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    @media (min-width: 480px) {
+      .area-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .area-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 18px;
+    }
+    .area-card .area-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .area-card .area-pax {
+      font-size: 32px;
+      font-weight: 900;
+      color: #F4A340;
+      line-height: 1;
+    }
+    .area-card .area-pax-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      margin-top: 2px;
+      margin-bottom: 10px;
+    }
+    .area-card .area-hh {
+      display: inline-block;
+      background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* ── Progress bar ── */
+    .progress-section {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 22px 22px;
+      margin-bottom: 28px;
+    }
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .progress-row:last-child { margin-bottom: 0; }
+    .progress-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.65);
+      width: 130px;
+      flex-shrink: 0;
+    }
+    .progress-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0E3A5D, #F4A340);
+      transition: width 1s ease;
+    }
+    .progress-count {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Hashtags ── */
+    .tags {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .tag {
+      display: inline-block;
+      background: rgba(14,58,93,0.5);
+      border: 1px solid rgba(14,58,93,0.8);
+      border-radius: 999px;
+      padding: 6px 16px;
+      margin: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .footer .powered {
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .footer .powered span {
+      color: #F4A340;
+      font-weight: 800;
+    }
+    .footer .generated {
+      margin-top: 4px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.18);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 28px 0;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      text-align: left;
+    }
+    .event-logo {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+      flex-shrink: 0;
+      filter: drop-shadow(0 4px 20px rgba(244,163,64,0.35));
+    }
+    .header-text { flex: 1; }
+    @media (max-width: 420px) {
+      .header-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">      <div class="eyebrow">Central B Cluster · Couples for Christ</div>
+      <h1>March 14 Assembly<br><span>RSVP Snapshot</span></h1>
+      <div class="sub">Evangelization Rally & Birthdays/Anniversaries Celebration</div>
+      <div class="date-badge">📅 March 14, 2026 · Tampa, FL</div>
+    </div>
+
+    <!-- Main stats -->
+    <div class="section-title">Overview</div>
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="icon">👥</div>
+        <div class="value">71</div>
+        <div class="label">Total Attendees</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🎤</div>
+        <div class="value">71</div>
+        <div class="label">Rally</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🍽️</div>
+        <div class="value">64</div>
+        <div class="label">Dinner</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">🎉</div>
+        <div class="value">5</div>
+        <div class="label">Celebrations</div>
+      </div>
+    </div>
+
+    <!-- Attendance breakdown -->
+    <div class="section-title">Attendance Breakdown</div>
+    <div class="progress-section">
+      <div class="progress-row">
+        <div class="progress-label">Rally (3–6 PM)</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:100%"></div>
+        </div>
+        <div class="progress-count">71</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Dinner (7–9 PM)</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:90%"></div>
+        </div>
+        <div class="progress-count">64</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Celebrations</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:7%"></div>
+        </div>
+        <div class="progress-count">5</div>
+      </div>
+    </div>
+
+    <!-- By area -->
+    <div class="section-title">By Area</div>
+    <div class="area-grid">
+      <div class="area-card">
+        <div class="area-name">📍 Tampa</div>
+        <div class="area-pax">50</div>
+        <div class="area-pax-label">people</div>
+        <span class="area-hh">23 households</span>
+      </div>
+      <div class="area-card">
+        <div class="area-name">📍 BBS</div>
+        <div class="area-pax">11</div>
+        <div class="area-pax-label">people</div>
+        <span class="area-hh">5 households</span>
+      </div>
+      <div class="area-card">
+        <div class="area-name">📍 Port Charlotte</div>
+        <div class="area-pax">10</div>
+        <div class="area-pax-label">people</div>
+        <span class="area-hh">7 households</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Hashtags -->
+    <div class="tags">
+      <span class="tag">#MarchAssembly</span>
+      <span class="tag">#CouplesForChrist</span>
+      <span class="tag">#CentralBCluster</span>
+      <span class="tag">#CFC</span>
+      <span class="tag">#March142026</span>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="powered">Events powered by <span>AIsaiah</span></div>
+      <div class="generated">Report generated · March 2026 · 35 RSVPs on record</div>
+    </div>
+
+  </div>
+</body>
+</html>

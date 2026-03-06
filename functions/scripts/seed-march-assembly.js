@@ -111,7 +111,7 @@ const SESSIONS = [
     ],
   },
   {
-    id: 'dinner-fellowship',
+    id: 'birthdays-anniversaries',
     name: 'Birthdays & Anniversaries Celebration',
     title: 'Birthdays & Anniversaries Celebration',
     description: 'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
@@ -137,7 +137,7 @@ const SPEAKERS = [
     displayName: 'Bro Rommel Dolar',
     title: 'House Hold Head',
     cluster: 'Central B Cluster',
-    photoUrl: 'assets/images/speakers/rommel_dolar.png',
+    photoUrl: 'https://firebasestorage.googleapis.com/v0/b/aisaiah-event-hub.firebasestorage.app/o/events%2Fmarch-assembly%2Fspeakers%2Frommel-dolar%2Fprofile.png?alt=media&token=9b372873-9646-4033-a669-0e8d42d7c0fa',
     bio:
       'Bro Rommel serves as House Hold Head for the Central B Cluster, supporting families in BBS, Tampa, and Port Charlotte. ' +
       'He has been active in Couples for Christ for over a decade, with a heart for evangelization and community building.',
@@ -160,7 +160,7 @@ const SPEAKERS = [
     displayName: 'Bro. Mike Suela',
     title: 'Unit Head',
     cluster: 'Central B Cluster',
-    photoUrl: 'assets/images/speakers/mike_suela.png',
+    photoUrl: 'https://firebasestorage.googleapis.com/v0/b/aisaiah-event-hub.firebasestorage.app/o/events%2Fmarch-assembly%2Fspeakers%2Fmike-suela%2Fprofile.png?alt=media&token=9fad94d5-450e-4700-a9e9-b52cea81520c',
     bio:
       'Bro. Mike Suela leads as Unit Head, coordinating birthdays, anniversaries, and fellowship events for the cluster. ' +
       'He is passionate about celebrating milestones and strengthening bonds within the community.',
