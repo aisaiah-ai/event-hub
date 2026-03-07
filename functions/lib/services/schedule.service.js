@@ -19,7 +19,7 @@ const firestore_1 = require("../utils/firestore");
 const now_1 = require("../utils/now");
 const errors_1 = require("../models/errors");
 function toRawSession(doc) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     const d = (_a = doc.data()) !== null && _a !== void 0 ? _a : {};
     const startAt = d.startAt;
     const endAt = d.endAt;
@@ -47,6 +47,7 @@ function toRawSession(doc) {
             room: (_g = (_f = d.room) !== null && _f !== void 0 ? _f : d.location) !== null && _g !== void 0 ? _g : undefined,
             capacity: (_h = d.capacity) !== null && _h !== void 0 ? _h : undefined,
             tags: d.tags,
+            registrationRequired: (_j = d.registrationRequired) !== null && _j !== void 0 ? _j : false,
             speaker: speakerName,
             speakerTitle,
             speakerId,

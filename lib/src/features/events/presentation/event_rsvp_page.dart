@@ -246,7 +246,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
   Widget _buildForm(EventModel event) {
     final rallyTime = event.rallyTimeText ?? '3:00 – 6:00 PM';
     final dinnerTime = event.dinnerTimeText ?? '7:00 PM – 9:00 PM';
-    final rsvpDeadline = event.rsvpDeadlineText ?? 'March 10';
+    final rsvpDeadline = event.rsvpDeadlineText ?? 'March 14';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: EventTokens.spacingM),

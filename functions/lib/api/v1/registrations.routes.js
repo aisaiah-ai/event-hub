@@ -44,8 +44,9 @@ const errors_1 = require("../../models/errors");
 function register(req, res) {
     const user = req.user;
     const eventId = req.params.eventId;
+    const rsvpData = req.body;
     registrationsService
-        .register(eventId, user)
+        .register(eventId, user, rsvpData)
         .then((data) => res.status(201).json({ ok: true, data }))
         .catch((err) => sendError(res, err));
 }

@@ -1,6 +1,10 @@
 "use strict";
 /**
  * Firebase Auth middleware: validate Authorization: Bearer <idToken>, attach req.user.
+ *
+ * Cross-project auth: the mobile app authenticates users via aisaiah-app-dev,
+ * but this API runs on aisaiah-event-hub. We initialize a secondary Admin app
+ * for aisaiah-app-dev so we can verify tokens issued by that project.
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -40,6 +44,39 @@ exports.requireAuth = requireAuth;
 exports.optionalAuth = optionalAuth;
 const admin = __importStar(require("firebase-admin"));
 const BEARER_PREFIX = "Bearer ";
+/**
+ * Secondary Firebase Admin app for verifying tokens from the main app project.
+ * Tokens are issued by aisaiah-app-dev; this API runs on aisaiah-event-hub.
+ */
+const MAIN_APP_PROJECT_ID = "aisaiah-app-dev";
+let _mainAppAuth = null;
+function getMainAppAuth() {
+    if (_mainAppAuth)
+        return _mainAppAuth;
+    try {
+        const existing = admin.app("mainApp");
+        _mainAppAuth = existing.auth();
+    }
+    catch (_a) {
+        const mainApp = admin.initializeApp({ projectId: MAIN_APP_PROJECT_ID }, "mainApp");
+        _mainAppAuth = mainApp.auth();
+    }
+    return _mainAppAuth;
+}
+/**
+ * Try verifying a token against multiple projects.
+ * First tries the main app project (where users authenticate),
+ * then falls back to the default (event-hub) project.
+ */
+async function verifyTokenMultiProject(idToken) {
+    try {
+        return await getMainAppAuth().verifyIdToken(idToken);
+    }
+    catch (_a) {
+        // Fallback: try the default project (event-hub) in case tokens are issued here too
+        return await admin.auth().verifyIdToken(idToken);
+    }
+}
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith(BEARER_PREFIX)) {
@@ -51,9 +88,7 @@ function requireAuth(req, res, next) {
         res.status(401).json({ ok: false, error: { code: "unauthenticated", message: "Missing token" } });
         return;
     }
-    admin
-        .auth()
-        .verifyIdToken(idToken)
+    verifyTokenMultiProject(idToken)
         .then((decoded) => {
         var _a, _b, _c;
         req.user = {
@@ -79,9 +114,7 @@ function optionalAuth(req, res, next) {
         next();
         return;
     }
-    admin
-        .auth()
-        .verifyIdToken(idToken)
+    verifyTokenMultiProject(idToken)
         .then((decoded) => {
         var _a, _b, _c;
         req.user = {

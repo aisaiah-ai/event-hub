@@ -11,6 +11,8 @@ import {
   registrantsRef,
   userRegistrationRef,
   userRegistrationsRef,
+  findRegistrantByUid,
+  generateZzRegistrantId,
 } from "../utils/firestore";
 import { serverTimestamp, timestampToIso } from "../utils/now";
 import { RegistrationDto, RequestUser } from "../models/dto";
@@ -42,7 +44,8 @@ function toRegistrationDto(
 /** Register current user for event. Idempotent; one registration per uid per event. */
 export async function register(
   eventId: string,
-  user: RequestUser
+  user: RequestUser,
+  rsvpData?: Record<string, unknown>
 ): Promise<RegistrationDto> {
   const uid = user.uid;
   const eventSnap = await eventRef(eventId).get();
@@ -51,21 +54,32 @@ export async function register(
   }
   const eventData = eventSnap.data() ?? {};
   const capacity = eventData.registrationSettings?.capacity as number | undefined;
-  const registrantId = uid; // use uid as registrantId for app registrations
+
+  // Determine registrant doc ID: CFC memberId if available, else ZZ9999-XXXXXX
+  const memberId = rsvpData?.memberId as string | undefined;
 
   return await admin.firestore().runTransaction(async (tx) => {
-    const regRef = registrantRef(eventId, registrantId);
-    const mirrorRef = userRegistrationRef(uid, eventId);
-    const existingReg = await tx.get(regRef);
+    // ── All reads first ──────────────────────────────────────────────
     const eventStartAt = (eventData.startAt as admin.firestore.Timestamp)?.toDate?.()?.toISOString?.();
 
-    if (existingReg.exists) {
-      const d = existingReg.data() ?? {};
-      const status = d.registrationStatus ?? d.status ?? "registered";
+    // Check if user already registered (by uid field, works for any doc ID)
+    const existing = await findRegistrantByUid(eventId, uid, tx);
+    if (existing) {
+      const status = existing.data.registrationStatus ?? existing.data.status ?? "registered";
       if (status === "registered") {
-        return toRegistrationDto(eventId, registrantId, d, eventStartAt);
+        return toRegistrationDto(eventId, existing.id, existing.data, eventStartAt);
       }
-      // was canceled — re-register below
+      // was canceled — re-register with same doc ID below
+    }
+
+    // Determine the registrant ID
+    let registrantId: string;
+    if (existing) {
+      registrantId = existing.id; // keep existing doc ID for re-registration
+    } else if (memberId && memberId.trim().length > 0) {
+      registrantId = memberId.trim();
+    } else {
+      registrantId = await generateZzRegistrantId(eventId, tx);
     }
 
     if (typeof capacity === "number" && capacity > 0) {
@@ -79,13 +93,27 @@ export async function register(
       }
     }
 
+    // ── All writes after ─────────────────────────────────────────────
     const now = serverTimestamp();
-    const profile = {
-      name: user.name ?? user.email ?? undefined,
-      email: user.email ?? undefined,
+    const profile: Record<string, unknown> = {
+      name: rsvpData?.displayName ?? rsvpData?.firstName
+        ? `${rsvpData.firstName ?? ""} ${rsvpData.lastName ?? ""}`.trim()
+        : user.name ?? user.email ?? undefined,
+      email: (rsvpData?.email as string) ?? user.email ?? undefined,
     };
+    // Include CFC fields when available
+    if (rsvpData?.firstName) profile.firstName = rsvpData.firstName;
+    if (rsvpData?.lastName) profile.lastName = rsvpData.lastName;
+    if (memberId) profile.memberId = memberId;
+    if (rsvpData?.role) profile.role = rsvpData.role;
+    if (rsvpData?.service) profile.service = rsvpData.service;
+    if (rsvpData?.chapter) profile.chapter = rsvpData.chapter;
+    if (rsvpData?.gender) profile.gender = rsvpData.gender;
+
+    const regRef = registrantRef(eventId, registrantId);
     tx.set(regRef, {
       uid,
+      registrantId,
       registrationStatus: "registered",
       status: "registered",
       createdAt: now,
@@ -93,9 +121,12 @@ export async function register(
       profile,
       source: "app",
     }, { merge: true });
+
+    const mirrorRef = userRegistrationRef(uid, eventId);
     tx.set(mirrorRef, {
       eventId,
-      registrationId: registrantId as string,
+      registrationId: registrantId,
+      registrantId,
       status: "registered",
       createdAt: now,
       eventStartAt: eventData.startAt ?? null,
@@ -134,21 +165,25 @@ export async function getMyRegistration(
   eventId: string,
   user: RequestUser
 ): Promise<RegistrationDto | null> {
-  const registrantId = user.uid;
-  const doc = await registrantRef(eventId, registrantId).get();
-  if (!doc.exists) {
-    const mirrorDoc = await userRegistrationRef(user.uid, eventId).get();
-    if (!mirrorDoc.exists) return null;
-    const data = mirrorDoc.data() ?? {};
+  const uid = user.uid;
+
+  // Look up registrant by uid field (works for memberId, ZZ ID, or legacy uid doc IDs)
+  const found = await findRegistrantByUid(eventId, uid);
+  if (found) {
     const eventSnap = await eventRef(eventId).get();
     const eventStartAt = eventSnap.exists
       ? (eventSnap.data()?.startAt as admin.firestore.Timestamp)?.toDate?.()?.toISOString?.()
       : undefined;
-    return toRegistrationDto(eventId, data.registrationId ?? eventId, data, eventStartAt);
+    return toRegistrationDto(eventId, found.id, found.data, eventStartAt);
   }
+
+  // Fallback: check mirror doc
+  const mirrorDoc = await userRegistrationRef(uid, eventId).get();
+  if (!mirrorDoc.exists) return null;
+  const data = mirrorDoc.data() ?? {};
   const eventSnap = await eventRef(eventId).get();
   const eventStartAt = eventSnap.exists
     ? (eventSnap.data()?.startAt as admin.firestore.Timestamp)?.toDate?.()?.toISOString?.()
     : undefined;
-  return toRegistrationDto(eventId, registrantId, doc.data() ?? {}, eventStartAt);
+  return toRegistrationDto(eventId, data.registrationId ?? data.registrantId ?? eventId, data, eventStartAt);
 }

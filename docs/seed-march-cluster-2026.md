@@ -57,7 +57,7 @@ To use Firestore (and for production), add this document to your `events` collec
   "metadata": {
     "rallyTime": "3:00 PM - 6:00 PM",
     "dinnerTime": "7:00 PM - 9:00 PM",
-    "rsvpDeadline": "March 10"
+    "rsvpDeadline": "March 14"
   },
   "branding": {
     "logoUrl": "assets/checkin/nlc_logo.png",

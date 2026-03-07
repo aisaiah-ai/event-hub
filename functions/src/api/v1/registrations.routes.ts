@@ -10,8 +10,9 @@ import { ApiError } from "../../models/errors";
 export function register(req: Request, res: Response): void {
   const user = (req as Request & { user: RequestUser }).user;
   const eventId = req.params.eventId as string;
+  const rsvpData = req.body as Record<string, unknown> | undefined;
   registrationsService
-    .register(eventId, user)
+    .register(eventId, user, rsvpData)
     .then((data) => res.status(201).json({ ok: true, data }))
     .catch((err) => sendError(res, err));
 }

@@ -51,6 +51,8 @@ exports.attendanceDocRef = attendanceDocRef;
 exports.announcementsRef = announcementsRef;
 exports.speakersRef = speakersRef;
 exports.speakerRef = speakerRef;
+exports.findRegistrantByUid = findRegistrantByUid;
+exports.generateZzRegistrantId = generateZzRegistrantId;
 exports.userRegistrationsRef = userRegistrationsRef;
 exports.userRegistrationRef = userRegistrationRef;
 const admin = __importStar(require("firebase-admin"));
@@ -89,6 +91,41 @@ function speakersRef(eventId) {
 }
 function speakerRef(eventId, speakerId) {
     return speakersRef(eventId).doc(speakerId);
+}
+/**
+ * Find the registrant document for a user by uid field.
+ * Returns { ref, data, id } or null if not found.
+ * Works regardless of whether the doc ID is uid, memberId, or ZZ ID.
+ */
+async function findRegistrantByUid(eventId, uid, tx) {
+    const query = registrantsRef(eventId).where("uid", "==", uid).limit(1);
+    const snap = tx ? await tx.get(query) : await query.get();
+    if (snap.empty)
+        return null;
+    const doc = snap.docs[0];
+    return { ref: doc.ref, data: doc.data(), id: doc.id };
+}
+/**
+ * Generate a registrant ID for non-CFC users.
+ * Format: ZZ9999-XXXXXX where XXXXXX is zero-padded incremental.
+ * Must be called inside a transaction for safety.
+ */
+async function generateZzRegistrantId(eventId, tx) {
+    const query = registrantsRef(eventId)
+        .where(admin.firestore.FieldPath.documentId(), ">=", "ZZ9999-")
+        .where(admin.firestore.FieldPath.documentId(), "<", "ZZ9999.\uf8ff")
+        .orderBy(admin.firestore.FieldPath.documentId(), "desc")
+        .limit(1);
+    const snap = await tx.get(query);
+    let nextNum = 1;
+    if (!snap.empty) {
+        const lastId = snap.docs[0].id; // e.g. "ZZ9999-000042"
+        const numPart = lastId.split("-")[1];
+        if (numPart) {
+            nextNum = parseInt(numPart, 10) + 1;
+        }
+    }
+    return `ZZ9999-${String(nextNum).padStart(6, "0")}`;
 }
 /** Mirror for fast "my registrations": users/{uid}/registrations/{eventId} */
 function userRegistrationsRef(uid) {

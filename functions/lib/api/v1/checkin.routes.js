@@ -37,6 +37,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkInMain = checkInMain;
+exports.registerForSession = registerForSession;
 exports.checkInSession = checkInSession;
 exports.getStatus = getStatus;
 const checkinService = __importStar(require("../../services/checkin.service"));
@@ -44,8 +45,19 @@ const errors_1 = require("../../models/errors");
 function checkInMain(req, res) {
     const user = req.user;
     const eventId = req.params.eventId;
+    const profileData = req.body;
     checkinService
-        .checkInMain(eventId, user)
+        .checkInMain(eventId, user, profileData)
+        .then((data) => res.status(201).json({ ok: true, data }))
+        .catch((err) => sendError(res, err));
+}
+function registerForSession(req, res) {
+    const user = req.user;
+    const eventId = req.params.eventId;
+    const sessionId = req.params.sessionId;
+    const profileData = req.body;
+    checkinService
+        .registerForSession(eventId, sessionId, user, profileData)
         .then((data) => res.status(201).json({ ok: true, data }))
         .catch((err) => sendError(res, err));
 }
@@ -53,8 +65,9 @@ function checkInSession(req, res) {
     const user = req.user;
     const eventId = req.params.eventId;
     const sessionId = req.params.sessionId;
+    const profileData = req.body;
     checkinService
-        .checkInSession(eventId, sessionId, user)
+        .checkInSession(eventId, sessionId, user, profileData)
         .then((data) => res.status(201).json({ ok: true, data }))
         .catch((err) => sendError(res, err));
 }

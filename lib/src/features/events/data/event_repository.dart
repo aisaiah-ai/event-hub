@@ -106,7 +106,7 @@ class EventRepository {
     metadata: {
       'rallyTime': '3:00 – 6:00 PM',
       'dinnerTime': '7:00 PM – 9:00 PM',
-      'rsvpDeadline': 'March 7',
+      'rsvpDeadline': 'March 14',
     },
     logoUrl: 'assets/images/march_assembly_logo.png',
     backgroundImageUrl: 'assets/images/march_assembly_background.png',
@@ -115,7 +115,7 @@ class EventRepository {
     shortDescription:
         'Join us for an afternoon of evangelization, worship, and fellowship. '
         'The rally runs 3:00–6:00 PM; dinner and celebration 7:00–9:00 PM. '
-        'RSVP by March 7.',
+        'RSVP by March 14.',
   );
 
   /// Get the currently active event (for events.aisaiah.org root redirect).

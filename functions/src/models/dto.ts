@@ -60,6 +60,8 @@ export interface SessionDto {
   room?: string;
   capacity?: number;
   tags?: string[];
+  /** When true, users must register for this session before checking in. */
+  registrationRequired?: boolean;
   /** Denormalized speaker display name (kept for backward compatibility). */
   speaker?: string | null;
   /** Denormalized speaker title/role (kept for backward compatibility). */
@@ -99,7 +101,10 @@ export interface CheckInStatusDto {
   eventId: string;
   mainCheckedIn: boolean;
   mainCheckedInAt?: string;
+  /** Session IDs the user has checked in to. */
   sessionIds: string[];
+  /** Session IDs the user has registered for (separate from event registration). */
+  sessionRegisteredIds: string[];
 }
 
 /** User attached by auth middleware */

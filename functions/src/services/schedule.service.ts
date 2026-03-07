@@ -59,6 +59,7 @@ function toRawSession(doc: admin.firestore.DocumentSnapshot): RawSession {
       room: (d.room as string) ?? (d.location as string) ?? undefined,
       capacity: (d.capacity as number) ?? undefined,
       tags: d.tags as string[] | undefined,
+      registrationRequired: (d.registrationRequired as boolean) ?? false,
       speaker: speakerName,
       speakerTitle,
       speakerId,

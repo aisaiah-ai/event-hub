@@ -55,7 +55,7 @@ const EVENT_DATA = {
   metadata: {
     rallyTime: '3:00 – 6:00 PM',
     dinnerTime: '7:00 PM – 9:00 PM',
-    rsvpDeadline: 'March 7',
+    rsvpDeadline: 'March 14',
     selfCheckinEnabled: false,
     sessionsEnabled: true,
   },
@@ -72,7 +72,7 @@ const EVENT_DATA = {
   shortDescription:
     "Join us for an afternoon of evangelization, worship, and fellowship. " +
     "The rally runs 3:00–6:00 PM; dinner and celebration 7:00–9:00 PM. " +
-    "RSVP by March 7.",
+    "RSVP by March 14.",
   // NLC-style fields (optional for future check-in)
   venue: "St. Michael's Hall, Incarnation Catholic Church",
   startAt: ts(EVENT_DATE),
@@ -237,7 +237,7 @@ function printManualSteps() {
   console.error('--- If you cannot fix auth, add shortDescription manually ---');
   console.error('1. Open Firebase Console → Firestore → events → march-assembly');
   console.error('2. Add or edit field: shortDescription (string)');
-  console.error('3. Value: "Join us for an afternoon of evangelization, worship, and fellowship. The rally runs 3:00–6:00 PM; dinner and celebration 7:00–9:00 PM. RSVP by March 7."');
+  console.error('3. Value: "Join us for an afternoon of evangelization, worship, and fellowship. The rally runs 3:00–6:00 PM; dinner and celebration 7:00–9:00 PM. RSVP by March 14."');
   console.error('');
   console.error('The app still shows the short description via in-code fallback when this doc is missing or unread.');
 }

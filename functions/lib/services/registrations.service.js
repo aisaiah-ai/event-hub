@@ -64,7 +64,7 @@ function toRegistrationDto(eventId, registrationId, data, eventStartAt) {
     };
 }
 /** Register current user for event. Idempotent; one registration per uid per event. */
-async function register(eventId, user) {
+async function register(eventId, user, rsvpData) {
     var _a, _b;
     const uid = user.uid;
     const eventSnap = await (0, firestore_1.eventRef)(eventId).get();
@@ -73,20 +73,31 @@ async function register(eventId, user) {
     }
     const eventData = (_a = eventSnap.data()) !== null && _a !== void 0 ? _a : {};
     const capacity = (_b = eventData.registrationSettings) === null || _b === void 0 ? void 0 : _b.capacity;
-    const registrantId = uid; // use uid as registrantId for app registrations
+    // Determine registrant doc ID: CFC memberId if available, else ZZ9999-XXXXXX
+    const memberId = rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.memberId;
     return await admin.firestore().runTransaction(async (tx) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-        const regRef = (0, firestore_1.registrantRef)(eventId, registrantId);
-        const mirrorRef = (0, firestore_1.userRegistrationRef)(uid, eventId);
-        const existingReg = await tx.get(regRef);
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        // ── All reads first ──────────────────────────────────────────────
         const eventStartAt = (_d = (_c = (_b = (_a = eventData.startAt) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString) === null || _d === void 0 ? void 0 : _d.call(_c);
-        if (existingReg.exists) {
-            const d = (_e = existingReg.data()) !== null && _e !== void 0 ? _e : {};
-            const status = (_g = (_f = d.registrationStatus) !== null && _f !== void 0 ? _f : d.status) !== null && _g !== void 0 ? _g : "registered";
+        // Check if user already registered (by uid field, works for any doc ID)
+        const existing = await (0, firestore_1.findRegistrantByUid)(eventId, uid, tx);
+        if (existing) {
+            const status = (_f = (_e = existing.data.registrationStatus) !== null && _e !== void 0 ? _e : existing.data.status) !== null && _f !== void 0 ? _f : "registered";
             if (status === "registered") {
-                return toRegistrationDto(eventId, registrantId, d, eventStartAt);
+                return toRegistrationDto(eventId, existing.id, existing.data, eventStartAt);
             }
-            // was canceled — re-register below
+            // was canceled — re-register with same doc ID below
+        }
+        // Determine the registrant ID
+        let registrantId;
+        if (existing) {
+            registrantId = existing.id; // keep existing doc ID for re-registration
+        }
+        else if (memberId && memberId.trim().length > 0) {
+            registrantId = memberId.trim();
+        }
+        else {
+            registrantId = await (0, firestore_1.generateZzRegistrantId)(eventId, tx);
         }
         if (typeof capacity === "number" && capacity > 0) {
             const countSnap = await tx.get((0, firestore_1.registrantsRef)(eventId).limit(capacity + 1));
@@ -99,13 +110,33 @@ async function register(eventId, user) {
                 throw (0, errors_1.capacityExceeded)("Event is at capacity");
             }
         }
+        // ── All writes after ─────────────────────────────────────────────
         const now = (0, now_1.serverTimestamp)();
         const profile = {
-            name: (_j = (_h = user.name) !== null && _h !== void 0 ? _h : user.email) !== null && _j !== void 0 ? _j : undefined,
-            email: (_k = user.email) !== null && _k !== void 0 ? _k : undefined,
+            name: ((_g = rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.displayName) !== null && _g !== void 0 ? _g : rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.firstName)
+                ? `${(_h = rsvpData.firstName) !== null && _h !== void 0 ? _h : ""} ${(_j = rsvpData.lastName) !== null && _j !== void 0 ? _j : ""}`.trim()
+                : (_l = (_k = user.name) !== null && _k !== void 0 ? _k : user.email) !== null && _l !== void 0 ? _l : undefined,
+            email: (_o = (_m = rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.email) !== null && _m !== void 0 ? _m : user.email) !== null && _o !== void 0 ? _o : undefined,
         };
+        // Include CFC fields when available
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.firstName)
+            profile.firstName = rsvpData.firstName;
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.lastName)
+            profile.lastName = rsvpData.lastName;
+        if (memberId)
+            profile.memberId = memberId;
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.role)
+            profile.role = rsvpData.role;
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.service)
+            profile.service = rsvpData.service;
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.chapter)
+            profile.chapter = rsvpData.chapter;
+        if (rsvpData === null || rsvpData === void 0 ? void 0 : rsvpData.gender)
+            profile.gender = rsvpData.gender;
+        const regRef = (0, firestore_1.registrantRef)(eventId, registrantId);
         tx.set(regRef, {
             uid,
+            registrantId,
             registrationStatus: "registered",
             status: "registered",
             createdAt: now,
@@ -113,12 +144,14 @@ async function register(eventId, user) {
             profile,
             source: "app",
         }, { merge: true });
+        const mirrorRef = (0, firestore_1.userRegistrationRef)(uid, eventId);
         tx.set(mirrorRef, {
             eventId,
             registrationId: registrantId,
+            registrantId,
             status: "registered",
             createdAt: now,
-            eventStartAt: (_l = eventData.startAt) !== null && _l !== void 0 ? _l : null,
+            eventStartAt: (_p = eventData.startAt) !== null && _p !== void 0 ? _p : null,
         }, { merge: true });
         return {
             eventId,
@@ -150,23 +183,25 @@ async function listMyRegistrations(user) {
 /** Get my registration for a single event. */
 async function getMyRegistration(eventId, user) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-    const registrantId = user.uid;
-    const doc = await (0, firestore_1.registrantRef)(eventId, registrantId).get();
-    if (!doc.exists) {
-        const mirrorDoc = await (0, firestore_1.userRegistrationRef)(user.uid, eventId).get();
-        if (!mirrorDoc.exists)
-            return null;
-        const data = (_a = mirrorDoc.data()) !== null && _a !== void 0 ? _a : {};
+    const uid = user.uid;
+    // Look up registrant by uid field (works for memberId, ZZ ID, or legacy uid doc IDs)
+    const found = await (0, firestore_1.findRegistrantByUid)(eventId, uid);
+    if (found) {
         const eventSnap = await (0, firestore_1.eventRef)(eventId).get();
         const eventStartAt = eventSnap.exists
-            ? (_f = (_e = (_d = (_c = (_b = eventSnap.data()) === null || _b === void 0 ? void 0 : _b.startAt) === null || _c === void 0 ? void 0 : _c.toDate) === null || _d === void 0 ? void 0 : _d.call(_c)) === null || _e === void 0 ? void 0 : _e.toISOString) === null || _f === void 0 ? void 0 : _f.call(_e)
+            ? (_e = (_d = (_c = (_b = (_a = eventSnap.data()) === null || _a === void 0 ? void 0 : _a.startAt) === null || _b === void 0 ? void 0 : _b.toDate) === null || _c === void 0 ? void 0 : _c.call(_b)) === null || _d === void 0 ? void 0 : _d.toISOString) === null || _e === void 0 ? void 0 : _e.call(_d)
             : undefined;
-        return toRegistrationDto(eventId, (_g = data.registrationId) !== null && _g !== void 0 ? _g : eventId, data, eventStartAt);
+        return toRegistrationDto(eventId, found.id, found.data, eventStartAt);
     }
+    // Fallback: check mirror doc
+    const mirrorDoc = await (0, firestore_1.userRegistrationRef)(uid, eventId).get();
+    if (!mirrorDoc.exists)
+        return null;
+    const data = (_f = mirrorDoc.data()) !== null && _f !== void 0 ? _f : {};
     const eventSnap = await (0, firestore_1.eventRef)(eventId).get();
     const eventStartAt = eventSnap.exists
-        ? (_m = (_l = (_k = (_j = (_h = eventSnap.data()) === null || _h === void 0 ? void 0 : _h.startAt) === null || _j === void 0 ? void 0 : _j.toDate) === null || _k === void 0 ? void 0 : _k.call(_j)) === null || _l === void 0 ? void 0 : _l.toISOString) === null || _m === void 0 ? void 0 : _m.call(_l)
+        ? (_l = (_k = (_j = (_h = (_g = eventSnap.data()) === null || _g === void 0 ? void 0 : _g.startAt) === null || _h === void 0 ? void 0 : _h.toDate) === null || _j === void 0 ? void 0 : _j.call(_h)) === null || _k === void 0 ? void 0 : _k.toISOString) === null || _l === void 0 ? void 0 : _l.call(_k)
         : undefined;
-    return toRegistrationDto(eventId, registrantId, (_o = doc.data()) !== null && _o !== void 0 ? _o : {}, eventStartAt);
+    return toRegistrationDto(eventId, (_o = (_m = data.registrationId) !== null && _m !== void 0 ? _m : data.registrantId) !== null && _o !== void 0 ? _o : eventId, data, eventStartAt);
 }
 //# sourceMappingURL=registrations.service.js.map

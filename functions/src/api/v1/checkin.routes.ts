@@ -10,8 +10,20 @@ import { ApiError } from "../../models/errors";
 export function checkInMain(req: Request, res: Response): void {
   const user = (req as Request & { user: RequestUser }).user;
   const eventId = req.params.eventId as string;
+  const profileData = req.body as Record<string, unknown> | undefined;
   checkinService
-    .checkInMain(eventId, user)
+    .checkInMain(eventId, user, profileData)
+    .then((data) => res.status(201).json({ ok: true, data }))
+    .catch((err) => sendError(res, err));
+}
+
+export function registerForSession(req: Request, res: Response): void {
+  const user = (req as Request & { user: RequestUser }).user;
+  const eventId = req.params.eventId as string;
+  const sessionId = req.params.sessionId as string;
+  const profileData = req.body as Record<string, unknown> | undefined;
+  checkinService
+    .registerForSession(eventId, sessionId, user, profileData)
     .then((data) => res.status(201).json({ ok: true, data }))
     .catch((err) => sendError(res, err));
 }
@@ -20,8 +32,9 @@ export function checkInSession(req: Request, res: Response): void {
   const user = (req as Request & { user: RequestUser }).user;
   const eventId = req.params.eventId as string;
   const sessionId = req.params.sessionId as string;
+  const profileData = req.body as Record<string, unknown> | undefined;
   checkinService
-    .checkInSession(eventId, sessionId, user)
+    .checkInSession(eventId, sessionId, user, profileData)
     .then((data) => res.status(201).json({ ok: true, data }))
     .catch((err) => sendError(res, err));
 }

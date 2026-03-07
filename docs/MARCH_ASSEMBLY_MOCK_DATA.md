@@ -6,7 +6,7 @@ Mock event data for **March Cluster Assembly** — same branding and schedule st
 
 | Path | Description |
 |------|--------------|
-| `events/march-assembly` | Event doc: name, slug `march-cluster-2026`, venue, dates (March 14, 2026), **shortDescription**, **branding** (primary `#0E3A5D`, accent `#F4A340`, logo URL), metadata (rallyTime, dinnerTime **7:00 PM – 9:00 PM**, **rsvpDeadline: March 7**) |
+| `events/march-assembly` | Event doc: name, slug `march-cluster-2026`, venue, dates (March 14, 2026), **shortDescription**, **branding** (primary `#0E3A5D`, accent `#F4A340`, logo URL), metadata (rallyTime, dinnerTime **7:00 PM – 9:00 PM**, **rsvpDeadline: March 14**) |
 | `events/march-assembly/sessions/{id}` | **main-checkin** (1:30 PM), **evangelization-rally** (3–6 PM), **dinner-fellowship** (7–9 PM, name "Birthdays & Anniversaries Celebration") — each with name, description, location, order, startAt, endAt, **speakerIds**, **materials** |
 | `events/march-assembly/speakers/{id}` | **rommel-dolar** (Bro Rommel Dolar, House Hold Head), **mike-suela** (Bro. Mike Suela, Unit Head) — photoUrl: `assets/images/speakers/rommel_dolar.png`, `mike_suela.png` |
 | `events/march-assembly/stats/overview` | Stats structure (zeros) for analytics |
@@ -24,7 +24,7 @@ Mock event data for **March Cluster Assembly** — same branding and schedule st
 - **Evangelization Rally:** 3:00 – 6:00 PM — *A time of worship, inspiration, and renewal as we recommit ourselves to the call to evangelize.*
 - **Birthdays & Anniversaries Celebration:** 7:00 PM – 9:00 PM — *Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.*
 - **Location:** St. Michael's Hall, Incarnation Catholic Church, Tampa, FL
-- **RSVP by March 7** | rsvp.aisaiah.org
+- **RSVP by March 14** | rsvp.aisaiah.org
 
 ## Session Materials (PDFs)
 

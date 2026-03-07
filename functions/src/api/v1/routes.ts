@@ -37,6 +37,13 @@ router.post(
   checkinRoutes.checkInMain
 );
 router.post(
+  "/events/:eventId/sessions/:sessionId/register",
+  requireAuth,
+  requireEventId,
+  requireSessionId,
+  checkinRoutes.registerForSession
+);
+router.post(
   "/events/:eventId/checkin/sessions/:sessionId",
   requireAuth,
   requireEventId,

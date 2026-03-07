@@ -263,7 +263,7 @@ class EventModel {
   /// Dinner time range from metadata (e.g. "6:00 PM - 9:00 PM").
   String? get dinnerTimeText => metadata['dinnerTime'] as String?;
 
-  /// RSVP deadline from metadata (e.g. "March 10").
+  /// RSVP deadline from metadata (e.g. "March 14").
   String? get rsvpDeadlineText => metadata['rsvpDeadline'] as String?;
 
   /// Self-check-in enabled (public QR/search/manual at venue).
