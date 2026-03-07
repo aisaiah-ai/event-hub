@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 /// Canonical Firestore data model: paths, parent requirements, and who creates them.
 ///
 /// Run: `dart run scripts/firestore_data_model.dart`
