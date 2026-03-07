@@ -267,9 +267,7 @@ class _EventLandingPageState extends State<EventLandingPage>
 // ─── Design tokens (dark theme matching mockup) ─────────────────────────────
 
 const _kCard = Color(0xFF141420);
-const _kBorder = Color(0x22FFFFFF);
 const _kTextMuted = Color(0xFFA7A7B3);
-const _kChipBg = Color(0xFF17202A);
 const _kRail = Color(0x33FFFFFF);
 const _kGreenAccent = Color(0xFF7AE3A5);
 

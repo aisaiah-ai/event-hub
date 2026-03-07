@@ -132,7 +132,7 @@ class GlobalAnalytics {
   /// Safely cast Firestore map (keys may be dynamic) to Map<String, dynamic> for counts.
   static Map<String, dynamic> _asStringKeyMap(dynamic value) {
     if (value == null || value is! Map) return {};
-    final map = value as Map;
+    final map = value;
     return Map.fromEntries(
       map.entries.map((e) => MapEntry(e.key?.toString() ?? '', e.value)),
     );

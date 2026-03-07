@@ -58,7 +58,7 @@ void main(List<String> args) async {
   const clearFirstDefine = String.fromEnvironment('SEED_CLEAR_FIRST', defaultValue: '');
   final clearFirst = clearFirstDefine == '1' || clearFirstDefine == 'true'
       || (Platform.environment['SEED_CLEAR_FIRST'] ?? '').toLowerCase() == '1'
-      || (filePath?.contains('nlc_main_clean') ?? false);
+      || (filePath.contains('nlc_main_clean'));
 
   try {
     await Firebase.initializeApp(
