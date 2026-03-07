@@ -227,9 +227,17 @@ class EventModel {
     );
   }
 
+  /// Parse Firestore timestamp, preserving the UTC date components.
+  /// Date-only fields (startDate, endDate) are stored as midnight UTC;
+  /// converting to local time would shift the day in western timezones.
   static DateTime _parseTimestamp(dynamic value) {
-    if (value is Timestamp) return value.toDate().toLocal();
-    if (value is DateTime) return value.toLocal();
+    if (value is Timestamp) {
+      final utc = value.toDate();
+      return DateTime(utc.year, utc.month, utc.day);
+    }
+    if (value is DateTime) {
+      return DateTime(value.year, value.month, value.day);
+    }
     return DateTime.now();
   }
 
