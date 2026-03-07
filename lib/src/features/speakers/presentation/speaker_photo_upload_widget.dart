@@ -42,8 +42,7 @@ class SpeakerPhotoUploadWidget extends StatefulWidget {
 class _SpeakerPhotoUploadWidgetState extends State<SpeakerPhotoUploadWidget> {
   // Lazy — FirebaseStorage.instance must not be called before Firebase.initializeApp.
   SpeakerImageService? _service;
-  SpeakerImageService get _imageService =>
-      _service ??= SpeakerImageService();
+  SpeakerImageService get _imageService => _service ??= SpeakerImageService();
 
   final _picker = ImagePicker();
 
@@ -150,8 +149,7 @@ class _SpeakerPhotoUploadWidgetState extends State<SpeakerPhotoUploadWidget> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary,
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: const Icon(
                     Icons.edit_rounded,
@@ -176,18 +174,15 @@ class _SpeakerPhotoUploadWidgetState extends State<SpeakerPhotoUploadWidget> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.upload_rounded, size: 18),
-            label: Text(
-              _uploading ? 'Uploading…' : 'Upload Photo',
-            ),
+            label: Text(_uploading ? 'Uploading…' : 'Upload Photo'),
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'JPG · PNG · WebP  ·  Max 2 MB',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: Colors.grey.shade600),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
         ),
       ],
     );
@@ -229,10 +224,8 @@ class _SpeakerPhotoPreview extends StatelessWidget {
     // Firebase Storage / network URL — use CachedNetworkImage
     return CachedNetworkImage(
       imageUrl: url,
-      imageBuilder: (context, imageProvider) => CircleAvatar(
-        radius: radius,
-        backgroundImage: imageProvider,
-      ),
+      imageBuilder: (context, imageProvider) =>
+          CircleAvatar(radius: radius, backgroundImage: imageProvider),
       placeholder: (_, _) => CircleAvatar(
         radius: radius,
         backgroundColor: Colors.grey.shade200,
@@ -243,12 +236,12 @@ class _SpeakerPhotoPreview extends StatelessWidget {
   }
 
   static Widget _placeholder(double radius) => CircleAvatar(
-        radius: radius,
-        backgroundColor: Colors.grey.shade200,
-        child: Icon(
-          Icons.person_rounded,
-          size: radius * 0.85,
-          color: Colors.grey.shade500,
-        ),
-      );
+    radius: radius,
+    backgroundColor: Colors.grey.shade200,
+    child: Icon(
+      Icons.person_rounded,
+      size: radius * 0.85,
+      color: Colors.grey.shade500,
+    ),
+  );
 }

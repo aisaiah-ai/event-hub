@@ -32,6 +32,7 @@ class RegistrantResultCard extends StatefulWidget {
 
 class _RegistrantResultCardState extends State<RegistrantResultCard> {
   bool? _checkedIn;
+
   /// When checking in to a session other than main-checkin, whether registrant is already in conference.
   bool? _conferenceCheckedIn;
 
@@ -87,15 +88,18 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
       return name.toString().trim();
     }
     final first =
-        widget.registrant.profile['firstName'] ?? widget.registrant.answers['firstName'];
+        widget.registrant.profile['firstName'] ??
+        widget.registrant.answers['firstName'];
     final last =
-        widget.registrant.profile['lastName'] ?? widget.registrant.answers['lastName'];
+        widget.registrant.profile['lastName'] ??
+        widget.registrant.answers['lastName'];
     return '${first ?? ''} ${last ?? ''}'.trim();
   }
 
   String get _firstInitial {
     final first =
-        widget.registrant.profile['firstName'] ?? widget.registrant.answers['firstName'];
+        widget.registrant.profile['firstName'] ??
+        widget.registrant.answers['firstName'];
     if (first != null && first.toString().trim().isNotEmpty) {
       return first.toString().trim().substring(0, 1).toUpperCase();
     }
@@ -108,7 +112,8 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
   }
 
   String? get _ministry {
-    final v = widget.registrant.profile['ministryMembership'] ??
+    final v =
+        widget.registrant.profile['ministryMembership'] ??
         widget.registrant.answers['ministryMembership'] ??
         widget.registrant.profile['ministry'] ??
         widget.registrant.answers['ministry'];
@@ -116,7 +121,9 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
   }
 
   String? get _service {
-    final v = widget.registrant.profile['service'] ?? widget.registrant.answers['service'];
+    final v =
+        widget.registrant.profile['service'] ??
+        widget.registrant.answers['service'];
     return v?.toString().trim();
   }
 
@@ -135,13 +142,16 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
 
   String? get _regionDisplay {
     final region =
-        widget.registrant.profile['region'] ?? widget.registrant.answers['region'];
+        widget.registrant.profile['region'] ??
+        widget.registrant.answers['region'];
     final other =
         widget.registrant.profile['regionOtherText'] ??
         widget.registrant.answers['regionOtherText'];
     if (region == null || region.toString().trim().isEmpty) return null;
     final r = region.toString().trim();
-    if (r.toLowerCase() == 'other' && other != null && other.toString().trim().isNotEmpty) {
+    if (r.toLowerCase() == 'other' &&
+        other != null &&
+        other.toString().trim().isNotEmpty) {
       return 'Other – ${other.toString().trim()}';
     }
     if (other != null && other.toString().trim().isNotEmpty) {
@@ -161,7 +171,9 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
         borderRadius: BorderRadius.circular(20),
         splashColor: canTap ? Colors.black12 : null,
         highlightColor: canTap ? Colors.black.withValues(alpha: 0.08) : null,
-        mouseCursor: canTap ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        mouseCursor: canTap
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -192,7 +204,8 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
                         color: AppColors.navy,
                       ),
                     ),
-                    if (_ministryAndServiceDisplay.isNotEmpty || _regionDisplay != null) ...[
+                    if (_ministryAndServiceDisplay.isNotEmpty ||
+                        _regionDisplay != null) ...[
                       const SizedBox(height: 6),
                       Text(
                         [
@@ -228,10 +241,7 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            NlcPalette.brandBlue,
-            NlcPalette.brandBlueSoft,
-          ],
+          colors: [NlcPalette.brandBlue, NlcPalette.brandBlueSoft],
         ),
         shape: BoxShape.circle,
         boxShadow: [
@@ -284,10 +294,14 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
     }
     // Only show "You'll also be checked in to conference" when we've actually checked
     // conference status and the registrant is not yet checked in to the conference.
-    final isOtherSession = widget.mode.sessionId != NlcSessions.mainCheckInSessionId;
+    final isOtherSession =
+        widget.mode.sessionId != NlcSessions.mainCheckInSessionId;
     final hasCheckedConferenceStatus = _conferenceCheckedIn != null;
     final isNotCheckedInToConference = _conferenceCheckedIn == false;
-    final showConferenceNote = isOtherSession && hasCheckedConferenceStatus && isNotCheckedInToConference;
+    final showConferenceNote =
+        isOtherSession &&
+        hasCheckedConferenceStatus &&
+        isNotCheckedInToConference;
     if (showConferenceNote) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -47,6 +46,7 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
   final _searchController = TextEditingController();
   List<Registrant> _results = [];
   bool _searching = false;
+
   /// Set when a one-time permission check finds permission-denied (Firestore rules).
   bool _firestorePermissionDenied = false;
 
@@ -76,7 +76,9 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
     });
     final eventId = event?.id ?? widget.eventId;
     if (eventId.isEmpty) return;
-    final status = await RegistrantService().checkRegistrantReadPermission(eventId);
+    final status = await RegistrantService().checkRegistrantReadPermission(
+      eventId,
+    );
     if (!mounted) return;
     if (status.isPermissionDenied) {
       setState(() => _firestorePermissionDenied = true);
@@ -124,7 +126,8 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         }
         debugPrint('Search error: $e');
         debugPrint(
-            'Search debug: eventId=$eventId, db=${FirestoreConfig.databaseId}');
+          'Search debug: eventId=$eventId, db=${FirestoreConfig.databaseId}',
+        );
       }
     });
   }
@@ -155,14 +158,16 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         'registrantId': r.id,
         'registrantName': _displayName(r),
         'source': 'search',
-        'isMainCheckIn': widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
+        'isMainCheckIn':
+            widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
       },
     );
   }
 
   String _displayName(Registrant r) {
     final name = r.profile['name'] ?? r.answers['name'];
-    if (name?.toString().trim().isNotEmpty ?? false) return name.toString().trim();
+    if (name?.toString().trim().isNotEmpty ?? false)
+      return name.toString().trim();
     final first = r.profile['firstName'] ?? r.answers['firstName'];
     final last = r.profile['lastName'] ?? r.answers['lastName'];
     return '${first ?? ''} ${last ?? ''}'.trim();
@@ -208,11 +213,14 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
                 _buildSearchBar(),
                 const SizedBox(height: AppSpacing.betweenSections),
                 if (_results.isNotEmpty) _buildResultCount(),
-                if (_results.isNotEmpty) const SizedBox(height: AppSpacing.insideCards),
+                if (_results.isNotEmpty)
+                  const SizedBox(height: AppSpacing.insideCards),
                 Expanded(
                   child: _searching
                       ? const Center(
-                          child: CircularProgressIndicator(color: AppColors.white),
+                          child: CircularProgressIndicator(
+                            color: AppColors.white,
+                          ),
                         )
                       : _buildResultList(),
                 ),
@@ -242,7 +250,11 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade100, size: 22),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange.shade100,
+                size: 22,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -353,10 +365,7 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
       child: TextField(
         controller: _searchController,
         autofocus: true,
-        style: GoogleFonts.inter(
-          fontSize: 16,
-          color: AppColors.textPrimary,
-        ),
+        style: GoogleFonts.inter(fontSize: 16, color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search by last name (min 2 characters)',
           hintStyle: GoogleFonts.inter(
@@ -399,12 +408,16 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
       final hasQuery = _searchController.text.trim().length >= 2;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.horizontal,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                hasQuery ? 'No matches found' : 'Enter at least 2 characters to search',
+                hasQuery
+                    ? 'No matches found'
+                    : 'Enter at least 2 characters to search',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.white.withValues(alpha: 0.7),
@@ -415,7 +428,11 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
                 const SizedBox(height: 20),
                 TextButton.icon(
                   onPressed: _onEnterManually,
-                  icon: const Icon(Icons.edit_note, size: 20, color: NlcPalette.cream),
+                  icon: const Icon(
+                    Icons.edit_note,
+                    size: 20,
+                    color: NlcPalette.cream,
+                  ),
                   label: Text(
                     'Enter manually',
                     style: GoogleFonts.inter(
@@ -434,7 +451,8 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
       itemCount: _results.length,
-      separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.betweenSecondaryCards),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppSpacing.betweenSecondaryCards),
       itemBuilder: (context, i) {
         final r = _results[i];
         return RegistrantResultCard(

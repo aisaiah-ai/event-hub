@@ -16,11 +16,7 @@ const List<String> kDefaultDashboardOrder = [
 ];
 
 /// Section IDs for wallboard. Metrics, Leaderboard, Trend only.
-const List<String> kDefaultWallboardOrder = [
-  'metrics',
-  'leaderboard',
-  'graph',
-];
+const List<String> kDefaultWallboardOrder = ['metrics', 'leaderboard', 'graph'];
 
 /// Human-readable labels for section IDs.
 const Map<String, String> kDashboardSectionLabels = {
@@ -45,8 +41,8 @@ class DashboardLayoutService {
   DashboardLayoutService({
     FirebaseFirestore? firestore,
     SharedPreferences? sharedPreferences,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _sharedPrefs = sharedPreferences;
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _sharedPrefs = sharedPreferences;
 
   final FirebaseFirestore _firestore;
   SharedPreferences? _sharedPrefs;
@@ -55,8 +51,10 @@ class DashboardLayoutService {
       _sharedPrefs ??= await SharedPreferences.getInstance();
 
   String _settingsPath(String eventId) => 'events/$eventId/settings';
-  String _prefsDashboardKey(String eventId) => '${_prefsKeyPrefix}dashboard_$eventId';
-  String _prefsWallboardKey(String eventId) => '${_prefsKeyPrefix}wallboard_$eventId';
+  String _prefsDashboardKey(String eventId) =>
+      '${_prefsKeyPrefix}dashboard_$eventId';
+  String _prefsWallboardKey(String eventId) =>
+      '${_prefsKeyPrefix}wallboard_$eventId';
 
   bool _isPermissionDenied(Object e) {
     return e.toString().contains('permission-denied') ||
@@ -68,7 +66,8 @@ class DashboardLayoutService {
     try {
       final prefs = await _prefs;
       final json = prefs.getString(_prefsDashboardKey(eventId));
-      if (json == null || json.isEmpty) return List.from(kDefaultDashboardOrder);
+      if (json == null || json.isEmpty)
+        return List.from(kDefaultDashboardOrder);
       final list = json.split(',');
       return _validatedOrder(list, kDefaultDashboardOrder);
     } catch (_) {
@@ -81,7 +80,8 @@ class DashboardLayoutService {
     try {
       final prefs = await _prefs;
       final json = prefs.getString(_prefsWallboardKey(eventId));
-      if (json == null || json.isEmpty) return List.from(kDefaultWallboardOrder);
+      if (json == null || json.isEmpty)
+        return List.from(kDefaultWallboardOrder);
       final list = json.split(',');
       return _validatedOrder(list, kDefaultWallboardOrder);
     } catch (_) {
@@ -90,7 +90,10 @@ class DashboardLayoutService {
   }
 
   /// Save dashboard order to SharedPreferences (fallback).
-  Future<void> _setLocalDashboardOrder(String eventId, List<String> order) async {
+  Future<void> _setLocalDashboardOrder(
+    String eventId,
+    List<String> order,
+  ) async {
     try {
       final prefs = await _prefs;
       await prefs.setString(_prefsDashboardKey(eventId), order.join(','));
@@ -98,7 +101,10 @@ class DashboardLayoutService {
   }
 
   /// Save wallboard order to SharedPreferences (fallback).
-  Future<void> _setLocalWallboardOrder(String eventId, List<String> order) async {
+  Future<void> _setLocalWallboardOrder(
+    String eventId,
+    List<String> order,
+  ) async {
     try {
       final prefs = await _prefs;
       await prefs.setString(_prefsWallboardKey(eventId), order.join(','));
@@ -168,10 +174,12 @@ class DashboardLayoutService {
               if (list == null || list.isEmpty) {
                 controller.add(List.from(kDefaultDashboardOrder));
               } else {
-                controller.add(_validatedOrder(
-                  list.map((e) => e.toString()).toList(),
-                  kDefaultDashboardOrder,
-                ));
+                controller.add(
+                  _validatedOrder(
+                    list.map((e) => e.toString()).toList(),
+                    kDefaultDashboardOrder,
+                  ),
+                );
               }
             }
           },
@@ -204,10 +212,12 @@ class DashboardLayoutService {
               if (list == null || list.isEmpty) {
                 controller.add(List.from(kDefaultWallboardOrder));
               } else {
-                controller.add(_validatedOrder(
-                  list.map((e) => e.toString()).toList(),
-                  kDefaultWallboardOrder,
-                ));
+                controller.add(
+                  _validatedOrder(
+                    list.map((e) => e.toString()).toList(),
+                    kDefaultWallboardOrder,
+                  ),
+                );
               }
             }
           },

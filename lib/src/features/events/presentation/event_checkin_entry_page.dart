@@ -27,9 +27,11 @@ class EventCheckinEntryPage extends StatefulWidget {
   });
 
   final String eventSlug;
+
   /// When set (e.g. gender-ideology), show check-in for that session only.
   final String? sessionSlug;
   final CheckInFlowType mode;
+
   /// True for /events/:slug/main-checkin — conference arrival only, no session.
   final bool isMainCheckIn;
   final EventRepository? repository;
@@ -95,67 +97,67 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
               child: CircularProgressIndicator(color: EventTokens.textOffWhite),
             )
           : _event != null && _event!.selfCheckinEnabled
-              ? _buildCheckinBody()
-              : Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(EventTokens.spacingL),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.lock_outline,
-                          size: 64,
-                          color: EventTokens.textOffWhite.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(height: EventTokens.spacingL),
-                        Text(
-                          'Staff Login Required',
-                          style: const TextStyle(
-                            color: EventTokens.textOffWhite,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: EventTokens.spacingM),
-                        Text(
-                          'Check-in is available to authorized staff only. '
-                          'Please sign in to access the check-in portal.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: EventTokens.textOffWhite.withValues(alpha: 0.8),
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: EventTokens.spacingXL),
-                        FilledButton(
-                          onPressed: () {
-                            final q = <String, String>{
-                              'eventId': _event?.id ?? widget.eventSlug,
-                              if (_event != null) 'eventTitle': _event!.name,
-                              if (_event != null)
-                                'eventVenue':
-                                    '${_event!.locationName}, ${_event!.address}',
-                              if (_event != null)
-                                'eventDate': _event!.startDate
-                                    .toIso8601String()
-                                    .split('T')
-                                    .first,
-                            };
-                            context.go(
-                              Uri(path: '/checkin', queryParameters: q).toString(),
-                            );
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor:
-                                _event?.accentColor ?? EventTokens.accentGold,
-                            foregroundColor: EventTokens.textPrimary,
-                          ),
-                          child: const Text('Go to Check-in'),
-                        ),
-                      ],
+          ? _buildCheckinBody()
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(EventTokens.spacingL),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 64,
+                      color: EventTokens.textOffWhite.withValues(alpha: 0.8),
                     ),
-                  ),
+                    const SizedBox(height: EventTokens.spacingL),
+                    Text(
+                      'Staff Login Required',
+                      style: const TextStyle(
+                        color: EventTokens.textOffWhite,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: EventTokens.spacingM),
+                    Text(
+                      'Check-in is available to authorized staff only. '
+                      'Please sign in to access the check-in portal.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: EventTokens.textOffWhite.withValues(alpha: 0.8),
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: EventTokens.spacingXL),
+                    FilledButton(
+                      onPressed: () {
+                        final q = <String, String>{
+                          'eventId': _event?.id ?? widget.eventSlug,
+                          if (_event != null) 'eventTitle': _event!.name,
+                          if (_event != null)
+                            'eventVenue':
+                                '${_event!.locationName}, ${_event!.address}',
+                          if (_event != null)
+                            'eventDate': _event!.startDate
+                                .toIso8601String()
+                                .split('T')
+                                .first,
+                        };
+                        context.go(
+                          Uri(path: '/checkin', queryParameters: q).toString(),
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            _event?.accentColor ?? EventTokens.accentGold,
+                        foregroundColor: EventTokens.textPrimary,
+                      ),
+                      child: const Text('Go to Check-in'),
+                    ),
+                  ],
                 ),
+              ),
+            ),
     );
   }
 

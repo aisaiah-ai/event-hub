@@ -31,9 +31,19 @@ class Venue {
     final city = map['city'] as String? ?? '';
     final state = map['state'] as String? ?? '';
     final zip = map['zip'] as String? ?? '';
-    if (name.isEmpty && street.isEmpty && city.isEmpty && state.isEmpty && zip.isEmpty) {
+    if (name.isEmpty &&
+        street.isEmpty &&
+        city.isEmpty &&
+        state.isEmpty &&
+        zip.isEmpty) {
       return null;
     }
-    return Venue(name: name, street: street, city: city, state: state, zip: zip);
+    return Venue(
+      name: name,
+      street: street,
+      city: city,
+      state: state,
+      zip: zip,
+    );
   }
 }

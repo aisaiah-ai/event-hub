@@ -64,12 +64,17 @@ class CheckinSessionSelector extends StatelessWidget {
                   color: EventTokens.textPrimary.withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
-                icon: const Icon(Icons.keyboard_arrow_down, color: EventTokens.textPrimary),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: EventTokens.textPrimary,
+                ),
                 items: sessions
-                    .map((s) => DropdownMenuItem(
-                          value: s,
-                          child: Text('Session: ${s.displayName}'),
-                        ))
+                    .map(
+                      (s) => DropdownMenuItem(
+                        value: s,
+                        child: Text('Session: ${s.displayName}'),
+                      ),
+                    )
                     .toList(),
                 onChanged: onSessionSelected,
               ),

@@ -21,10 +21,8 @@ class AlreadyCheckedInDialog extends StatelessWidget {
   }) {
     return showDialog(
       context: context,
-      builder: (context) => AlreadyCheckedInDialog(
-        checkedInAt: checkedInAt,
-        message: message,
-      ),
+      builder: (context) =>
+          AlreadyCheckedInDialog(checkedInAt: checkedInAt, message: message),
     );
   }
 
@@ -39,9 +37,7 @@ class AlreadyCheckedInDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surfaceCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Text(
         'Already Checked In',
         style: GoogleFonts.inter(

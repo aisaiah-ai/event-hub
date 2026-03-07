@@ -51,7 +51,9 @@ Uint8List createAttendanceExcel({
 void _appendAllRows(Excel excel, String sheetName, List<List<String>> rows) {
   final sheet = excel[sheetName];
   for (final row in rows) {
-    final cellValues = row.map<CellValue?>((s) => TextCellValue(s.toString())).toList();
+    final cellValues = row
+        .map<CellValue?>((s) => TextCellValue(s.toString()))
+        .toList();
     sheet.appendRow(cellValues);
   }
 }

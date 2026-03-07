@@ -43,7 +43,12 @@ class SpeakerRepository {
           familiesMentored: 8,
           talksGiven: 24,
           location: 'Tampa, FL',
-          topics: ['Evangelization', 'Household Leadership', 'Community Life', 'Worship'],
+          topics: [
+            'Evangelization',
+            'Household Leadership',
+            'Community Life',
+            'Worship',
+          ],
           quote:
               'In the One we are one — when we walk together in Christ, our families and our cluster become a light to the world.',
           email: 'rommel.dolar@example.com',
@@ -81,15 +86,19 @@ class SpeakerRepository {
   /// When [eventId] is null, reads from top-level speakers/{id}.
   /// For March Assembly, returns in-app mock profile if Firestore doc is missing.
   /// Throws if the document does not exist and no fallback is available.
-  Future<Speaker> getSpeakerById(String id, {String? eventId, String? eventSlug}) async {
+  Future<Speaker> getSpeakerById(
+    String id, {
+    String? eventId,
+    String? eventSlug,
+  }) async {
     final fs = _firestore;
     if (fs != null) {
       final DocumentReference<Map<String, dynamic>> ref = eventId != null
           ? fs
-              .collection(_eventsCollection)
-              .doc(eventId)
-              .collection(_speakersCollection)
-              .doc(id)
+                .collection(_eventsCollection)
+                .doc(eventId)
+                .collection(_speakersCollection)
+                .doc(id)
           : fs.collection(_speakersCollection).doc(id);
       final snap = await ref.get();
       if (snap.exists && snap.data() != null) {

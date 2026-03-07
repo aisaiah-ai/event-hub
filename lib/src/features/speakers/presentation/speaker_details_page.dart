@@ -86,9 +86,7 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
     if (_loading) {
       return _buildScaffold(
         context,
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null || _speaker == null) {
@@ -100,7 +98,11 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, size: 48, color: _theme(context).accent),
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: _theme(context).accent,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   _error ?? 'Speaker not found',
@@ -152,7 +154,10 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: Colors.white.withValues(alpha: 0.92)),
+          icon: Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.white.withValues(alpha: 0.92),
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -165,9 +170,7 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
               color: theme.cardBackgroundColor.withValues(alpha: 0.75),
             ),
           ),
-          SafeArea(
-            child: body,
-          ),
+          SafeArea(child: body),
         ],
       ),
     );
@@ -175,9 +178,7 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
 
   Widget _buildBackground(BuildContext context) {
     if (_event == null) {
-      return Container(
-        color: _theme(context).primary,
-      );
+      return Container(color: _theme(context).primary);
     }
     final bgUrl = _event!.backgroundImageUrl;
     final slug = _event!.slug;
@@ -190,8 +191,10 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
       }
     }
     if (asset == null) {
-      if (slug == 'nlc' || slug == 'nlc-2026') asset = EventPageScaffold.nlcBackgroundAsset;
-      if (slug == 'march-cluster-2026') asset = EventPageScaffold.marchAssemblyBackgroundAsset;
+      if (slug == 'nlc' || slug == 'nlc-2026')
+        asset = EventPageScaffold.nlcBackgroundAsset;
+      if (slug == 'march-cluster-2026')
+        asset = EventPageScaffold.marchAssemblyBackgroundAsset;
     }
     if (asset != null) {
       return Positioned.fill(
@@ -204,9 +207,7 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
         ),
       );
     }
-    return Container(
-      color: _event!.primaryColor,
-    );
+    return Container(color: _event!.primaryColor);
   }
 
   Widget _buildContent(BuildContext context, Speaker speaker) {
@@ -240,7 +241,11 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
     );
   }
 
-  Widget _buildContentSection(BuildContext context, Speaker speaker, _SpeakerTheme theme) {
+  Widget _buildContentSection(
+    BuildContext context,
+    Speaker speaker,
+    _SpeakerTheme theme,
+  ) {
     final width = MediaQuery.sizeOf(context).width;
     final contentPaddingH = width < 600 ? 20.0 : 28.0;
     return Column(
@@ -265,7 +270,11 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
               ],
               if (speaker.quote != null && speaker.quote!.isNotEmpty) ...[
                 const SizedBox(height: 24),
-                _buildQuoteCard(speaker, theme, horizontalPadding: contentPaddingH),
+                _buildQuoteCard(
+                  speaker,
+                  theme,
+                  horizontalPadding: contentPaddingH,
+                ),
               ],
             ],
           ),
@@ -274,7 +283,11 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Speaker speaker, _SpeakerTheme theme) {
+  Widget _buildHeader(
+    BuildContext context,
+    Speaker speaker,
+    _SpeakerTheme theme,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,11 +328,16 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
               if (speaker.cluster != null && speaker.cluster!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     color: Colors.white.withValues(alpha: 0.08),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
                   ),
                   child: Text(
                     speaker.cluster!,
@@ -365,7 +383,8 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
         child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
-          placeholder: (context, url) => _InitialsCircle(name: speaker.effectiveDisplayName, size: size),
+          placeholder: (context, url) =>
+              _InitialsCircle(name: speaker.effectiveDisplayName, size: size),
           errorWidget: (context, error, stackTrace) =>
               _InitialsCircle(name: speaker.effectiveDisplayName, size: size),
         ),
@@ -373,7 +392,11 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
     );
   }
 
-  Widget _buildContactRow(BuildContext context, Speaker speaker, _SpeakerTheme theme) {
+  Widget _buildContactRow(
+    BuildContext context,
+    Speaker speaker,
+    _SpeakerTheme theme,
+  ) {
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width > 800;
     final buttonHeight = isWide ? 44.0 : 40.0;
@@ -419,10 +442,7 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
           for (var i = 0; i < buttons.length; i++) ...[
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 300),
-              child: SizedBox(
-                width: double.infinity,
-                child: buttons[i],
-              ),
+              child: SizedBox(width: double.infinity, child: buttons[i]),
             ),
             if (i < buttons.length - 1) const SizedBox(width: 12),
           ],
@@ -433,7 +453,9 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
       children: buttons.asMap().entries.map((e) {
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: e.key < buttons.length - 1 ? 12 : 0),
+            padding: EdgeInsets.only(
+              right: e.key < buttons.length - 1 ? 12 : 0,
+            ),
             child: e.value,
           ),
         );
@@ -449,9 +471,16 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
     }
   }
 
-  Widget _buildAboutCard(Speaker speaker, _SpeakerTheme theme, {required double horizontalPadding}) {
+  Widget _buildAboutCard(
+    Speaker speaker,
+    _SpeakerTheme theme, {
+    required double horizontalPadding,
+  }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 18),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 18,
+      ),
       decoration: BoxDecoration(
         color: theme.cardBackgroundColor.withValues(alpha: 0.80),
         borderRadius: BorderRadius.circular(14),
@@ -486,25 +515,59 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
   Widget _buildStatsList(Speaker speaker, _SpeakerTheme theme) {
     final rows = <Widget>[];
     if (speaker.yearsInCfc != null) {
-      rows.add(_StatRow(theme: theme, label: 'Years in CFC', value: '${speaker.yearsInCfc}', icon: Icons.calendar_today_rounded));
+      rows.add(
+        _StatRow(
+          theme: theme,
+          label: 'Years in CFC',
+          value: '${speaker.yearsInCfc}',
+          icon: Icons.calendar_today_rounded,
+        ),
+      );
     }
     if (speaker.familiesMentored != null) {
-      if (rows.isNotEmpty) rows.add(Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)));
-      rows.add(_StatRow(theme: theme, label: 'Families Mentored', value: '${speaker.familiesMentored}', icon: Icons.groups_rounded));
+      if (rows.isNotEmpty)
+        rows.add(
+          Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)),
+        );
+      rows.add(
+        _StatRow(
+          theme: theme,
+          label: 'Families Mentored',
+          value: '${speaker.familiesMentored}',
+          icon: Icons.groups_rounded,
+        ),
+      );
     }
     if (speaker.talksGiven != null) {
-      if (rows.isNotEmpty) rows.add(Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)));
-      rows.add(_StatRow(theme: theme, label: 'Talks Given', value: '${speaker.talksGiven}', icon: Icons.mic_rounded));
+      if (rows.isNotEmpty)
+        rows.add(
+          Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)),
+        );
+      rows.add(
+        _StatRow(
+          theme: theme,
+          label: 'Talks Given',
+          value: '${speaker.talksGiven}',
+          icon: Icons.mic_rounded,
+        ),
+      );
     }
     if (speaker.location != null && speaker.location!.isNotEmpty) {
-      if (rows.isNotEmpty) rows.add(Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)));
-      rows.add(_StatRow(theme: theme, label: 'Location', value: speaker.location!, icon: Icons.location_on_rounded));
+      if (rows.isNotEmpty)
+        rows.add(
+          Divider(height: 24, color: Colors.white.withValues(alpha: 0.12)),
+        );
+      rows.add(
+        _StatRow(
+          theme: theme,
+          label: 'Location',
+          value: speaker.location!,
+          icon: Icons.location_on_rounded,
+        ),
+      );
     }
     if (rows.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: rows,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
   }
 
   Widget _buildTopicsSection(Speaker speaker, _SpeakerTheme theme) {
@@ -524,17 +587,22 @@ class _SpeakerDetailsPageState extends State<SpeakerDetailsPage> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: speaker.topics
-              .map((t) => _TopicChip(label: t))
-              .toList(),
+          children: speaker.topics.map((t) => _TopicChip(label: t)).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildQuoteCard(Speaker speaker, _SpeakerTheme theme, {required double horizontalPadding}) {
+  Widget _buildQuoteCard(
+    Speaker speaker,
+    _SpeakerTheme theme, {
+    required double horizontalPadding,
+  }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 20,
+      ),
       decoration: BoxDecoration(
         color: theme.cardBackgroundColor.withValues(alpha: 0.84),
         borderRadius: BorderRadius.circular(14),
@@ -642,8 +710,11 @@ class _InitialsCircle extends StatelessWidget {
 
   String _initials(String s) {
     final parts = s.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-    return parts.isNotEmpty && parts.first.isNotEmpty ? parts.first[0].toUpperCase() : '?';
+    if (parts.length >= 2)
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    return parts.isNotEmpty && parts.first.isNotEmpty
+        ? parts.first[0].toUpperCase()
+        : '?';
   }
 
   @override
@@ -725,7 +796,11 @@ class _ContactButtonState extends State<_ContactButton> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(widget.icon, size: 20, color: Colors.white.withValues(alpha: 0.95)),
+                Icon(
+                  widget.icon,
+                  size: 20,
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   widget.label,

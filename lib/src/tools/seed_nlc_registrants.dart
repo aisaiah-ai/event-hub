@@ -163,8 +163,9 @@ Future<List<Map<String, String>>> readSpreadsheet(String path) async {
       final tableName = decoder.tables.keys.first;
       final table = decoder.tables[tableName]!;
       if (table.rows.isEmpty) return [];
-      final headers =
-          table.rows.first.map((e) => e?.toString().trim() ?? '').toList();
+      final headers = table.rows.first
+          .map((e) => e?.toString().trim() ?? '')
+          .toList();
       final result = <Map<String, String>>[];
       for (var i = 1; i < table.rows.length; i++) {
         final row = table.rows[i];
@@ -193,8 +194,9 @@ const _batchSize = 500;
 /// events/{eventId}/sessionRegistrations. Use before reseeding from NLC main export.
 Future<void> clearRegistrationData(FirebaseFirestore firestore) async {
   final registrantsRef = firestore.collection('events/$eventId/registrants');
-  final sessionRegRef =
-      firestore.collection('events/$eventId/sessionRegistrations');
+  final sessionRegRef = firestore.collection(
+    'events/$eventId/sessionRegistrations',
+  );
 
   for (final colRef in [registrantsRef, sessionRegRef]) {
     var total = 0;
@@ -223,7 +225,10 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
 }) async {
   print('Reading: $filePath');
   print('PII hashing: ${hashPii ? "on" : "off (searchable)"}');
-  if (clearFirst) print('Clear-first: will erase all registrants and sessionRegistrations then seed.');
+  if (clearFirst)
+    print(
+      'Clear-first: will erase all registrants and sessionRegistrations then seed.',
+    );
 
   final rows = await readSpreadsheet(filePath);
   if (rows.isEmpty) {
@@ -232,13 +237,16 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
   }
 
   // Use default DB if event-hub-dev fails (e.g. doesn't exist yet)
-  final useDefault =
-      const bool.fromEnvironment('SEED_USE_DEFAULT', defaultValue: false);
+  final useDefault = const bool.fromEnvironment(
+    'SEED_USE_DEFAULT',
+    defaultValue: false,
+  );
   final FirebaseFirestore firestore;
   if (useDefault) {
     firestore = FirebaseFirestore.instance;
     print(
-        'Found ${rows.length} rows. Writing to Firestore ((default) database)...');
+      'Found ${rows.length} rows. Writing to Firestore ((default) database)...',
+    );
   } else {
     FirestoreConfig.init(AppEnvironment.dev);
     firestore = FirestoreConfig.instance;
@@ -256,8 +264,9 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
   }
 
   final registrantsRef = firestore.collection('events/$eventId/registrants');
-  final sessionRegRef =
-      firestore.collection('events/$eventId/sessionRegistrations');
+  final sessionRegRef = firestore.collection(
+    'events/$eventId/sessionRegistrations',
+  );
 
   var imported = 0;
   var skipped = 0;
@@ -277,8 +286,14 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
         value = _hashPii(value);
       }
 
-      if (['firstName', 'lastName', 'email', 'cfcId', 'name', 'phone']
-          .contains(schemaKey)) {
+      if ([
+        'firstName',
+        'lastName',
+        'email',
+        'cfcId',
+        'name',
+        'phone',
+      ].contains(schemaKey)) {
         profile[schemaKey] = value;
       } else {
         answers[schemaKey] = value;
@@ -301,10 +316,7 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'eventAttendance': {'checkedIn': false},
-        'flags': {
-          'isWalkIn': false,
-          'hasValidationWarnings': false,
-        },
+        'flags': {'isWalkIn': false, 'hasValidationWarnings': false},
       }, SetOptions(merge: true));
       imported++;
       print('  ✓ Created: $id');
@@ -344,7 +356,8 @@ Future<({int imported, int skipped, int sessionRegistrationsWritten})> runSeed(
   }
 
   return (
-      imported: imported,
-      skipped: skipped,
-      sessionRegistrationsWritten: sessionRegCount);
+    imported: imported,
+    skipped: skipped,
+    sessionRegistrationsWritten: sessionRegCount,
+  );
 }

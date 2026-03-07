@@ -11,9 +11,11 @@ class Nlc2026Schema {
   // ----- Paths -----
   static String eventPath() => 'events/$eventId';
   static String sessionsPath() => 'events/$eventId/sessions';
-  static String sessionPath(String sessionId) => 'events/$eventId/sessions/$sessionId';
+  static String sessionPath(String sessionId) =>
+      'events/$eventId/sessions/$sessionId';
   static String registrantsPath() => 'events/$eventId/registrants';
-  static String registrantPath(String registrantId) => 'events/$eventId/registrants/$registrantId';
+  static String registrantPath(String registrantId) =>
+      'events/$eventId/registrants/$registrantId';
   static String attendancePath(String sessionId, String registrantId) =>
       'events/$eventId/sessions/$sessionId/attendance/$registrantId';
   static String statsOverviewPath() => 'events/$eventId/stats/overview';
@@ -71,7 +73,8 @@ class Nlc2026Schema {
   static const String statsServiceCounts = 'serviceCounts';
   static const String statsSessionTotals = 'sessionTotals';
   static const String statsFirstCheckInAt = 'firstCheckInAt';
-  static const String statsFirstCheckInRegistrantId = 'firstCheckInRegistrantId';
+  static const String statsFirstCheckInRegistrantId =
+      'firstCheckInRegistrantId';
   static const String statsUpdatedAt = 'updatedAt';
 
   // ----- 6. Checkin document fields -----

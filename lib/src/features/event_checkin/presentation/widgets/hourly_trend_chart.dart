@@ -23,7 +23,9 @@ class HourlyTrendChart extends StatelessWidget {
   final String emptyMessage;
 
   /// Parse Firestore keys (YYYY-MM-DD-HH-mm for 15-min, or legacy YYYY-MM-DD-HH) into sorted chart points.
-  static List<({DateTime time, int value})> parseHourlyPoints(Map<String, int> hourlyCheckins) {
+  static List<({DateTime time, int value})> parseHourlyPoints(
+    Map<String, int> hourlyCheckins,
+  ) {
     final points = <({DateTime time, int value})>[];
     for (final e in hourlyCheckins.entries) {
       final key = e.key.trim();
@@ -41,7 +43,13 @@ class HourlyTrendChart extends StatelessWidget {
         }
       }
       points.add((
-        time: DateTime(date.year, date.month, date.day, hour.clamp(0, 23), minute.clamp(0, 59)),
+        time: DateTime(
+          date.year,
+          date.month,
+          date.day,
+          hour.clamp(0, 23),
+          minute.clamp(0, 59),
+        ),
         value: (e.value).clamp(0, 0x7FFFFFFF),
       ));
     }
@@ -81,7 +89,10 @@ class HourlyTrendChart extends StatelessWidget {
     List<({DateTime time, int value})> chartPoints = points.length >= 2
         ? points
         : [
-            (time: points.first.time.subtract(const Duration(hours: 1)), value: 0),
+            (
+              time: points.first.time.subtract(const Duration(hours: 1)),
+              value: 0,
+            ),
             ...points,
           ];
     chartPoints.sort((a, b) => a.time.compareTo(b.time));
@@ -89,19 +100,13 @@ class HourlyTrendChart extends StatelessWidget {
     final color = lineColor ?? NlcPalette.brandBlue;
     return SizedBox(
       height: height,
-      child: _LineChartPainter(
-        points: chartPoints,
-        lineColor: color,
-      ),
+      child: _LineChartPainter(points: chartPoints, lineColor: color),
     );
   }
 }
 
 class _LineChartPainter extends StatelessWidget {
-  const _LineChartPainter({
-    required this.points,
-    required this.lineColor,
-  });
+  const _LineChartPainter({required this.points, required this.lineColor});
 
   final List<({DateTime time, int value})> points;
   final Color lineColor;
@@ -115,7 +120,8 @@ class _LineChartPainter extends StatelessWidget {
     final n = points.length;
     final maxXVal = (n - 1).toDouble().clamp(0.0, double.infinity);
     final spots = [
-      for (var i = 0; i < n; i++) FlSpot(i.toDouble(), points[i].value.toDouble()),
+      for (var i = 0; i < n; i++)
+        FlSpot(i.toDouble(), points[i].value.toDouble()),
     ];
     final timeFmt = DateFormat('h:mm a');
 
@@ -139,8 +145,14 @@ class _LineChartPainter extends StatelessWidget {
         borderData: FlBorderData(
           show: true,
           border: Border(
-            left: BorderSide(color: NlcColors.mutedText.withValues(alpha: 0.4), width: 1),
-            bottom: BorderSide(color: NlcColors.mutedText.withValues(alpha: 0.4), width: 1),
+            left: BorderSide(
+              color: NlcColors.mutedText.withValues(alpha: 0.4),
+              width: 1,
+            ),
+            bottom: BorderSide(
+              color: NlcColors.mutedText.withValues(alpha: 0.4),
+              width: 1,
+            ),
             top: const BorderSide(color: Colors.transparent),
             right: const BorderSide(color: Colors.transparent),
           ),
@@ -174,8 +186,12 @@ class _LineChartPainter extends StatelessWidget {
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         lineTouchData: const LineTouchData(enabled: false),
         lineBarsData: [
@@ -187,11 +203,12 @@ class _LineChartPainter extends StatelessWidget {
             isStrokeCapRound: true,
             dotData: FlDotData(
               show: true,
-              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                radius: index == points.length - 1 ? 6 : 4,
-                color: lineColor,
-                strokeWidth: 0,
-              ),
+              getDotPainter: (spot, percent, barData, index) =>
+                  FlDotCirclePainter(
+                    radius: index == points.length - 1 ? 6 : 4,
+                    color: lineColor,
+                    strokeWidth: 0,
+                  ),
             ),
             belowBarData: BarAreaData(
               show: true,

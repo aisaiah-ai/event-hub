@@ -37,16 +37,16 @@ class RawAttendanceRow {
   final String checkedInBy;
 
   List<String> toCsvRow() => [
-        firstName,
-        lastName,
-        region,
-        regionOtherText,
-        ministryMembership,
-        service,
-        sessionName,
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(checkInTimestamp),
-        checkedInBy,
-      ];
+    firstName,
+    lastName,
+    region,
+    regionOtherText,
+    ministryMembership,
+    service,
+    sessionName,
+    DateFormat('yyyy-MM-dd HH:mm:ss').format(checkInTimestamp),
+    checkedInBy,
+  ];
 }
 
 /// Aggregated row for CSV export.
@@ -62,10 +62,10 @@ class AggregatedRow {
   final double? percentOfTotal;
 
   List<String> toCsvRow() => [
-        session,
-        '$attendance',
-        percentOfTotal != null ? '${percentOfTotal!.toStringAsFixed(1)}%' : '',
-      ];
+    session,
+    '$attendance',
+    percentOfTotal != null ? '${percentOfTotal!.toStringAsFixed(1)}%' : '',
+  ];
 }
 
 /// Export service for raw and aggregated attendance reports.
@@ -75,9 +75,8 @@ class AttendanceExportService {
   AttendanceExportService({
     FirebaseFirestore? firestore,
     SessionService? sessionService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _sessionService =
-            sessionService ?? SessionService(firestore: firestore);
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _sessionService = sessionService ?? SessionService(firestore: firestore);
 
   final FirebaseFirestore _firestore;
   final SessionService _sessionService;
@@ -99,14 +98,14 @@ class AttendanceExportService {
     'Attendance',
     '% of Total',
   ];
-  static const List<String> _eventSummaryHeaders = [
-    'Metric',
-    'Value',
-  ];
+  static const List<String> _eventSummaryHeaders = ['Metric', 'Value'];
 
   /// Export raw attendance. Scans attendance for ALL sessions (including those without order).
   /// Uses batched pagination for >5000 docs.
-  Future<String> exportRawCsv(String eventId, {String eventSlug = 'nlc-2026'}) async {
+  Future<String> exportRawCsv(
+    String eventId, {
+    String eventSlug = 'nlc-2026',
+  }) async {
     final allSessions = await _sessionService.listSessions(eventId);
     final sessions = allSessions.toList()
       ..sort((a, b) => (a.order ?? 999).compareTo(b.order ?? 999));
@@ -146,17 +145,19 @@ class AttendanceExportService {
             return va.isNotEmpty ? va : get(b);
           }
 
-          rows.add(RawAttendanceRow(
-            firstName: get('firstName'),
-            lastName: get('lastName'),
-            region: getFirst('region', 'regionMembership'),
-            regionOtherText: getFirst('regionOtherText', 'regionOther'),
-            ministryMembership: getFirst('ministryMembership', 'ministry'),
-            service: get('service'),
-            sessionName: sessionNames[session.id] ?? session.id,
-            checkInTimestamp: checkedInAt ?? DateTime.now(),
-            checkedInBy: checkedInBy,
-          ).toCsvRow());
+          rows.add(
+            RawAttendanceRow(
+              firstName: get('firstName'),
+              lastName: get('lastName'),
+              region: getFirst('region', 'regionMembership'),
+              regionOtherText: getFirst('regionOtherText', 'regionOther'),
+              ministryMembership: getFirst('ministryMembership', 'ministry'),
+              service: get('service'),
+              sessionName: sessionNames[session.id] ?? session.id,
+              checkInTimestamp: checkedInAt ?? DateTime.now(),
+              checkedInBy: checkedInBy,
+            ).toCsvRow(),
+          );
         }
 
         if (snap.docs.length < _batchSize) break;
@@ -181,15 +182,16 @@ class AttendanceExportService {
     switch (level) {
       case AggregationLevel.perSession:
         rows.add(_aggregatedHeaders);
-        final total = sessionStats.fold<int>(
-            0, (s, x) => s + x.checkInCount);
+        final total = sessionStats.fold<int>(0, (s, x) => s + x.checkInCount);
         for (final s in sessionStats) {
           final pct = total > 0 ? (s.checkInCount / total) * 100 : null;
-          rows.add(AggregatedRow(
-            session: s.name,
-            attendance: s.checkInCount,
-            percentOfTotal: pct,
-          ).toCsvRow());
+          rows.add(
+            AggregatedRow(
+              session: s.name,
+              attendance: s.checkInCount,
+              percentOfTotal: pct,
+            ).toCsvRow(),
+          );
         }
         break;
 
@@ -197,11 +199,21 @@ class AttendanceExportService {
         rows.add(_eventSummaryHeaders);
         rows.add(['Total Unique Attendees', '${global.totalUniqueAttendees}']);
         rows.add(['Total Check-Ins', '${global.totalCheckins}']);
-        if (global.earliestCheckin != null && global.earliestCheckin!.registrantId.isNotEmpty) {
-          rows.add(['Earliest Check-in', DateFormat.yMd().add_jm().format(global.earliestCheckin!.timestamp)]);
+        if (global.earliestCheckin != null &&
+            global.earliestCheckin!.registrantId.isNotEmpty) {
+          rows.add([
+            'Earliest Check-in',
+            DateFormat.yMd().add_jm().format(global.earliestCheckin!.timestamp),
+          ]);
         }
-        if (global.earliestRegistration != null && global.earliestRegistration!.registrantId.isNotEmpty) {
-          rows.add(['Earliest Registration', DateFormat.yMd().add_jm().format(global.earliestRegistration!.timestamp)]);
+        if (global.earliestRegistration != null &&
+            global.earliestRegistration!.registrantId.isNotEmpty) {
+          rows.add([
+            'Earliest Registration',
+            DateFormat.yMd().add_jm().format(
+              global.earliestRegistration!.timestamp,
+            ),
+          ]);
         }
         if (global.peakHourKey != null) {
           rows.add(['Peak Hour', global.peakHourKey!]);
@@ -212,18 +224,19 @@ class AttendanceExportService {
         rows.add(_aggregatedHeaders);
         final selected = customSessionIds != null
             ? sessionStats
-                .where((s) => customSessionIds.contains(s.sessionId))
-                .toList()
+                  .where((s) => customSessionIds.contains(s.sessionId))
+                  .toList()
             : sessionStats;
-        final total = selected.fold<int>(
-            0, (s, x) => s + x.checkInCount);
+        final total = selected.fold<int>(0, (s, x) => s + x.checkInCount);
         for (final s in selected) {
           final pct = total > 0 ? (s.checkInCount / total) * 100 : null;
-          rows.add(AggregatedRow(
-            session: s.name,
-            attendance: s.checkInCount,
-            percentOfTotal: pct,
-          ).toCsvRow());
+          rows.add(
+            AggregatedRow(
+              session: s.name,
+              attendance: s.checkInCount,
+              percentOfTotal: pct,
+            ).toCsvRow(),
+          );
         }
         break;
 
@@ -240,11 +253,13 @@ class AttendanceExportService {
           for (final day in sortedDays) {
             final dayTotal = byDay[day]!;
             final pct = grandTotal > 0 ? (dayTotal / grandTotal) * 100 : null;
-            rows.add(AggregatedRow(
-              session: day,
-              attendance: dayTotal,
-              percentOfTotal: pct,
-            ).toCsvRow());
+            rows.add(
+              AggregatedRow(
+                session: day,
+                attendance: dayTotal,
+                percentOfTotal: pct,
+              ).toCsvRow(),
+            );
           }
         } else {
           final byDay = <String, List<SessionCheckinStat>>{};
@@ -255,16 +270,21 @@ class AttendanceExportService {
             byDay.putIfAbsent(key, () => []).add(s);
           }
           final sortedDays = byDay.keys.toList()..sort();
-          final grandTotal = sessionStats.fold<int>(0, (s, x) => s + x.checkInCount);
+          final grandTotal = sessionStats.fold<int>(
+            0,
+            (s, x) => s + x.checkInCount,
+          );
           for (final day in sortedDays) {
             final sess = byDay[day]!;
             final dayTotal = sess.fold<int>(0, (a, x) => a + x.checkInCount);
             final pct = grandTotal > 0 ? (dayTotal / grandTotal) * 100 : null;
-            rows.add(AggregatedRow(
-              session: day,
-              attendance: dayTotal,
-              percentOfTotal: pct,
-            ).toCsvRow());
+            rows.add(
+              AggregatedRow(
+                session: day,
+                attendance: dayTotal,
+                percentOfTotal: pct,
+              ).toCsvRow(),
+            );
           }
         }
         break;
@@ -301,27 +321,43 @@ class AttendanceExportService {
       ['Total Unique Attendees', '${global.totalUniqueAttendees}'],
       ['Total Check-Ins', '${global.totalCheckins}'],
     ];
-    if (global.earliestCheckin != null && global.earliestCheckin!.registrantId.isNotEmpty) {
-      summaryRows.add(['Earliest Check-in', DateFormat.yMd().add_jm().format(global.earliestCheckin!.timestamp)]);
+    if (global.earliestCheckin != null &&
+        global.earliestCheckin!.registrantId.isNotEmpty) {
+      summaryRows.add([
+        'Earliest Check-in',
+        DateFormat.yMd().add_jm().format(global.earliestCheckin!.timestamp),
+      ]);
     }
-    if (global.earliestRegistration != null && global.earliestRegistration!.registrantId.isNotEmpty) {
-      summaryRows.add(['Earliest Registration', DateFormat.yMd().add_jm().format(global.earliestRegistration!.timestamp)]);
+    if (global.earliestRegistration != null &&
+        global.earliestRegistration!.registrantId.isNotEmpty) {
+      summaryRows.add([
+        'Earliest Registration',
+        DateFormat.yMd().add_jm().format(
+          global.earliestRegistration!.timestamp,
+        ),
+      ]);
     }
     if (global.peakHourKey != null) {
       summaryRows.add(['Peak Hour', global.peakHourKey!]);
     }
 
-    final regionRows = <List<String>>[['Region', 'Count']];
+    final regionRows = <List<String>>[
+      ['Region', 'Count'],
+    ];
     for (final e in global.top5Regions) {
       regionRows.add([e.key, '${e.value}']);
     }
 
-    final ministryRows = <List<String>>[['Ministry', 'Count']];
+    final ministryRows = <List<String>>[
+      ['Ministry', 'Count'],
+    ];
     for (final e in global.top5Ministries) {
       ministryRows.add([e.key, '${e.value}']);
     }
 
-    final hourlyRows = <List<String>>[['Hour', 'Count']];
+    final hourlyRows = <List<String>>[
+      ['Hour', 'Count'],
+    ];
     final sortedHourly = global.hourlyCheckins.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
     for (final e in sortedHourly) {
@@ -332,16 +368,19 @@ class AttendanceExportService {
     final total = sessionStats.fold<int>(0, (s, x) => s + x.checkInCount);
     for (final s in sessionStats) {
       final pct = total > 0 ? (s.checkInCount / total) * 100 : null;
-      sessionRows.add(AggregatedRow(
-        session: s.name,
-        attendance: s.checkInCount,
-        percentOfTotal: pct,
-      ).toCsvRow());
+      sessionRows.add(
+        AggregatedRow(
+          session: s.name,
+          attendance: s.checkInCount,
+          percentOfTotal: pct,
+        ).toCsvRow(),
+      );
     }
 
     final rawCsv = await exportRawCsv(eventId, eventSlug: eventSlug);
-    final rawRowsParsed =
-        const CsvToListConverter().convert(rawCsv).cast<List<dynamic>>();
+    final rawRowsParsed = const CsvToListConverter()
+        .convert(rawCsv)
+        .cast<List<dynamic>>();
     List<String> toStringList(List<dynamic> row) =>
         row.map((e) => e?.toString() ?? '').toList();
     final rawRows = rawRowsParsed.map(toStringList).toList();
@@ -365,8 +404,10 @@ class AttendanceExportService {
     if (bytes.isEmpty) {
       throw StateError('Excel encode produced empty file');
     }
-    final filename =
-        csvFilename(eventSlug, 'attendance').replaceAll('.csv', '.xlsx');
+    final filename = csvFilename(
+      eventSlug,
+      'attendance',
+    ).replaceAll('.csv', '.xlsx');
     return downloadBytes(filename, bytes);
   }
 

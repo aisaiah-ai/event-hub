@@ -18,7 +18,7 @@ class SessionRegistration {
 /// Read-only service for events/{eventId}/sessionRegistrations/{registrantId}.
 class SessionRegistrationService {
   SessionRegistrationService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirestoreConfig.instance;
+    : _firestore = firestore ?? FirestoreConfig.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -55,10 +55,10 @@ class SessionRegistrationService {
     final list = data['sessionIds'];
     final sessionIds = list is List
         ? list
-            .map((e) => e?.toString())
-            .where((e) => e != null && e.isNotEmpty)
-            .cast<String>()
-            .toList()
+              .map((e) => e?.toString())
+              .where((e) => e != null && e.isNotEmpty)
+              .cast<String>()
+              .toList()
         : <String>[];
     final updatedAt = data['updatedAt'];
     return SessionRegistration(

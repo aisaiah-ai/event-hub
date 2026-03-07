@@ -22,7 +22,15 @@ String sessionDisplayName(String sessionIdOrSlug) {
     case 'immigration-dialogue':
       return NlcSessions.immigration.displayName;
     default:
-      return sessionIdOrSlug.replaceAll('-', ' ').split(' ').map((s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}').join(' ');
+      return sessionIdOrSlug
+          .replaceAll('-', ' ')
+          .split(' ')
+          .map(
+            (s) => s.isEmpty
+                ? ''
+                : '${s[0].toUpperCase()}${s.substring(1).toLowerCase()}',
+          )
+          .join(' ');
   }
 }
 

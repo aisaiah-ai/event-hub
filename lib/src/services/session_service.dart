@@ -137,9 +137,14 @@ class SessionService {
       rethrow;
     }
     try {
-      await _formationSignalService.generateForRegistrant(eventId, registrantId);
+      await _formationSignalService.generateForRegistrant(
+        eventId,
+        registrantId,
+      );
     } catch (e, st) {
-      _log('checkInSessionOnly FORMATION SIGNAL FAILED (attendance was written)');
+      _log(
+        'checkInSessionOnly FORMATION SIGNAL FAILED (attendance was written)',
+      );
       _log('  eventId: $eventId registrantId: $registrantId');
       _log('  database: ${FirestoreConfig.databaseId}');
       _log('  error: $e');

@@ -38,6 +38,7 @@ class SessionSelectionScreen extends StatefulWidget {
   final String registrantId;
   final String registrantName;
   final CheckinSource source;
+
   /// When set, show only these sessions (filter by availability). Empty = show all available.
   final List<String>? preRegisteredSessionIds;
   final SessionCatalogService? sessionCatalog;
@@ -97,7 +98,8 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
 
   Future<void> _onTapSession(SessionWithAvailability item) async {
     final session = item.session;
-    final disabled = item.label == SessionAvailabilityLabel.full ||
+    final disabled =
+        item.label == SessionAvailabilityLabel.full ||
         item.label == SessionAvailabilityLabel.closed;
     if (disabled) return;
 
@@ -144,15 +146,15 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
         final msg = outcome.errorMessage ?? outcome.errorCode;
         if (outcome.errorCode == 'resource-exhausted' ||
             outcome.errorMessage?.toLowerCase().contains('full') == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Session full. $msg')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Session full. $msg')));
           await _load();
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Check-in failed: $msg')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Check-in failed: $msg')));
         await _load();
         return;
       }
@@ -173,9 +175,9 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
         await _load();
       }
     }
@@ -203,7 +205,9 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
               constraints: const BoxConstraints(maxWidth: 520),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.horizontal,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -227,7 +231,9 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                       const Padding(
                         padding: EdgeInsets.all(32),
                         child: Center(
-                          child: CircularProgressIndicator(color: NlcPalette.cream),
+                          child: CircularProgressIndicator(
+                            color: NlcPalette.cream,
+                          ),
                         ),
                       )
                     else if (_error != null)
@@ -254,11 +260,14 @@ class _SessionSelectionScreenState extends State<SessionSelectionScreen> {
                     else
                       ..._sessions.map((item) {
                         final session = item.session;
-                        final disabled = item.label == SessionAvailabilityLabel.full ||
+                        final disabled =
+                            item.label == SessionAvailabilityLabel.full ||
                             item.label == SessionAvailabilityLabel.closed;
                         final color = _colorFromHex(session.colorHex);
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.betweenSecondaryCards),
+                          padding: const EdgeInsets.only(
+                            bottom: AppSpacing.betweenSecondaryCards,
+                          ),
                           child: _SessionCard(
                             session: session,
                             remainingSeats: item.remainingSeats,
@@ -335,10 +344,7 @@ class _SessionCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: color.withValues(alpha: 0.5),
-                width: 2,
-              ),
+              border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -372,7 +378,10 @@ class _SessionCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _chipColor(label).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(16),
@@ -392,7 +401,11 @@ class _SessionCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: AppColors.textPrimary87),
+                      Icon(
+                        Icons.schedule,
+                        size: 16,
+                        color: AppColors.textPrimary87,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         dateTime,
@@ -404,11 +417,16 @@ class _SessionCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (session.location != null && session.location!.isNotEmpty) ...[
+                if (session.location != null &&
+                    session.location!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 16, color: AppColors.textPrimary87),
+                      Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: AppColors.textPrimary87,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -453,4 +471,3 @@ class _SessionCard extends StatelessWidget {
     }
   }
 }
-

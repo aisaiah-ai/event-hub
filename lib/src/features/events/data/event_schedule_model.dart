@@ -43,6 +43,7 @@ class SessionSpeaker {
   });
 
   final String name;
+
   /// Firestore document ID — set when resolved from events/{id}/speakers/{id}.
   /// Null on the API path where only denormalized strings are available.
   final String? speakerId;
@@ -98,10 +99,13 @@ class EventSession {
   final DateTime? startAt;
   final DateTime? endAt;
   final List<SessionMaterial> materials;
+
   /// Speaker document IDs for this session (from events/{eventId}/speakers).
   final List<String> speakerIds;
+
   /// When true, show "Checked In ✓" and disable the check-in button.
   final bool sessionCheckedIn;
+
   /// Resolved speaker for this session. Populated by the repository after
   /// fetching the speaker sub-document identified by [speakerIds].
   final SessionSpeaker? speaker;
@@ -110,19 +114,19 @@ class EventSession {
 
   /// Return a copy of this session with [speaker] replaced.
   EventSession withSpeaker(SessionSpeaker? speaker) => EventSession(
-        id: id,
-        name: name,
-        title: title,
-        description: description,
-        location: location,
-        order: order,
-        startAt: startAt,
-        endAt: endAt,
-        materials: materials,
-        speakerIds: speakerIds,
-        sessionCheckedIn: sessionCheckedIn,
-        speaker: speaker,
-      );
+    id: id,
+    name: name,
+    title: title,
+    description: description,
+    location: location,
+    order: order,
+    startAt: startAt,
+    endAt: endAt,
+    materials: materials,
+    speakerIds: speakerIds,
+    sessionCheckedIn: sessionCheckedIn,
+    speaker: speaker,
+  );
 
   static DateTime? _parseTimestamp(dynamic value) {
     if (value is Timestamp) return value.toDate().toLocal();
@@ -176,16 +180,20 @@ class EventSession {
     final rawSpeakerName = json['speaker'] as String?;
     final rawSpeakerId = json['speakerId'] as String?;
     // ignore: avoid_print
-    print('[EventSession.fromApiJson] id=$id speaker="$rawSpeakerName" speakerId="$rawSpeakerId"');
+    print(
+      '[EventSession.fromApiJson] id=$id speaker="$rawSpeakerName" speakerId="$rawSpeakerId"',
+    );
 
     // Build a SessionSpeaker with the document ID when the API provides it.
     // A display name is required to show a preview row at all.
     final speakerName = rawSpeakerName?.trim();
-    final resolvedSpeakerId =
-        rawSpeakerId?.trim().isNotEmpty == true ? rawSpeakerId!.trim() : null;
+    final resolvedSpeakerId = rawSpeakerId?.trim().isNotEmpty == true
+        ? rawSpeakerId!.trim()
+        : null;
     final rawTitle = (json['speakerTitle'] as String?)?.trim();
-    final resolvedTitle =
-        rawTitle != null && rawTitle.isNotEmpty ? rawTitle : null;
+    final resolvedTitle = rawTitle != null && rawTitle.isNotEmpty
+        ? rawTitle
+        : null;
     final speaker = (speakerName != null && speakerName.isNotEmpty)
         ? SessionSpeaker(
             name: speakerName,

@@ -63,10 +63,11 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
 
   Future<void> _loadEvent() async {
     final event = await EventRepository().getEventBySlug(widget.eventSlug);
-    if (mounted) setState(() {
-      _event = event;
-      _loadingEvent = false;
-    });
+    if (mounted)
+      setState(() {
+        _event = event;
+        _loadingEvent = false;
+      });
   }
 
   Future<void> _submit() async {
@@ -127,7 +128,8 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
     if (s.contains('permission-denied') || s.contains('permission_denied')) {
       return 'Check-in denied. Ensure Firestore rules allow creating registrants and attendance for this event.';
     }
-    if (s.contains('not-found') || s.contains('document') && s.contains('exist')) {
+    if (s.contains('not-found') ||
+        s.contains('document') && s.contains('exist')) {
       return 'Event or session may not exist. Contact support.';
     }
     return e.toString();
@@ -184,10 +186,7 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
             _buildField('Role (optional)', _roleController),
             if (_error != null) ...[
               const SizedBox(height: EventTokens.spacingM),
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.redAccent),
-              ),
+              Text(_error!, style: const TextStyle(color: Colors.redAccent)),
             ],
             const SizedBox(height: EventTokens.spacingXL),
             FilledButton(
@@ -195,7 +194,9 @@ class _CheckinManualEntryPageState extends State<CheckinManualEntryPage> {
               style: FilledButton.styleFrom(
                 backgroundColor: _event?.accentColor ?? EventTokens.accentGold,
                 foregroundColor: EventTokens.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: EventTokens.spacingL),
+                padding: const EdgeInsets.symmetric(
+                  vertical: EventTokens.spacingL,
+                ),
               ),
               child: _submitting
                   ? const SizedBox(

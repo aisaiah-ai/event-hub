@@ -8,7 +8,7 @@ import '../src/config/firestore_config.dart';
 /// No /checkins collection.
 class CheckInService {
   CheckInService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirestoreConfig.instance;
+    : _db = firestore ?? FirestoreConfig.instance;
 
   final FirebaseFirestore _db;
 
@@ -34,7 +34,8 @@ class CheckInService {
       throw FirebaseException(
         plugin: 'cloud_firestore',
         code: 'not-found',
-        message: 'Session document does not exist: events/$eventId/sessions/$sessionId. Create the session in the DB first. See docs/FIRESTORE_DATA_MODEL.md.',
+        message:
+            'Session document does not exist: events/$eventId/sessions/$sessionId. Create the session in the DB first. See docs/FIRESTORE_DATA_MODEL.md.',
       );
     }
 

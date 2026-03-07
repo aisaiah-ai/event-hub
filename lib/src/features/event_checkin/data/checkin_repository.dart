@@ -25,12 +25,11 @@ class CheckinRepository {
     RegistrantService? registrantService,
     SessionService? sessionService,
     CheckInService? checkInService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _registrantService =
-            registrantService ?? RegistrantService(firestore: firestore),
-        _sessionService =
-            sessionService ?? SessionService(firestore: firestore),
-        _checkInService = checkInService ?? CheckInService(firestore: firestore);
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _registrantService =
+           registrantService ?? RegistrantService(firestore: firestore),
+       _sessionService = sessionService ?? SessionService(firestore: firestore),
+       _checkInService = checkInService ?? CheckInService(firestore: firestore);
 
   final FirebaseFirestore _firestore;
   final RegistrantService _registrantService;
@@ -109,18 +108,24 @@ class CheckinRepository {
         final dt = ts is Timestamp ? ts.toDate() : DateTime.now();
         final reg = await _registrantService.getRegistrant(eventId, d.id);
         final name = reg != null
-            ? (reg.profile['name'] ?? reg.profile['firstName'] ?? reg.answers['name'] ?? reg.answers['firstName'])
-                ?.toString()
-                .trim()
+            ? (reg.profile['name'] ??
+                      reg.profile['firstName'] ??
+                      reg.answers['name'] ??
+                      reg.answers['firstName'])
+                  ?.toString()
+                  .trim()
             : null;
         final first = reg?.profile['firstName'] ?? reg?.answers['firstName'];
         final last = reg?.profile['lastName'] ?? reg?.answers['lastName'];
         final displayName = (name != null && name.isNotEmpty)
             ? name
             : (first != null || last != null)
-                ? '${first ?? ''} ${last ?? ''}'.trim()
-                : 'Guest';
-        results.add((name: displayName.isEmpty ? 'Guest' : displayName, timestamp: dt));
+            ? '${first ?? ''} ${last ?? ''}'.trim()
+            : 'Guest';
+        results.add((
+          name: displayName.isEmpty ? 'Guest' : displayName,
+          timestamp: dt,
+        ));
       }
       return results;
     } catch (_) {
@@ -222,7 +227,12 @@ class CheckinRepository {
     String checkedInBy = 'self',
   }) async {
     if (sessionId == NlcSessions.mainCheckInSessionId) {
-      final did = await checkIn(eventId, sessionId, registrantId, checkedInBy: checkedInBy);
+      final did = await checkIn(
+        eventId,
+        sessionId,
+        registrantId,
+        checkedInBy: checkedInBy,
+      );
       return (didSessionCheckIn: did, didConferenceCheckIn: false);
     }
     // Ensure conference (main-checkin) first.
@@ -240,7 +250,12 @@ class CheckinRepository {
         checkedInBy: checkedInBy,
       );
     }
-    final didSession = await checkIn(eventId, sessionId, registrantId, checkedInBy: checkedInBy);
+    final didSession = await checkIn(
+      eventId,
+      sessionId,
+      registrantId,
+      checkedInBy: checkedInBy,
+    );
     return (didSessionCheckIn: didSession, didConferenceCheckIn: didConference);
   }
 
@@ -267,7 +282,9 @@ class CheckinRepository {
       );
     } catch (e, st) {
       _checkinLog('checkInSessionOnly FAILED at session attendance');
-      _checkinLog('  eventId: $eventId sessionId: $sessionId registrantId: $registrantId');
+      _checkinLog(
+        '  eventId: $eventId sessionId: $sessionId registrantId: $registrantId',
+      );
       _checkinLog('  database: ${FirestoreConfig.databaseId}');
       _checkinLog('  error: $e');
       _checkinLog('  stack: $st');

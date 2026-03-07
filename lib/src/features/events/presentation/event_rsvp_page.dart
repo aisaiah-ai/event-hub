@@ -297,14 +297,16 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
             icon: Icons.volunteer_activism,
             title: 'Evangelization Rally',
             time: rallyTime,
-            description: 'A time of worship, inspiration, and renewal as we recommit ourselves to the call to evangelize.',
+            description:
+                'A time of worship, inspiration, and renewal as we recommit ourselves to the call to evangelize.',
           ),
           const SizedBox(height: EventTokens.spacingM),
           _ScheduleRow(
             icon: Icons.restaurant,
             title: 'Birthdays & Anniversaries Celebration',
             time: dinnerTime,
-            description: 'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
+            description:
+                'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
           ),
           const SizedBox(height: EventTokens.spacingL),
           _SectionHeader(icon: Icons.people, title: 'Please RSVP'),

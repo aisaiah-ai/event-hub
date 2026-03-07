@@ -5,10 +5,7 @@ import '../theme/checkin_theme.dart';
 
 /// "Self Check-In Portal" with cream divider lines above and below.
 class SubtitleBar extends StatelessWidget {
-  const SubtitleBar({
-    super.key,
-    this.title = 'Self Check-In Portal',
-  });
+  const SubtitleBar({super.key, this.title = 'Self Check-In Portal'});
 
   final String title;
 

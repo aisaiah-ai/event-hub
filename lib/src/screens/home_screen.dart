@@ -199,8 +199,7 @@ class HomeScreen extends StatelessWidget {
                   icon: Icons.analytics_rounded,
                   label: 'NLC Dashboard',
                   subtitle: 'Executive intelligence',
-                  onTap: () =>
-                      context.go('/admin/dashboard?eventId=$eventId'),
+                  onTap: () => context.go('/admin/dashboard?eventId=$eventId'),
                 ),
                 _ActionTile(
                   icon: Icons.dashboard_customize_rounded,

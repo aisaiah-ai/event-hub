@@ -10,7 +10,8 @@ Future<bool> downloadFile(
 Future<bool> downloadBytes(
   String filename,
   List<int> bytes, {
-  String mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  String mimeType =
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }) async {
   return false;
 }

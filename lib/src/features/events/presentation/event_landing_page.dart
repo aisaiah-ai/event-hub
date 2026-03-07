@@ -89,12 +89,17 @@ class _EventLandingPageState extends State<EventLandingPage>
       print('[EventLandingPage] event: id=${event?.id} name=${event?.name}');
       if (event != null) {
         // getSessions internally resolves speakers and embeds SessionSpeaker.
-        final sessions = await _repo.getSessions(event.id, slug: widget.eventSlug);
+        final sessions = await _repo.getSessions(
+          event.id,
+          slug: widget.eventSlug,
+        );
         // ignore: avoid_print
         print('[EventLandingPage] loaded ${sessions.length} sessions');
         for (final s in sessions) {
           // ignore: avoid_print
-          print('[EventLandingPage]   session: ${s.id} speaker=${s.speaker?.name}');
+          print(
+            '[EventLandingPage]   session: ${s.id} speaker=${s.speaker?.name}',
+          );
         }
         setState(() {
           _event = event;
@@ -182,7 +187,11 @@ class _EventLandingPageState extends State<EventLandingPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, color: EventTokens.textOffWhite, size: 48),
+            const Icon(
+              Icons.search_off,
+              color: EventTokens.textOffWhite,
+              size: 48,
+            ),
             const SizedBox(height: EventTokens.spacingM),
             const Text(
               'Event not found',
@@ -232,8 +241,9 @@ class _EventLandingPageState extends State<EventLandingPage>
               onRegister: () {
                 final uri = Uri(
                   path: '/events/${event.slug}/rsvp',
-                  queryParameters:
-                      widget.queryParams.isNotEmpty ? widget.queryParams : null,
+                  queryParameters: widget.queryParams.isNotEmpty
+                      ? widget.queryParams
+                      : null,
                 );
                 context.push(uri.toString());
               },
@@ -287,11 +297,11 @@ class _EventTheme {
   final Color checkInButtonColor;
 
   factory _EventTheme.from(EventModel event) => _EventTheme(
-        primary: event.primaryColor,
-        accent: event.accentColor,
-        cardBackgroundColor: event.cardBackgroundColor,
-        checkInButtonColor: event.checkInButtonColor,
-      );
+    primary: event.primaryColor,
+    accent: event.accentColor,
+    cardBackgroundColor: event.cardBackgroundColor,
+    checkInButtonColor: event.checkInButtonColor,
+  );
 }
 
 // ─── Event Header (logo + title, date, venue, Get Directions) ─────────────────
@@ -383,11 +393,15 @@ class _EventHeader extends StatelessWidget {
                       fontSize: 14,
                     ),
                   ),
-                if (venue.city.isNotEmpty || venue.state.isNotEmpty || venue.zip.isNotEmpty)
+                if (venue.city.isNotEmpty ||
+                    venue.state.isNotEmpty ||
+                    venue.zip.isNotEmpty)
                   Text(
-                    [venue.city, venue.state, venue.zip]
-                        .where((s) => s.isNotEmpty)
-                        .join(' '),
+                    [
+                      venue.city,
+                      venue.state,
+                      venue.zip,
+                    ].where((s) => s.isNotEmpty).join(' '),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.70),
                       fontSize: 14,
@@ -454,10 +468,7 @@ class _EventHeaderLogo extends StatelessWidget {
 // ─── Short event description (below header, above register button) ─────────────
 
 class _ShortDescriptionBlock extends StatelessWidget {
-  const _ShortDescriptionBlock({
-    required this.text,
-    required this.theme,
-  });
+  const _ShortDescriptionBlock({required this.text, required this.theme});
 
   final String text;
   final _EventTheme theme;
@@ -477,9 +488,7 @@ class _ShortDescriptionBlock extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.05),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Text(
         text,
@@ -509,8 +518,7 @@ class _RegisterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isRegistered = event.isRegistered == true;
-    final isPending =
-        event.registrationStatus?.toLowerCase() == 'pending';
+    final isPending = event.registrationStatus?.toLowerCase() == 'pending';
 
     String label;
     if (isRegistered) {
@@ -531,9 +539,7 @@ class _RegisterButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             backgroundColor: theme.accent.withValues(alpha: 0.18),
             foregroundColor: theme.accent,
-            side: BorderSide(
-              color: theme.accent.withValues(alpha: 0.35),
-            ),
+            side: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -541,10 +547,7 @@ class _RegisterButton extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
       ),
@@ -637,7 +640,10 @@ class _TabsHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.cardBackgroundColor.withOpacity(0.68),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                    width: 1,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -668,12 +674,19 @@ class _TabsHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.cardBackgroundColor.withOpacity(0.68),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.calendar_month_rounded, size: 16, color: theme.primary),
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      size: 16,
+                      color: theme.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Today',
@@ -722,10 +735,7 @@ class _ScheduleTab extends StatelessWidget {
         padding: const EdgeInsets.all(EventTokens.spacingL),
         child: Text(
           'No sessions yet.',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.70),
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.70), fontSize: 14),
         ),
       );
     }
@@ -760,6 +770,7 @@ class _SessionTimelineCard extends StatelessWidget {
   });
 
   final EventSession session;
+
   /// Event slug forwarded to [_SpeakerRow] so it can pass [eventSlug] to
   /// [SpeakerDetailsPage] for branding and speaker sub-collection lookup.
   final String eventSlug;
@@ -774,7 +785,8 @@ class _SessionTimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasContent = session.speaker != null ||
+    final hasContent =
+        session.speaker != null ||
         session.materials.isNotEmpty ||
         (session.description != null && session.description!.isNotEmpty);
     final isMainCheckIn = session.id == 'main-checkin';
@@ -844,11 +856,7 @@ class _SessionTimelineCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Container(
-                width: 2,
-                height: hasContent ? 48 : 24,
-                color: _kRail,
-              ),
+              Container(width: 2, height: hasContent ? 48 : 24, color: _kRail),
             ],
           ),
           const SizedBox(width: 12),
@@ -958,11 +966,7 @@ class _SessionCheckInButton extends StatelessWidget {
     final checkedIn = session.sessionCheckedIn;
 
     if (isMainCheckIn) {
-      final brighter = Color.lerp(
-        theme.checkInButtonColor,
-        Colors.white,
-        0.2,
-      )!;
+      final brighter = Color.lerp(theme.checkInButtonColor, Colors.white, 0.2)!;
       return SizedBox(
         height: 42,
         width: double.infinity,
@@ -973,9 +977,7 @@ class _SessionCheckInButton extends StatelessWidget {
             foregroundColor: Colors.white,
             disabledBackgroundColor: brighter.withOpacity(0.12),
             disabledForegroundColor: Colors.white,
-            side: BorderSide(
-              color: brighter.withOpacity(0.45),
-            ),
+            side: BorderSide(color: brighter.withOpacity(0.45)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -984,10 +986,7 @@ class _SessionCheckInButton extends StatelessWidget {
           ),
           child: Text(
             checkedIn ? 'Checked In ✓' : 'Event Check In',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
         ),
       );
@@ -1015,10 +1014,7 @@ class _SessionCheckInButton extends StatelessWidget {
           onPressed: checkedIn ? null : onCheckIn,
           child: Text(
             checkedIn ? 'Checked In ✓' : 'Check In',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
         ),
       ),
@@ -1036,6 +1032,7 @@ class _SpeakerRow extends StatelessWidget {
   });
 
   final SessionSpeaker speaker;
+
   /// Event slug passed to [SpeakerDetailsPage] for branding + sub-collection lookup.
   final String eventSlug;
   final _EventTheme theme;
@@ -1075,8 +1072,10 @@ class _SpeakerRow extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardBackgroundColor.withOpacity(0.68),
               shape: BoxShape.circle,
-              border:
-                  Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.05),
+                width: 1,
+              ),
             ),
             clipBehavior: Clip.antiAlias,
             child: _speakerPhoto(speaker, size: 38),
@@ -1205,10 +1204,7 @@ class _SpeakerInitialsAvatar extends StatelessWidget {
 // ─── Speaker Bottom Sheet ─────────────────────────────────────────────────────
 
 class _SpeakerBottomSheet extends StatelessWidget {
-  const _SpeakerBottomSheet({
-    required this.speaker,
-    required this.theme,
-  });
+  const _SpeakerBottomSheet({required this.speaker, required this.theme});
 
   final SessionSpeaker speaker;
   final _EventTheme theme;
@@ -1287,9 +1283,7 @@ class _SpeakerBottomSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.06),
-                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.06)),
                 ),
                 child: Text(
                   speaker.bio!,
@@ -1356,7 +1350,10 @@ class _MaterialRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.cardBackgroundColor.withOpacity(0.65),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                    width: 1,
+                  ),
                 ),
                 child: const Icon(
                   Icons.download_rounded,
@@ -1396,10 +1393,7 @@ class _AnnouncementsEmpty extends StatelessWidget {
       child: Center(
         child: Text(
           'No announcements yet.',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.70),
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.70), fontSize: 14),
         ),
       ),
     );

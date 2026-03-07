@@ -5,10 +5,7 @@ import 'package:go_router/go_router.dart';
 /// Staff login page. Email + password via Firebase Auth.
 /// Query param: redirect — full path to go after successful login (e.g. /admin/registrants?eventId=...).
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.redirect,
-  });
+  const LoginScreen({super.key, this.redirect});
 
   /// Path (and query) to navigate to after login.
   final String? redirect;
@@ -110,7 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: Text(
                         _error!,
-                        style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -125,7 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Enter your email';
+                      if (v == null || v.trim().isEmpty)
+                        return 'Enter your email';
                       if (!v.contains('@')) return 'Enter a valid email';
                       return null;
                     },

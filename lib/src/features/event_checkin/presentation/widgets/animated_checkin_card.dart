@@ -38,16 +38,16 @@ class _AnimatedCheckinCardState extends State<AnimatedCheckinCard> {
   double get _translateY => _isHovered && kIsWeb ? -10.0 : 0.0;
 
   BoxShadow get _normalShadow => BoxShadow(
-        color: Colors.black.withOpacity(0.25),
-        blurRadius: 16,
-        offset: const Offset(0, 8),
-      );
+    color: Colors.black.withOpacity(0.25),
+    blurRadius: 16,
+    offset: const Offset(0, 8),
+  );
 
   BoxShadow get _hoverShadow => BoxShadow(
-        color: Colors.black.withOpacity(0.40),
-        blurRadius: 40,
-        offset: const Offset(0, 14),
-      );
+    color: Colors.black.withOpacity(0.40),
+    blurRadius: 40,
+    offset: const Offset(0, 14),
+  );
 
   void _onTapDown(TapDownDetails _) {
     debugPrint('AnimatedCheckinCard: Pressed down');
@@ -74,8 +74,12 @@ class _AnimatedCheckinCardState extends State<AnimatedCheckinCard> {
     );
 
     final titleColor = widget.isPrimary ? NlcPalette.cream : NlcPalette.ink;
-    final subtitleColor = widget.isPrimary ? NlcPalette.cream.withValues(alpha: 0.9) : NlcPalette.muted;
-    final leadingColor = widget.isPrimary ? NlcPalette.cream : NlcPalette.brandBlueDark;
+    final subtitleColor = widget.isPrimary
+        ? NlcPalette.cream.withValues(alpha: 0.9)
+        : NlcPalette.muted;
+    final leadingColor = widget.isPrimary
+        ? NlcPalette.cream
+        : NlcPalette.brandBlueDark;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -129,8 +133,9 @@ class _AnimatedCheckinCardState extends State<AnimatedCheckinCard> {
                               widget.title,
                               style: TextStyle(
                                 fontSize: widget.isPrimary ? 18 : 16,
-                                fontWeight:
-                                    widget.isPrimary ? FontWeight.w700 : FontWeight.w600,
+                                fontWeight: widget.isPrimary
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
                                 color: titleColor,
                               ),
                             ),

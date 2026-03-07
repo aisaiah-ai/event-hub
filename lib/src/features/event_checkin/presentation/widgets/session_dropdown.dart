@@ -38,7 +38,10 @@ class SessionDropdown extends StatelessWidget {
                     style: AppTypography.sessionDropdown(context),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down, color: AppColors.textPrimary87),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textPrimary87,
+                ),
               ],
             )
           : DropdownButtonHideUnderline(
@@ -50,12 +53,17 @@ class SessionDropdown extends StatelessWidget {
                 ),
                 isExpanded: true,
                 dropdownColor: AppColors.sessionDropdownBg,
-                icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textPrimary87),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textPrimary87,
+                ),
                 items: sessions
-                    .map((s) => DropdownMenuItem<Session>(
-                          value: s,
-                          child: Text('Session: ${s.displayName}'),
-                        ))
+                    .map(
+                      (s) => DropdownMenuItem<Session>(
+                        value: s,
+                        child: Text('Session: ${s.displayName}'),
+                      ),
+                    )
                     .toList(),
                 onChanged: onSessionSelected,
               ),

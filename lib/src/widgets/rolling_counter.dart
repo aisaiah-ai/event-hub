@@ -12,6 +12,7 @@ class RollingCounter extends StatefulWidget {
   final TextStyle? style;
   final bool enableGlow;
   final bool showDelta;
+
   /// Exaggerated mode: longer-feel curve, scale pulse, stronger glow. Makes the animation very visible.
   final bool exaggerated;
 
@@ -122,7 +123,9 @@ class _RollingCounterState extends State<RollingCounter> {
                 boxShadow: _shouldGlow
                     ? [
                         BoxShadow(
-                          color: Colors.green.withOpacity(widget.exaggerated ? 0.7 : 0.4),
+                          color: Colors.green.withOpacity(
+                            widget.exaggerated ? 0.7 : 0.4,
+                          ),
                           blurRadius: widget.exaggerated ? 36 : 20,
                           spreadRadius: widget.exaggerated ? 8 : 2,
                         ),

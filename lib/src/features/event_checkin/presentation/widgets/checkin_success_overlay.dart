@@ -19,6 +19,7 @@ class CheckinSuccessOverlay extends StatefulWidget {
   final String name;
   final String modeDisplayName;
   final DateTime? timestamp;
+
   /// When true, show that the user was also checked in to the conference (Main Check-In).
   final bool alsoCheckedInToConference;
 

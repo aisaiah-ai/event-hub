@@ -123,13 +123,16 @@ class _CheckinConfirmationScreenState extends State<CheckinConfirmationScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: NlcPalette.cream),
-          onPressed: () => context.go('/events/${widget.eventSlug}/main-checkin'),
+          onPressed: () =>
+              context.go('/events/${widget.eventSlug}/main-checkin'),
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.horizontal,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Column(

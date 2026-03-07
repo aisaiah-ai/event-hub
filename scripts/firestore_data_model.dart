@@ -15,7 +15,9 @@ void main(List<String> args) {
   final out = StringBuffer();
   out.writeln('# Firestore Data Model (event-hub-dev / event-hub-prod)');
   out.writeln();
-  out.writeln('**When you get an error:** check that the document/collection in the error message has its PARENT created first. Use this doc and the checklist below.');
+  out.writeln(
+    '**When you get an error:** check that the document/collection in the error message has its PARENT created first. Use this doc and the checklist below.',
+  );
   out.writeln();
   out.writeln('---');
   out.writeln();
@@ -33,12 +35,24 @@ void main(List<String> args) {
   out.writeln();
   out.writeln('## Error troubleshooting checklist');
   out.writeln();
-  out.writeln('1. **Database:** App uses named DB only (`event-hub-dev` or `event-hub-prod`). Never `(default)`.');
-  out.writeln('2. **Event doc:** Before any check-in or registrant read, `events/{eventId}` must exist (e.g. `events/nlc-2026`).');
-  out.writeln('3. **Session doc:** Before writing to `.../sessions/{sessionId}/attendance/...`, the document `events/{eventId}/sessions/{sessionId}` must exist.');
-  out.writeln('4. **Session check-in (only):** All writes to `events/{eventId}/sessions/{sessionId}/attendance/{registrantId}`. Parent session doc must exist. No /checkins.');
-  out.writeln('5. **Bootstrap:** Use Firebase Console or `ensure-nlc-event-doc.js` to create event + session documents (including main-checkin) first.');
-  out.writeln('6. **Rules:** Deploy rules to the database the app uses: `firebase deploy --only firestore:rules`.');
+  out.writeln(
+    '1. **Database:** App uses named DB only (`event-hub-dev` or `event-hub-prod`). Never `(default)`.',
+  );
+  out.writeln(
+    '2. **Event doc:** Before any check-in or registrant read, `events/{eventId}` must exist (e.g. `events/nlc-2026`).',
+  );
+  out.writeln(
+    '3. **Session doc:** Before writing to `.../sessions/{sessionId}/attendance/...`, the document `events/{eventId}/sessions/{sessionId}` must exist.',
+  );
+  out.writeln(
+    '4. **Session check-in (only):** All writes to `events/{eventId}/sessions/{sessionId}/attendance/{registrantId}`. Parent session doc must exist. No /checkins.',
+  );
+  out.writeln(
+    '5. **Bootstrap:** Use Firebase Console or `ensure-nlc-event-doc.js` to create event + session documents (including main-checkin) first.',
+  );
+  out.writeln(
+    '6. **Rules:** Deploy rules to the database the app uses: `firebase deploy --only firestore:rules`.',
+  );
   out.writeln();
 
   final s = out.toString();
@@ -88,13 +102,17 @@ const allEntries = [
     path: 'events/$_eventId/sessions/$_sessionId',
     parentMustExist: 'events/$_eventId',
     createdBy: 'Bootstrap. Must exist before writing to attendance.',
-    notes: 'e.g. events/nlc-2026/sessions/main-checkin, events/nlc-2026/sessions/gender-ideology-dialogue',
+    notes:
+        'e.g. events/nlc-2026/sessions/main-checkin, events/nlc-2026/sessions/gender-ideology-dialogue',
   ),
   _Entry(
     path: 'events/$_eventId/sessions/$_sessionId/attendance/$_registrantId',
-    parentMustExist: 'events/$_eventId/sessions/$_sessionId (session doc must exist)',
-    createdBy: 'App (session check-in). Pure session architecture: all check-in writes here.',
-    notes: 'CheckInService reads session doc first; then writes here. Main Check-In uses session main-checkin.',
+    parentMustExist:
+        'events/$_eventId/sessions/$_sessionId (session doc must exist)',
+    createdBy:
+        'App (session check-in). Pure session architecture: all check-in writes here.',
+    notes:
+        'CheckInService reads session doc first; then writes here. Main Check-In uses session main-checkin.',
   ),
   _Entry(
     path: 'events/$_eventId/rsvps/{rsvpId}',

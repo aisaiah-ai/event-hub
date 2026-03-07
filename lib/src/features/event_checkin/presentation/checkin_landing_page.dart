@@ -40,8 +40,10 @@ class CheckinLandingPage extends StatefulWidget {
   final CheckInFlowType mode;
   final String? sessionId;
   final String? sessionName;
+
   /// When set (session mode or slug-based), use this session and hide the dropdown.
   final Session? lockedSession;
+
   /// True for conference arrival check-in — no session dropdown, event-level only.
   final bool isMainCheckIn;
   final CheckinRepository? repository;
@@ -59,8 +61,10 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   List<Session> _sessions = [];
   Session? _selectedSession;
   bool _loadingSessions = true;
+
   /// True when event is nlc-2026 and sessions collection is empty (run initializeNlc2026).
   bool _eventNotInitialized = false;
+
   /// Recent check-ins for the current session (name + timestamp).
   List<({String name, DateTime timestamp})> _recentCheckins = [];
 
@@ -83,10 +87,12 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       return Tween<Offset>(
         begin: const Offset(0, 0.15),
         end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: _cardsController,
-        curve: Interval(0.1 + i * 0.25, 0.4 + i * 0.2, curve: Curves.easeOut),
-      ));
+      ).animate(
+        CurvedAnimation(
+          parent: _cardsController,
+          curve: Interval(0.1 + i * 0.25, 0.4 + i * 0.2, curve: Curves.easeOut),
+        ),
+      );
     });
     _logoFadeController.forward();
     _cardsController.forward();
@@ -109,7 +115,12 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   }
 
   static const List<Session> _defaultSessionFallback = [
-    Session(id: 'default', title: 'Day 1 Main Session', name: 'Day 1 Main Session', isActive: true),
+    Session(
+      id: 'default',
+      title: 'Day 1 Main Session',
+      name: 'Day 1 Main Session',
+      isActive: true,
+    ),
   ];
 
   bool get _isSessionMode => widget.mode == CheckInFlowType.session;
@@ -117,13 +128,13 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   bool get _isMainCheckIn =>
       widget.mode == CheckInFlowType.event && widget.isMainCheckIn;
 
-  String get _effectiveSessionId =>
-      _isMainCheckIn
-          ? NlcSessions.mainCheckInSessionId
-          : (widget.sessionId ?? _selectedSession?.id ?? 'default');
+  String get _effectiveSessionId => _isMainCheckIn
+      ? NlcSessions.mainCheckInSessionId
+      : (widget.sessionId ?? _selectedSession?.id ?? 'default');
 
-  String get _effectiveSessionName =>
-      _isMainCheckIn ? 'Main Check-In' : (widget.sessionName ?? _selectedSession?.displayName ?? 'Session');
+  String get _effectiveSessionName => _isMainCheckIn
+      ? 'Main Check-In'
+      : (widget.sessionName ?? _selectedSession?.displayName ?? 'Session');
 
   Future<void> _loadSessions() async {
     if (widget.lockedSession != null || _isSessionMode || _isMainCheckIn) {
@@ -131,7 +142,9 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
         _sessions = widget.lockedSession != null
             ? [widget.lockedSession!]
             : _defaultSessionFallback;
-        _selectedSession = _isMainCheckIn ? null : (widget.lockedSession ?? _defaultSessionFallback.first);
+        _selectedSession = _isMainCheckIn
+            ? null
+            : (widget.lockedSession ?? _defaultSessionFallback.first);
         _loadingSessions = false;
         _eventNotInitialized = false;
       });
@@ -176,7 +189,9 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     } catch (_) {
       if (mounted) {
         setState(() {
-          _sessions = widget.event.id == nlc2026EventId ? [] : _defaultSessionFallback;
+          _sessions = widget.event.id == nlc2026EventId
+              ? []
+              : _defaultSessionFallback;
           _selectedSession = _sessions.isNotEmpty ? _sessions.first : null;
           _loadingSessions = false;
           _eventNotInitialized = widget.event.id == nlc2026EventId;
@@ -243,13 +258,18 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     return SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.horizontal,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Column(
               children: [
                 const SizedBox(height: AppSpacing.afterHeader),
-                if (_isSessionMode) _buildSessionHeader() else _buildEventHeader(),
+                if (_isSessionMode)
+                  _buildSessionHeader()
+                else
+                  _buildEventHeader(),
                 AnimatedCheckinCard(
                   leading: Container(
                     width: 56,
@@ -266,10 +286,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      NlcPalette.brandBlue,
-                      NlcPalette.brandBlueSoft,
-                    ],
+                    colors: [NlcPalette.brandBlue, NlcPalette.brandBlueSoft],
                   ),
                   isPrimary: true,
                 ),
@@ -338,7 +355,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   child: _buildImmersiveSecondaryCard(
                     icon: Icons.search,
                     title: 'Search by Name',
-                    subtitle: 'Enter at least 2 letters of your last name to check in.',
+                    subtitle:
+                        'Enter at least 2 letters of your last name to check in.',
                     onTap: _onSearch,
                   ),
                 ),
@@ -353,7 +371,10 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   ),
                 ),
                 const SizedBox(height: 32),
-                Divider(height: 1, color: NlcPalette.cream.withValues(alpha: 0.3)),
+                Divider(
+                  height: 1,
+                  color: NlcPalette.cream.withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 24),
                 _buildImmersiveLocation(),
                 const SizedBox(height: 16),
@@ -383,10 +404,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
             ),
           ],
         ),
-        child: EventLogo(
-          logoUrl: widget.event.logoUrl,
-          size: _logoSize,
-        ),
+        child: EventLogo(logoUrl: widget.event.logoUrl, size: _logoSize),
       ),
     );
   }
@@ -483,7 +501,11 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: NlcPalette.brandBlueDark, size: 24),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: NlcPalette.brandBlueDark,
+                size: 24,
+              ),
             ],
           ),
         ),
@@ -498,7 +520,11 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.location_on, size: 20, color: NlcPalette.cream.withValues(alpha: 0.9)),
+        Icon(
+          Icons.location_on,
+          size: 20,
+          color: NlcPalette.cream.withValues(alpha: 0.9),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -548,32 +574,36 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
           ),
         ),
         const SizedBox(height: 8),
-        ..._recentCheckins.take(10).map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Text(
-                    formatTime(e.timestamp),
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: NlcPalette.cream.withValues(alpha: 0.65),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      e.name,
+        ..._recentCheckins
+            .take(10)
+            .map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Text(
+                      formatTime(e.timestamp),
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: NlcPalette.cream.withValues(alpha: 0.9),
+                        fontSize: 12,
+                        color: NlcPalette.cream.withValues(alpha: 0.65),
+                        fontWeight: FontWeight.w500,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        e.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: NlcPalette.cream.withValues(alpha: 0.9),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
       ],
     );
   }
@@ -649,32 +679,36 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
             ],
           ),
           const SizedBox(height: 12),
-          ..._recentCheckins.take(10).map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    Text(
-                      formatTime(e.timestamp),
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppColors.textPrimary87.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        e.name,
+          ..._recentCheckins
+              .take(10)
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Text(
+                        formatTime(e.timestamp),
                         style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          color: AppColors.textPrimary87.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          e.name,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
         ],
       ),
     );
@@ -728,12 +762,13 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
           ),
         ),
         const SizedBox(height: AppSpacing.betweenSections),
-        if (!_isMainCheckIn && widget.event.sessionsEnabled && widget.lockedSession == null) ...[
+        if (!_isMainCheckIn &&
+            widget.event.sessionsEnabled &&
+            widget.lockedSession == null) ...[
           SessionDropdown(
             sessions: _sessions,
             selectedSession: _selectedSession,
-            onSessionSelected: (s) =>
-                setState(() => _selectedSession = s),
+            onSessionSelected: (s) => setState(() => _selectedSession = s),
           ),
           const SizedBox(height: AppSpacing.betweenSections),
         ],
@@ -773,8 +808,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(controller.text.trim()),
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
             child: const Text('Look up'),
           ),
         ],
@@ -825,9 +859,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
   }
 
   void _showErrorSnackbar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _onSearch() async {
@@ -847,7 +879,10 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     if (completed) return;
     final registrantId = result['registrantId'] as String?;
     if (registrantId != null) {
-      await _performCheckin(registrantId: registrantId, method: CheckinMethod.search);
+      await _performCheckin(
+        registrantId: registrantId,
+        method: CheckinMethod.search,
+      );
     }
   }
 
@@ -902,7 +937,10 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       if (!mounted) return;
       await _loadRecentCheckins();
       if (!mounted) return;
-      final registrant = await _repo.getRegistrant(widget.event.id, registrantId);
+      final registrant = await _repo.getRegistrant(
+        widget.event.id,
+        registrantId,
+      );
       final name = registrant != null ? _displayName(registrant) : 'Guest';
       await _showSuccessAndReturn(
         name: name,
@@ -919,7 +957,8 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
     final first = r.profile['firstName'] ?? r.answers['firstName'];
     final last = r.profile['lastName'] ?? r.answers['lastName'];
     final name = r.profile['name'] ?? r.answers['name'];
-    if (name?.toString().trim().isNotEmpty ?? false) return name.toString().trim();
+    if (name?.toString().trim().isNotEmpty ?? false)
+      return name.toString().trim();
     if ((first ?? last) != null) return '${first ?? ''} ${last ?? ''}'.trim();
     return r.id;
   }
@@ -947,7 +986,9 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       return _selectedSession != null || widget.sessionId != null;
     }
     if (!widget.event.sessionsEnabled) {
-      setState(() => _selectedSession = _sessions.isNotEmpty ? _sessions.first : null);
+      setState(
+        () => _selectedSession = _sessions.isNotEmpty ? _sessions.first : null,
+      );
       return _selectedSession != null;
     }
     if (_selectedSession == null) {
@@ -973,7 +1014,8 @@ class _ImmersivePrimaryQrCard extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_ImmersivePrimaryQrCard> createState() => _ImmersivePrimaryQrCardState();
+  State<_ImmersivePrimaryQrCard> createState() =>
+      _ImmersivePrimaryQrCardState();
 }
 
 class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
@@ -1039,7 +1081,9 @@ class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: NlcPalette.brandBlueDark.withValues(alpha: 0.6),
+                          color: NlcPalette.brandBlueDark.withValues(
+                            alpha: 0.6,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(

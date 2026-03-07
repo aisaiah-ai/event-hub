@@ -13,23 +13,16 @@ import 'package:path/path.dart' as p;
 /// Storage path: events/{eventId}/speakers/{speakerId}/profile{ext}
 /// Firestore field: events/{eventId}/speakers/{speakerId}.photoUrl
 class SpeakerImageService {
-  SpeakerImageService({
-    FirebaseStorage? storage,
-    FirebaseFirestore? firestore,
-  })  : _storage = storage ?? FirebaseStorage.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+  SpeakerImageService({FirebaseStorage? storage, FirebaseFirestore? firestore})
+    : _storage = storage ?? FirebaseStorage.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseStorage _storage;
   final FirebaseFirestore _firestore;
 
   static const int _maxBytes = 2 * 1024 * 1024; // 2 MB
 
-  static const _allowedExtensions = <String>[
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.webp',
-  ];
+  static const _allowedExtensions = <String>['.jpg', '.jpeg', '.png', '.webp'];
 
   static String? _contentType(String ext) {
     switch (ext) {
@@ -94,9 +87,7 @@ class SpeakerImageService {
       final contentType = _contentType(ext);
       await ref.putData(
         bytes,
-        contentType != null
-            ? SettableMetadata(contentType: contentType)
-            : null,
+        contentType != null ? SettableMetadata(contentType: contentType) : null,
       );
     } on FirebaseException catch (e) {
       throw SpeakerImageUploadException(
@@ -122,9 +113,9 @@ class SpeakerImageService {
           .collection('speakers')
           .doc(speakerId)
           .update({
-        'photoUrl': downloadUrl,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'photoUrl': downloadUrl,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
     } on FirebaseException catch (e) {
       // Upload succeeded but Firestore write failed. Surface the URL so the
       // caller can retry the Firestore write if needed.

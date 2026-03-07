@@ -37,18 +37,18 @@ class CheckinRecord {
 
   /// Serialize for Firestore create. Must match rules: eventId, sessionId, method, source, etc.
   Map<String, dynamic> toFirestore(String eventId) => {
-        'eventId': eventId,
-        if (registrantId != null) 'registrantId': registrantId,
-        'sessionId': sessionId,
-        'method': method.name,
-        'manual': method == CheckinMethod.manual,
-        if (manualPayload != null && method == CheckinMethod.manual)
-          'manualPayload': manualPayload,
-        'timestamp': Timestamp.fromDate(timestamp),
-        'createdAt': Timestamp.fromDate(timestamp),
-        if (deviceInfo != null) 'deviceInfo': deviceInfo,
-        'source': source,
-      };
+    'eventId': eventId,
+    if (registrantId != null) 'registrantId': registrantId,
+    'sessionId': sessionId,
+    'method': method.name,
+    'manual': method == CheckinMethod.manual,
+    if (manualPayload != null && method == CheckinMethod.manual)
+      'manualPayload': manualPayload,
+    'timestamp': Timestamp.fromDate(timestamp),
+    'createdAt': Timestamp.fromDate(timestamp),
+    if (deviceInfo != null) 'deviceInfo': deviceInfo,
+    'source': source,
+  };
 
   /// Parse a checkin document from Firestore (e.g. for audit list or dashboard).
   factory CheckinRecord.fromFirestore(String id, Map<String, dynamic>? json) {

@@ -58,7 +58,11 @@ class PrimaryQRButton extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.qr_code_scanner, color: NlcPalette.cream, size: 28),
+                  Icon(
+                    Icons.qr_code_scanner,
+                    color: NlcPalette.cream,
+                    size: 28,
+                  ),
                   const SizedBox(width: CheckinTokens.spacingM),
                   Text(
                     text,

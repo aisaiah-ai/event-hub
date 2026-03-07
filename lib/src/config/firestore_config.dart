@@ -31,7 +31,9 @@ class FirestoreConfig {
     if (_instance != null) return _instance;
     try {
       _instance = FirebaseFirestore.instance;
-      _log('Connected: project=${Firebase.app().options.projectId}, database=$databaseId');
+      _log(
+        'Connected: project=${Firebase.app().options.projectId}, database=$databaseId',
+      );
       return _instance;
     } catch (e) {
       _log('Init failed: $e');

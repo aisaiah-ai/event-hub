@@ -16,19 +16,25 @@ class EventPageScaffold extends StatelessWidget {
     this.eventSlug,
     this.body,
     this.appBar,
+
     /// Override max width for body (e.g. 1200 for dashboard). Default 520 for NLC.
     this.bodyMaxWidth,
+
     /// Override overlay opacity for NLC background (default 0.55).
     this.overlayOpacity,
+
     /// Override overlay tint color (default brandBlueDark).
     this.overlayTint,
+
     /// Use radial overlay (subtle top glow) for immersive main check-in. Ignored if useLightBackground.
     this.useRadialOverlay = false,
+
     /// Use light executive background (no image/overlay). For analytics dashboard.
     this.useLightBackground = false,
   });
 
   final EventModel? event;
+
   /// Route param (e.g. 'nlc') used for background fallback when event is loading.
   final String? eventSlug;
   final Widget? body;
@@ -84,7 +90,9 @@ class EventPageScaffold extends StatelessWidget {
                               center: Alignment.topCenter,
                               radius: 0.8,
                               colors: [
-                                NlcPalette.brandBlueSoft.withValues(alpha: 0.25),
+                                NlcPalette.brandBlueSoft.withValues(
+                                  alpha: 0.25,
+                                ),
                                 (overlayTint ?? NlcPalette.brandBlueDark),
                               ],
                             )
@@ -92,8 +100,10 @@ class EventPageScaffold extends StatelessWidget {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                (overlayTint ?? NlcPalette.brandBlueDark).withValues(alpha: overlay),
-                                (overlayTint ?? NlcPalette.brandBlueDark).withValues(alpha: overlay * 0.85),
+                                (overlayTint ?? NlcPalette.brandBlueDark)
+                                    .withValues(alpha: overlay),
+                                (overlayTint ?? NlcPalette.brandBlueDark)
+                                    .withValues(alpha: overlay * 0.85),
                               ],
                             ),
                     ),
@@ -130,13 +140,15 @@ class EventPageScaffold extends StatelessWidget {
     var url = event?.backgroundImageUrl;
     if (url != null && url.isNotEmpty) {
       if (url.contains('background2.svg')) return nlcBackgroundAsset;
-      if (url.contains('march_assembly_background')) return marchAssemblyBackgroundAsset;
+      if (url.contains('march_assembly_background'))
+        return marchAssemblyBackgroundAsset;
       return url;
     }
     final slug = event?.slug ?? eventSlug;
     if (slug == 'nlc' ||
         slug == 'nlc-2026' ||
-        (event?.name.toLowerCase().contains('national leaders conference') ?? false))
+        (event?.name.toLowerCase().contains('national leaders conference') ??
+            false))
       return nlcBackgroundAsset;
     if (slug == 'march-cluster-2026' ||
         (event?.name.toLowerCase().contains('march cluster assembly') ?? false))
@@ -148,8 +160,11 @@ class EventPageScaffold extends StatelessWidget {
     final bgUrl = _effectiveBackgroundImageUrl();
     // Overlay settings: prefer event branding, then scaffold params, then defaults.
     final overlayTintColor =
-        event?.backgroundOverlayColor ?? overlayTint ?? NlcPalette.brandBlueDark;
-    final overlayAlpha = overlayOpacity ?? event?.effectiveOverlayOpacity ?? 0.55;
+        event?.backgroundOverlayColor ??
+        overlayTint ??
+        NlcPalette.brandBlueDark;
+    final overlayAlpha =
+        overlayOpacity ?? event?.effectiveOverlayOpacity ?? 0.55;
 
     return Stack(
       fit: StackFit.expand,
@@ -170,8 +185,7 @@ class EventPageScaffold extends StatelessWidget {
             ),
           ),
         // Optional full background image
-        if (bgUrl case final url?)
-          _buildBackgroundImage(url),
+        if (bgUrl case final url?) _buildBackgroundImage(url),
         // Dark overlay for background images so content cards are legible
         if (bgUrl != null)
           Positioned.fill(
@@ -220,9 +234,7 @@ class EventPageScaffold extends StatelessWidget {
       );
     }
     if (_isAssetPath(url)) {
-      return Positioned.fill(
-        child: Image.asset(url, fit: BoxFit.cover),
-      );
+      return Positioned.fill(child: Image.asset(url, fit: BoxFit.cover));
     }
     return Positioned.fill(
       child: CachedNetworkImage(
@@ -271,7 +283,9 @@ class EventLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final raw = logoUrl ?? 'assets/checkin/nlc_logo.png';
-    final url = raw == 'assets/checkin/empower.png' ? 'assets/checkin/nlc_logo.png' : raw;
+    final url = raw == 'assets/checkin/empower.png'
+        ? 'assets/checkin/nlc_logo.png'
+        : raw;
     if (url.isEmpty) return const SizedBox.shrink();
 
     if (_isAssetPath(url)) {

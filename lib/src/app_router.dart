@@ -7,7 +7,8 @@ import 'features/events/data/event_model.dart';
 import 'features/event_checkin/presentation/checkin_dashboard_screen.dart';
 import 'features/event_checkin/presentation/wallboard_screen.dart';
 import 'features/event_checkin/presentation/checkin_manual_entry_page.dart';
-import 'features/event_checkin/data/checkin_mode.dart' show CheckInFlowType, CheckInMode;
+import 'features/event_checkin/data/checkin_mode.dart'
+    show CheckInFlowType, CheckInMode;
 import 'features/event_checkin/presentation/checkin_search_page.dart';
 import 'features/event_checkin/presentation/checkin_success_page.dart';
 import 'features/event_checkin/presentation/registrant_resolved_screen.dart';
@@ -108,9 +109,8 @@ GoRouter createAppRouter() {
           }
           return '/admin/dashboard';
         },
-        builder: (context, state) => EventRsvpPage(
-          eventSlug: _defaultRsvpEventSlug,
-        ),
+        builder: (context, state) =>
+            EventRsvpPage(eventSlug: _defaultRsvpEventSlug),
       ),
       // Events subdomain routes
       GoRoute(
@@ -122,10 +122,7 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final speakerId = state.pathParameters['speakerId'] ?? '';
           final eventSlug = state.uri.queryParameters['eventSlug'];
-          return SpeakerDetailsPage(
-            speakerId: speakerId,
-            eventSlug: eventSlug,
-          );
+          return SpeakerDetailsPage(speakerId: speakerId, eventSlug: eventSlug);
         },
       ),
       GoRoute(
@@ -168,10 +165,13 @@ GoRouter createAppRouter() {
             builder: (context, state) {
               final slug = state.pathParameters['eventSlug'] ?? '';
               final extra = state.extra as Map<String, dynamic>?;
-              final eventId = extra?['eventId'] as String? ??
+              final eventId =
+                  extra?['eventId'] as String? ??
                   (slug == 'nlc' ? 'nlc-2026' : slug);
-              final sessionId = extra?['sessionId'] as String? ?? 'main-checkin';
-              final sessionName = extra?['sessionName'] as String? ?? 'Main Check-In';
+              final sessionId =
+                  extra?['sessionId'] as String? ?? 'main-checkin';
+              final sessionName =
+                  extra?['sessionName'] as String? ?? 'Main Check-In';
               final mode = CheckInMode(
                 eventId: eventId,
                 sessionId: sessionId,
@@ -190,9 +190,11 @@ GoRouter createAppRouter() {
             builder: (context, state) {
               final slug = state.pathParameters['eventSlug'] ?? '';
               final extra = state.extra as Map<String, dynamic>?;
-              final eventId = extra?['eventId'] as String? ??
+              final eventId =
+                  extra?['eventId'] as String? ??
                   (slug == 'nlc' ? 'nlc-2026' : slug);
-              final sessionId = extra?['sessionId'] as String? ??
+              final sessionId =
+                  extra?['sessionId'] as String? ??
                   (slug == 'nlc' ? 'main-checkin' : 'default');
               return CheckinManualEntryPage(
                 eventId: eventId,
@@ -233,7 +235,9 @@ GoRouter createAppRouter() {
                 registrantName: extra['registrantName'] as String? ?? 'Guest',
                 source: extra['source'] == 'manual'
                     ? CheckinSource.manual
-                    : (extra['source'] == 'qr' ? CheckinSource.qr : CheckinSource.search),
+                    : (extra['source'] == 'qr'
+                          ? CheckinSource.qr
+                          : CheckinSource.search),
                 isMainCheckIn: extra['isMainCheckIn'] as bool? ?? false,
               );
             },
@@ -258,7 +262,9 @@ GoRouter createAppRouter() {
                 registrantName: extra['registrantName'] as String? ?? 'Guest',
                 source: extra['source'] == 'manual'
                     ? CheckinSource.manual
-                    : (extra['source'] == 'qr' ? CheckinSource.qr : CheckinSource.search),
+                    : (extra['source'] == 'qr'
+                          ? CheckinSource.qr
+                          : CheckinSource.search),
                 preRegisteredSessionIds: preIds
                     ?.map((e) => e.toString())
                     .where((e) => e.isNotEmpty)
@@ -308,10 +314,7 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
           final sessionId = state.pathParameters['sessionId'] ?? '';
-          return EventCheckinEntryPage(
-            eventSlug: slug,
-            sessionSlug: sessionId,
-          );
+          return EventCheckinEntryPage(eventSlug: slug, sessionSlug: sessionId);
         },
       ),
       // Staff check-in portal (checkin.aisaiah.org)
@@ -422,7 +425,6 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/admin/import/registrants',
         builder: (context, state) {
-
           final eventId =
               state.uri.queryParameters['eventId'] ?? defaultEventId;
           return ImportRegistrantsScreen(eventId: eventId);

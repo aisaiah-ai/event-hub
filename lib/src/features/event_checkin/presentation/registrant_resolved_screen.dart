@@ -74,8 +74,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     });
     final regService =
         widget.sessionRegistrationService ?? SessionRegistrationService();
-    final catalog =
-        widget.sessionCatalogService ?? SessionCatalogService();
+    final catalog = widget.sessionCatalogService ?? SessionCatalogService();
 
     try {
       final sessionIds = await regService.getRegistrantSessionRegistration(
@@ -129,8 +128,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
   }
 
   Future<void> _refreshSessionList() async {
-    final catalog =
-        widget.sessionCatalogService ?? SessionCatalogService();
+    final catalog = widget.sessionCatalogService ?? SessionCatalogService();
     final list = await catalog.listSessionsWithAvailability(widget.eventId);
     if (!mounted) return;
     setState(() {
@@ -158,8 +156,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     if (_singleSessionId == null) return;
     HapticFeedback.mediumImpact();
     setState(() => _actionLoading = true);
-    final orchestrator =
-        widget.orchestrator ?? CheckinOrchestratorService();
+    final orchestrator = widget.orchestrator ?? CheckinOrchestratorService();
     try {
       final outcome = await orchestrator.checkInToTargetSession(
         eventId: widget.eventId,
@@ -198,10 +195,15 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
             },
           );
         } else {
-          setState(() => _error = 'Already checked in (session details unavailable).');
+          setState(
+            () => _error = 'Already checked in (session details unavailable).',
+          );
         }
       } else {
-        setState(() => _error = outcome.errorMessage ?? outcome.errorCode ?? 'Check-in failed.');
+        setState(
+          () => _error =
+              outcome.errorMessage ?? outcome.errorCode ?? 'Check-in failed.',
+        );
       }
     } catch (e) {
       debugPrint('[RegistrantResolved] checkIn failed: $e');
@@ -211,7 +213,9 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _error = e is FirebaseException ? (e.message ?? e.code) : e.toString();
+          _error = e is FirebaseException
+              ? (e.message ?? e.code)
+              : e.toString();
         });
       }
     }
@@ -219,7 +223,8 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
 
   Future<void> _onSessionSelected(SessionWithAvailability item) async {
     final session = item.session;
-    final disabled = item.label == SessionAvailabilityLabel.full ||
+    final disabled =
+        item.label == SessionAvailabilityLabel.full ||
         item.label == SessionAvailabilityLabel.closed;
     if (disabled) return;
 
@@ -246,10 +251,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
           children: [
             Text(
               session.displayName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
             if (dateTime.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -278,8 +280,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     if (confirm != true || !mounted) return;
 
     setState(() => _actionLoading = true);
-    final orchestrator =
-        widget.orchestrator ?? CheckinOrchestratorService();
+    final orchestrator = widget.orchestrator ?? CheckinOrchestratorService();
     try {
       final outcome = await orchestrator.checkInToTargetSession(
         eventId: widget.eventId,
@@ -325,7 +326,10 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
           },
         );
       } else {
-        setState(() => _error = outcome.errorMessage ?? outcome.errorCode ?? 'Check-in failed.');
+        setState(
+          () => _error =
+              outcome.errorMessage ?? outcome.errorCode ?? 'Check-in failed.',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -356,7 +360,8 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
   }
 
   Color _sessionChipColor(SessionWithAvailability item) {
-    if (item.label == SessionAvailabilityLabel.closed) return AppColors.textPrimary87;
+    if (item.label == SessionAvailabilityLabel.closed)
+      return AppColors.textPrimary87;
     if (item.label == SessionAvailabilityLabel.full) return Colors.red;
     final s = item.session;
     if (s.capacity > 0 && item.remainingSeats <= (s.capacity * 0.1)) {
@@ -395,11 +400,17 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                     const Padding(
                       padding: EdgeInsets.all(32),
                       child: Center(
-                        child: CircularProgressIndicator(color: NlcPalette.cream),
+                        child: CircularProgressIndicator(
+                          color: NlcPalette.cream,
+                        ),
                       ),
                     ),
                   ] else if (_mode == _RegistrationMode.one) ...[
-                    _buildHeader('Main Check-In', widget.registrantName, 'Ready to check in'),
+                    _buildHeader(
+                      'Main Check-In',
+                      widget.registrantName,
+                      'Ready to check in',
+                    ),
                     if (_singleSession != null) ...[
                       const SizedBox(height: 24),
                       _PreRegisteredSessionCard(
@@ -414,7 +425,10 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                       const SizedBox(height: 16),
                       Text(
                         _error!,
-                        style: TextStyle(color: Colors.orange.shade200, fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.orange.shade200,
+                          fontSize: 14,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -422,7 +436,9 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                     SizedBox(
                       height: 52,
                       child: FilledButton(
-                        onPressed: _actionLoading ? null : _onConfirmPreRegistered,
+                        onPressed: _actionLoading
+                            ? null
+                            : _onConfirmPreRegistered,
                         style: FilledButton.styleFrom(
                           backgroundColor: NlcPalette.brandBlue,
                           foregroundColor: NlcPalette.cream,
@@ -443,12 +459,19 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                       ),
                     ),
                   ] else if (_mode == _RegistrationMode.none) ...[
-                    _buildHeader('Select Your Session', widget.registrantName, 'Choose an available session to continue.'),
+                    _buildHeader(
+                      'Select Your Session',
+                      widget.registrantName,
+                      'Choose an available session to continue.',
+                    ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(
                         _error!,
-                        style: TextStyle(color: Colors.orange.shade200, fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.orange.shade200,
+                          fontSize: 14,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -468,12 +491,15 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                         const Padding(
                           padding: EdgeInsets.all(24),
                           child: Center(
-                            child: CircularProgressIndicator(color: NlcPalette.cream),
+                            child: CircularProgressIndicator(
+                              color: NlcPalette.cream,
+                            ),
                           ),
                         )
                       else
                         ..._sessionsWithAvailability.map((item) {
-                          final disabled = item.label == SessionAvailabilityLabel.full ||
+                          final disabled =
+                              item.label == SessionAvailabilityLabel.full ||
                               item.label == SessionAvailabilityLabel.closed;
                           final color = _colorFromHex(item.session.colorHex);
                           return Padding(
@@ -485,7 +511,9 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
                               chipColor: _sessionChipColor(item),
                               color: color,
                               disabled: disabled,
-                              onTap: disabled ? null : () => _onSessionSelected(item),
+                              onTap: disabled
+                                  ? null
+                                  : () => _onSessionSelected(item),
                             ),
                           );
                         }),
@@ -540,10 +568,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
 }
 
 class _PreRegisteredSessionCard extends StatelessWidget {
-  const _PreRegisteredSessionCard({
-    required this.session,
-    required this.color,
-  });
+  const _PreRegisteredSessionCard({required this.session, required this.color});
 
   final Session session;
   final Color color;
@@ -559,8 +584,8 @@ class _PreRegisteredSessionCard extends StatelessWidget {
     }
     final capacityLine = session.capacity > 0
         ? (session.attendanceCount >= session.capacity
-            ? 'Session Full'
-            : 'Remaining Seats: ${session.remainingSeats}')
+              ? 'Session Full'
+              : 'Remaining Seats: ${session.remainingSeats}')
         : null;
 
     return Container(
@@ -602,7 +627,10 @@ class _PreRegisteredSessionCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: NlcPalette.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
@@ -626,7 +654,10 @@ class _PreRegisteredSessionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   dateTime,
-                  style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.textPrimary87,
+                  ),
                 ),
               ],
             ),
@@ -635,12 +666,19 @@ class _PreRegisteredSessionCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: AppColors.textPrimary87),
+                Icon(
+                  Icons.location_on,
+                  size: 16,
+                  color: AppColors.textPrimary87,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     session.location!,
-                    style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppColors.textPrimary87,
+                    ),
                   ),
                 ),
               ],
@@ -674,7 +712,10 @@ class _PlaceholderSessionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: NlcPalette.brandBlue.withValues(alpha: 0.5), width: 2),
+        border: Border.all(
+          color: NlcPalette.brandBlue.withValues(alpha: 0.5),
+          width: 2,
+        ),
       ),
       child: Row(
         children: [
@@ -793,7 +834,10 @@ class _SelectableSessionCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: chipColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(16),
@@ -813,25 +857,40 @@ class _SelectableSessionCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: AppColors.textPrimary87),
+                      Icon(
+                        Icons.schedule,
+                        size: 16,
+                        color: AppColors.textPrimary87,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         dateTime,
-                        style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.textPrimary87,
+                        ),
                       ),
                     ],
                   ),
                 ],
-                if (session.location != null && session.location!.isNotEmpty) ...[
+                if (session.location != null &&
+                    session.location!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 16, color: AppColors.textPrimary87),
+                      Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: AppColors.textPrimary87,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           session.location!,
-                          style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary87),
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: AppColors.textPrimary87,
+                          ),
                         ),
                       ),
                     ],

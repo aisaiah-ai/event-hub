@@ -121,10 +121,7 @@ class _WallboardLoading extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'Loading live data…',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              color: Colors.white,
-            ),
+            style: GoogleFonts.inter(fontSize: 20, color: Colors.white),
           ),
         ],
       ),
@@ -135,30 +132,30 @@ class _WallboardLoading extends StatelessWidget {
 // --- Theme (NlcColors) ---
 
 BoxDecoration _wbCardDecoration() => BoxDecoration(
-      color: NlcColors.ivory,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    );
+  color: NlcColors.ivory,
+  borderRadius: BorderRadius.circular(16),
+  border: Border.all(color: Colors.black.withOpacity(0.04), width: 1),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.04),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ],
+);
 
 /// Wallboard metric tile: ivory, 16px radius, stronger shadow.
 BoxDecoration _wbMetricTileDecoration() => BoxDecoration(
-      color: NlcColors.ivory,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.08),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    );
+  color: NlcColors.ivory,
+  borderRadius: BorderRadius.circular(16),
+  boxShadow: [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.08),
+      blurRadius: 20,
+      offset: const Offset(0, 8),
+    ),
+  ],
+);
 
 // --- Content ---
 
@@ -226,7 +223,8 @@ class _WallboardContent extends StatelessWidget {
                   stream: layoutStream,
                   initialData: kDefaultWallboardOrder,
                   builder: (context, orderSnap) {
-                    final streamOrder = orderSnap.data ?? kDefaultWallboardOrder;
+                    final streamOrder =
+                        orderSnap.data ?? kDefaultWallboardOrder;
                     final order = localWallboardOrder ?? streamOrder;
                     if (isEditLayout) {
                       return _ReorderableWallboardSections(
@@ -304,7 +302,12 @@ class _WallboardSectionsInOrder extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final id in order) ...[
-          _buildWallboardSection(id, global, sessions, registrantCount: registrantCount),
+          _buildWallboardSection(
+            id,
+            global,
+            sessions,
+            registrantCount: registrantCount,
+          ),
           const SizedBox(height: 40),
         ],
       ],
@@ -513,8 +516,9 @@ class _LiveIndicatorState extends State<_LiveIndicator>
             height: 12,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: NlcColors.successGreen
-                  .withOpacity(0.6 + 0.4 * _controller.value),
+              color: NlcColors.successGreen.withOpacity(
+                0.6 + 0.4 * _controller.value,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: NlcColors.successGreen.withOpacity(0.6),
@@ -556,8 +560,13 @@ class _WallboardMetrics extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const mainCheckinId = 'main-checkin';
-    final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
-    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
+    final mainCheckin = sessions
+        .where((s) => s.sessionId == mainCheckinId)
+        .firstOrNull;
+    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(
+      0,
+      0x7FFFFFFF,
+    );
     final sessionCheckins = sessions
         .where((s) => s.sessionId != mainCheckinId)
         .fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
@@ -585,11 +594,7 @@ class _WallboardMetrics extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 900) {
-          return Wrap(
-            spacing: 24,
-            runSpacing: 24,
-            children: tiles,
-          );
+          return Wrap(spacing: 24, runSpacing: 24, children: tiles);
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,10 +719,7 @@ class _WallboardGraph extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Hourly Attendance Progress',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: NlcColors.mutedText,
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: NlcColors.mutedText),
           ),
           const SizedBox(height: 24),
           HourlyTrendChart(
@@ -767,110 +769,121 @@ class _WallboardLeaderboard extends StatelessWidget {
             Text(
               'Session Leaderboard',
               style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: NlcColors.slate,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: NlcColors.slate,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          if (sorted.isEmpty)
-            Text(
-              'No sessions yet',
-              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 18),
-            )
-          else
-            ...sorted.asMap().entries.map((e) {
-              final i = e.key;
-              final s = e.value;
-              final isTop = i == 0;
-              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-              final pct = maxCount > 0 ? (count / maxCount) : 0.0;
+            const SizedBox(height: 24),
+            if (sorted.isEmpty)
+              Text(
+                'No sessions yet',
+                style: GoogleFonts.inter(
+                  color: NlcColors.mutedText,
+                  fontSize: 18,
+                ),
+              )
+            else
+              ...sorted.asMap().entries.map((e) {
+                final i = e.key;
+                final s = e.value;
+                final isTop = i == 0;
+                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+                final pct = maxCount > 0 ? (count / maxCount) : 0.0;
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 32,
-                          child: Text(
-                            '${i + 1}.',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: NlcColors.slate,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 32,
+                            child: Text(
+                              '${i + 1}.',
+                              style: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: NlcColors.slate,
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  s.name,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 18,
-                                    fontWeight:
-                                        isTop ? FontWeight.w700 : FontWeight.w500,
-                                    color: NlcColors.slate,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (s.isActive)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: NlcColors.successGreen
-                                        .withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Expanded(
                                   child: Text(
-                                    'LIVE',
+                                    s.name,
                                     style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: NlcColors.successGreen,
+                                      fontSize: 18,
+                                      fontWeight: isTop
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: NlcColors.slate,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (s.isActive)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: NlcColors.successGreen.withOpacity(
+                                        0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'LIVE',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: NlcColors.successGreen,
+                                      ),
                                     ),
                                   ),
+                                const SizedBox(width: 16),
+                                Text(
+                                  NumberFormat.decimalPattern().format(count),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: NlcPalette.brandBlue,
+                                    fontFeatures: [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
                                 ),
-                              const SizedBox(width: 16),
-                              Text(
-                                NumberFormat.decimalPattern().format(count),
-                                style: GoogleFonts.inter(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: NlcPalette.brandBlue,
-                                  fontFeatures: [FontFeature.tabularFigures()],
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: pct.clamp(0.0, 1.0),
+                          minHeight: 10,
+                          backgroundColor: NlcColors.secondaryBlue.withValues(
+                            alpha: 0.15,
+                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isTop
+                                ? NlcPalette.brandBlue
+                                : NlcColors.secondaryBlue,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: pct.clamp(0.0, 1.0),
-                        minHeight: 10,
-                        backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
-                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                    ],
+                  ),
+                );
+              }),
           ],
         ),
       ),

@@ -42,7 +42,8 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
       }
 
       setState(() {
-        _status = 'SUCCESS!\n\nConnected to:\nProject: $projectId\nDatabase: $dbId\n\nRead & Write operations confirmed.';
+        _status =
+            'SUCCESS!\n\nConnected to:\nProject: $projectId\nDatabase: $dbId\n\nRead & Write operations confirmed.';
         _statusColor = Colors.green;
       });
     } catch (e) {
@@ -91,7 +92,10 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                 icon: const Icon(Icons.network_check),
                 label: const Text('Run Connection Test'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],

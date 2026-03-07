@@ -42,10 +42,12 @@ class CheckinOrchestratorService {
     FirebaseFirestore? firestore,
     SessionCatalogService? sessionCatalog,
     FormationSignalService? formationSignalService,
-  })  : _firestore = firestore ?? FirestoreConfig.instance,
-        _sessionCatalog = sessionCatalog ?? SessionCatalogService(firestore: firestore),
-        _formationSignalService =
-            formationSignalService ?? FormationSignalService(firestore: firestore);
+  }) : _firestore = firestore ?? FirestoreConfig.instance,
+       _sessionCatalog =
+           sessionCatalog ?? SessionCatalogService(firestore: firestore),
+       _formationSignalService =
+           formationSignalService ??
+           FormationSignalService(firestore: firestore);
 
   final FirebaseFirestore _firestore;
   final SessionCatalogService _sessionCatalog;
@@ -69,12 +71,15 @@ class CheckinOrchestratorService {
       );
     }
 
-    final attendanceRef = _firestore
-        .doc('${_attendancePath(eventId, mainSessionId)}/$registrantId');
+    final attendanceRef = _firestore.doc(
+      '${_attendancePath(eventId, mainSessionId)}/$registrantId',
+    );
     final existing = await attendanceRef.get();
     if (existing.exists) return;
 
-    final sessionRef = _firestore.doc('${_sessionsPath(eventId)}/$mainSessionId');
+    final sessionRef = _firestore.doc(
+      '${_sessionsPath(eventId)}/$mainSessionId',
+    );
     await _firestore.runTransaction((tx) async {
       final sessionSnap = await tx.get(sessionRef);
       if (!sessionSnap.exists) {
@@ -115,7 +120,10 @@ class CheckinOrchestratorService {
     });
 
     try {
-      await _formationSignalService.generateForRegistrant(eventId, registrantId);
+      await _formationSignalService.generateForRegistrant(
+        eventId,
+        registrantId,
+      );
     } catch (_) {}
   }
 
@@ -126,8 +134,9 @@ class CheckinOrchestratorService {
     required String targetSessionId,
     required CheckinSource source,
   }) async {
-    final sessionRef =
-        _firestore.doc('${_sessionsPath(eventId)}/$targetSessionId');
+    final sessionRef = _firestore.doc(
+      '${_sessionsPath(eventId)}/$targetSessionId',
+    );
     final sessionSnap = await sessionRef.get();
     if (!sessionSnap.exists) {
       return CheckinOutcome.failure(
@@ -152,8 +161,9 @@ class CheckinOrchestratorService {
       }
     }
 
-    final attendanceRef = _firestore
-        .doc('${_attendancePath(eventId, targetSessionId)}/$registrantId');
+    final attendanceRef = _firestore.doc(
+      '${_attendancePath(eventId, targetSessionId)}/$registrantId',
+    );
     final existingAtt = await attendanceRef.get();
     if (existingAtt.exists) {
       return CheckinOutcome.already();
@@ -198,10 +208,7 @@ class CheckinOrchestratorService {
 
       final afterSnap = await sessionRef.get();
       if (afterSnap.exists && afterSnap.data() != null) {
-        updatedSession = Session.fromFirestore(
-          afterSnap.id,
-          afterSnap.data()!,
-        );
+        updatedSession = Session.fromFirestore(afterSnap.id, afterSnap.data()!);
       }
       final attSnap = await attendanceRef.get();
       if (attSnap.exists && attSnap.data() != null) {
@@ -211,7 +218,10 @@ class CheckinOrchestratorService {
       }
 
       try {
-        await _formationSignalService.generateForRegistrant(eventId, registrantId);
+        await _formationSignalService.generateForRegistrant(
+          eventId,
+          registrantId,
+        );
       } catch (_) {}
 
       return CheckinOutcome.success(
@@ -219,14 +229,14 @@ class CheckinOrchestratorService {
         at: checkedInAt,
       );
     } on FirebaseException catch (e) {
-      return CheckinOutcome.failure(
-        e.code,
-        e.message ?? e.code,
-      );
+      return CheckinOutcome.failure(e.code, e.message ?? e.code);
     }
   }
 
-  Map<String, dynamic> _attendanceData(String registrantId, CheckinSource source) {
+  Map<String, dynamic> _attendanceData(
+    String registrantId,
+    CheckinSource source,
+  ) {
     final sourceStr = source.name;
     return {
       'registrantId': registrantId,

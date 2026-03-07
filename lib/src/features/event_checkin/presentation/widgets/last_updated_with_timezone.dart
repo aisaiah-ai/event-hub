@@ -43,9 +43,7 @@ String _formatWithTz(DateTime dateTime, String locationName) {
     return DateFormat.jms().format(dateTime);
   }
   try {
-    final loc = locationName == 'UTC'
-        ? tz.UTC
-        : tz.getLocation(locationName);
+    final loc = locationName == 'UTC' ? tz.UTC : tz.getLocation(locationName);
     final tzDt = tz.TZDateTime.from(dateTime, loc);
     final tzInfo = loc.timeZone(tzDt.millisecondsSinceEpoch);
     final abbrev = tzInfo.abbreviation;
@@ -87,8 +85,7 @@ class _LastUpdatedWithTimezoneState extends State<LastUpdatedWithTimezone> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_kPrefsKey);
-      if (saved != null &&
-          _kOptions.any((o) => o.id == saved)) {
+      if (saved != null && _kOptions.any((o) => o.id == saved)) {
         if (mounted) setState(() => _tzId = saved);
       }
     } catch (_) {}
@@ -101,11 +98,9 @@ class _LastUpdatedWithTimezoneState extends State<LastUpdatedWithTimezone> {
     } catch (_) {}
   }
 
-  String get _locationName =>
-      _kOptions.firstWhere(
-        (o) => o.id == _tzId,
-        orElse: () => _kOptions.first,
-      ).locationName;
+  String get _locationName => _kOptions
+      .firstWhere((o) => o.id == _tzId, orElse: () => _kOptions.first)
+      .locationName;
 
   Future<void> _showTzPicker(BuildContext context) async {
     final box = context.findRenderObject() as RenderBox?;
@@ -120,10 +115,7 @@ class _LastUpdatedWithTimezoneState extends State<LastUpdatedWithTimezone> {
         pos.dy + size.height + 200,
       ),
       items: _kOptions
-          .map((o) => PopupMenuItem(
-                value: o.id,
-                child: Text(o.label),
-              ))
+          .map((o) => PopupMenuItem(value: o.id, child: Text(o.label)))
           .toList(),
     );
     if (selected != null && mounted) {
@@ -146,10 +138,7 @@ class _LastUpdatedWithTimezoneState extends State<LastUpdatedWithTimezone> {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Text(
             'Last Updated: $formatted',
-            style: GoogleFonts.inter(
-              fontSize: widget.fontSize,
-              color: color,
-            ),
+            style: GoogleFonts.inter(fontSize: widget.fontSize, color: color),
           ),
         ),
       ),

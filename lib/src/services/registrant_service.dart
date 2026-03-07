@@ -108,7 +108,9 @@ class RegistrantService {
       );
     } catch (e) {
       final isDenied = FirestoreRegistrantReadStatus.isPermissionDeniedError(e);
-      _log('checkRegistrantReadPermission: failed isPermissionDenied=$isDenied, db=$dbId, e=$e');
+      _log(
+        'checkRegistrantReadPermission: failed isPermissionDenied=$isDenied, db=$dbId, e=$e',
+      );
       return FirestoreRegistrantReadStatus(
         ok: false,
         isPermissionDenied: isDenied,
@@ -130,7 +132,9 @@ class RegistrantService {
     } catch (e, st) {
       _log('listRegistrants FAILED: $e');
       _log('stackTrace: $st');
-      _log('TROUBLESHOOTING: If permission-denied, check Firebase Console → App Check → Firestore. Disable enforcement or add ReCaptchaV3Provider for web.');
+      _log(
+        'TROUBLESHOOTING: If permission-denied, check Firebase Console → App Check → Firestore. Disable enforcement or add ReCaptchaV3Provider for web.',
+      );
       rethrow;
     }
   }
@@ -199,7 +203,10 @@ class RegistrantService {
     }
 
     try {
-      await _formationSignalService.generateForRegistrant(eventId, registrantId);
+      await _formationSignalService.generateForRegistrant(
+        eventId,
+        registrantId,
+      );
     } catch (e, st) {
       _log('checkInEvent FORMATION SIGNAL FAILED (registrant was updated)');
       _log('  eventId: $eventId registrantId: $registrantId');

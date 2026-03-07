@@ -7,7 +7,7 @@ import '../models/event_stats.dart';
 /// Missing doc returns empty stats (dashboard shows skeleton/zeroes).
 class EventStatsService {
   EventStatsService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirestoreConfig.instance;
+    : _firestore = firestore ?? FirestoreConfig.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -18,12 +18,17 @@ class EventStatsService {
     return _firestore
         .doc(_statsPath.replaceFirst('%s', eventId))
         .snapshots()
-        .map((snap) => EventStats.fromFirestore(snap.exists ? snap.data() : null));
+        .map(
+          (snap) => EventStats.fromFirestore(snap.exists ? snap.data() : null),
+        );
   }
 
   /// Last 60 check-in buckets (by minute) for sparkline.
   /// Bucket ID format: yyyyMMddHHmm. Ordered descending (most recent first).
-  Stream<List<CheckinBucket>> watchCheckinBuckets(String eventId, {int limit = 60}) {
+  Stream<List<CheckinBucket>> watchCheckinBuckets(
+    String eventId, {
+    int limit = 60,
+  }) {
     final overviewPath = _statsPath.replaceFirst('%s', eventId);
     return _firestore
         .doc(overviewPath)
@@ -31,13 +36,15 @@ class EventStatsService {
         .orderBy(FieldPath.documentId, descending: true)
         .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs.map((d) {
-              final data = d.data();
-              return CheckinBucket(
-                bucketId: d.id,
-                count: (data['count'] as num?)?.toInt() ?? 0,
-              );
-            }).toList());
+        .map(
+          (snap) => snap.docs.map((d) {
+            final data = d.data();
+            return CheckinBucket(
+              bucketId: d.id,
+              count: (data['count'] as num?)?.toInt() ?? 0,
+            );
+          }).toList(),
+        );
   }
 }
 

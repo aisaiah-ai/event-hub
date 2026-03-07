@@ -41,10 +41,7 @@ class EarliestRegistration {
 
   factory EarliestRegistration.fromFirestore(Map<String, dynamic>? json) {
     if (json == null) {
-      return EarliestRegistration(
-        registrantId: '',
-        timestamp: DateTime(1970),
-      );
+      return EarliestRegistration(registrantId: '', timestamp: DateTime(1970));
     }
     final ts = json['timestamp'];
     return EarliestRegistration(
@@ -71,6 +68,7 @@ class GlobalAnalytics {
 
   final int totalUniqueAttendees;
   final int totalCheckins;
+
   /// Pre-computed count of registrants (events/{eventId}/registrants). Updated by backfill + onRegistrantCreate.
   final int totalRegistrants;
   final DateTime? lastUpdated;
@@ -81,12 +79,10 @@ class GlobalAnalytics {
   final Map<String, int> hourlyCheckins;
 
   /// Top 5 regions by count.
-  List<MapEntry<String, int>> get top5Regions =>
-      _topN(regionCounts, 5);
+  List<MapEntry<String, int>> get top5Regions => _topN(regionCounts, 5);
 
   /// Top 5 ministries by count.
-  List<MapEntry<String, int>> get top5Ministries =>
-      _topN(ministryCounts, 5);
+  List<MapEntry<String, int>> get top5Ministries => _topN(ministryCounts, 5);
 
   /// Peak bucket key (YYYY-MM-DD-HH-mm, 15-min) with max check-ins.
   String? get peakHourKey {
@@ -96,10 +92,7 @@ class GlobalAnalytics {
         .key;
   }
 
-  static List<MapEntry<String, int>> _topN(
-    Map<String, int> map,
-    int n,
-  ) {
+  static List<MapEntry<String, int>> _topN(Map<String, int> map, int n) {
     final list = map.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return list.take(n).toList();
@@ -147,16 +140,20 @@ class GlobalAnalytics {
     final mc = _asStringKeyMap(json['ministryCounts']);
     final hc = _asStringKeyMap(json['hourlyCheckins']);
 
-    int toInt(dynamic v) =>
-        v is int ? v : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
+    int toInt(dynamic v) => v is int
+        ? v
+        : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
 
     return GlobalAnalytics(
-      totalUniqueAttendees: (json['totalUniqueAttendees'] as num?)?.toInt() ?? 0,
+      totalUniqueAttendees:
+          (json['totalUniqueAttendees'] as num?)?.toInt() ?? 0,
       totalCheckins: (json['totalCheckins'] as num?)?.toInt() ?? 0,
       totalRegistrants: (json['totalRegistrants'] as num?)?.toInt() ?? 0,
       lastUpdated: lastUpdatedTs is Timestamp ? lastUpdatedTs.toDate() : null,
       earliestCheckin: ec != null ? EarliestCheckin.fromFirestore(ec) : null,
-      earliestRegistration: er != null ? EarliestRegistration.fromFirestore(er) : null,
+      earliestRegistration: er != null
+          ? EarliestRegistration.fromFirestore(er)
+          : null,
       regionCounts: rc.map((k, v) => MapEntry(k, toInt(v))),
       ministryCounts: mc.map((k, v) => MapEntry(k, toInt(v))),
       hourlyCheckins: hc.map((k, v) => MapEntry(k, toInt(v))),
@@ -199,8 +196,9 @@ class SessionAnalyticsSummary {
     final lastUpdatedTs = json['lastUpdated'];
     final rc = json['regionCounts'] as Map<String, dynamic>? ?? {};
     final mc = json['ministryCounts'] as Map<String, dynamic>? ?? {};
-    int toInt(dynamic v) =>
-        v is int ? v : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
+    int toInt(dynamic v) => v is int
+        ? v
+        : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
 
     return SessionAnalyticsSummary(
       sessionId: sessionId,
@@ -217,10 +215,7 @@ class SessionAnalyticsSummary {
 /// Attendee index at events/{eventId}/attendeeIndex/{registrantId}.
 /// Cloud Functions only can write. Used for unique global counting.
 class AttendeeIndexEntry {
-  const AttendeeIndexEntry({
-    required this.firstSession,
-    this.firstCheckinTime,
-  });
+  const AttendeeIndexEntry({required this.firstSession, this.firstCheckinTime});
 
   final String firstSession;
   final DateTime? firstCheckinTime;
@@ -236,9 +231,4 @@ class AttendeeIndexEntry {
 }
 
 /// Aggregation level for dashboard reporting.
-enum AggregationLevel {
-  perSession,
-  perDay,
-  entireEvent,
-  custom,
-}
+enum AggregationLevel { perSession, perDay, entireEvent, custom }

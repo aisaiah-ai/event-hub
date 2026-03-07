@@ -64,7 +64,9 @@ class _CheckinSessionPickerPageState extends State<CheckinSessionPickerPage>
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.horizontal,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
@@ -107,7 +109,9 @@ class _CheckinSessionPickerPageState extends State<CheckinSessionPickerPage>
                   ),
                   const SizedBox(height: AppSpacing.aboveSectionTitle),
                   _breakoutSessionsSection(context),
-                  const SizedBox(height: AppSpacing.betweenSectionTitleAndCards),
+                  const SizedBox(
+                    height: AppSpacing.betweenSectionTitleAndCards,
+                  ),
                   _SessionCard(
                     session: NlcSessions.genderIdeology,
                     slug: NlcSessions.genderIdeologySlug,
@@ -172,27 +176,24 @@ final BoxShadow _elevatedCardShadow = BoxShadow(
 );
 
 BoxDecoration get _sessionCardDecoration => BoxDecoration(
-      color: NlcColors.ivory,
-      borderRadius: BorderRadius.circular(_cardRadius),
-      boxShadow: [_elevatedCardShadow],
-    );
+  color: NlcColors.ivory,
+  borderRadius: BorderRadius.circular(_cardRadius),
+  boxShadow: [_elevatedCardShadow],
+);
 
 /// Primary "main gate" card: slightly taller, blue border, gradient, icon glow.
 BoxDecoration get _primaryCardDecoration => BoxDecoration(
-      color: NlcColors.ivory,
-      borderRadius: BorderRadius.circular(_cardRadius),
-      border: Border.all(
-        color: NlcPalette.brandBlue.withValues(alpha: 0.35),
-        width: 1,
-      ),
-      boxShadow: [_elevatedCardShadow],
-    );
+  color: NlcColors.ivory,
+  borderRadius: BorderRadius.circular(_cardRadius),
+  border: Border.all(
+    color: NlcPalette.brandBlue.withValues(alpha: 0.35),
+    width: 1,
+  ),
+  boxShadow: [_elevatedCardShadow],
+);
 
 class _ConferenceCheckinCard extends StatefulWidget {
-  const _ConferenceCheckinCard({
-    required this.eventSlug,
-    this.decoration,
-  });
+  const _ConferenceCheckinCard({required this.eventSlug, this.decoration});
 
   final String eventSlug;
   final BoxDecoration? decoration;
@@ -216,22 +217,21 @@ class _ConferenceCheckinCardState extends State<_ConferenceCheckinCard> {
 
   @override
   Widget build(BuildContext context) {
-    final base = widget.decoration ?? BoxDecoration(
-      color: AppColors.surfaceCard,
-      borderRadius: BorderRadius.circular(_cardRadius),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.08),
-          blurRadius: 16,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    );
+    final base =
+        widget.decoration ??
+        BoxDecoration(
+          color: AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(_cardRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        );
     final effectiveDecoration = base.copyWith(
-      boxShadow: [
-        ...?base.boxShadow,
-        if (_hovering) _hoverShadow,
-      ],
+      boxShadow: [...?base.boxShadow, if (_hovering) _hoverShadow],
     );
 
     return MouseRegion(
@@ -248,103 +248,109 @@ class _ConferenceCheckinCardState extends State<_ConferenceCheckinCard> {
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            transform: Matrix4.identity()..translate(0.0, _hovering ? -2.0 : 0.0),
+            transform: Matrix4.identity()
+              ..translate(0.0, _hovering ? -2.0 : 0.0),
             transformAlignment: Alignment.center,
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => context.go('/events/${widget.eventSlug}/main-checkin'),
+                onTap: () =>
+                    context.go('/events/${widget.eventSlug}/main-checkin'),
                 borderRadius: BorderRadius.circular(_cardRadius),
                 splashColor: NlcPalette.brandBlue.withValues(alpha: 0.25),
                 highlightColor: NlcPalette.brandBlue.withValues(alpha: 0.1),
                 child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
-                ),
-                decoration: effectiveDecoration,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // Subtle blue gradient overlay (top to bottom)
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(_cardRadius),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              NlcPalette.brandBlue.withValues(alpha: 0.06),
-                              NlcPalette.brandBlue.withValues(alpha: 0.02),
-                            ],
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
+                  decoration: effectiveDecoration,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Subtle blue gradient overlay (top to bottom)
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(_cardRadius),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                NlcPalette.brandBlue.withValues(alpha: 0.06),
+                                NlcPalette.brandBlue.withValues(alpha: 0.02),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Row(
-                      children: [
-                        // Icon with soft glow
-                        Container(
-                          width: _iconContainerSize,
-                          height: _iconContainerSize,
-                          decoration: BoxDecoration(
-                            color: NlcPalette.brandBlueSoft,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: NlcPalette.brandBlue.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.qr_code_scanner,
-                            color: AppColors.navy,
-                            size: _iconSize,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Conference Check-In',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.navy,
+                      Row(
+                        children: [
+                          // Icon with soft glow
+                          Container(
+                            width: _iconContainerSize,
+                            height: _iconContainerSize,
+                            decoration: BoxDecoration(
+                              color: NlcPalette.brandBlueSoft,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: NlcPalette.brandBlue.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  blurRadius: 12,
+                                  spreadRadius: 0,
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Main Event Entry',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  color: AppColors.navy.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.qr_code_scanner,
+                              color: AppColors.navy,
+                              size: _iconSize,
+                            ),
                           ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 18,
-                          color: AppColors.chevronNavy,
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Conference Check-In',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.navy,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Main Event Entry',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
+                                    color: AppColors.navy.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 18,
+                            color: AppColors.chevronNavy,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -379,16 +385,15 @@ class _SessionCardState extends State<_SessionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final base = widget.decoration ?? BoxDecoration(
-      color: AppColors.surfaceCard,
-      borderRadius: BorderRadius.circular(_cardRadius),
-      boxShadow: [_elevatedCardShadow],
-    );
+    final base =
+        widget.decoration ??
+        BoxDecoration(
+          color: AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(_cardRadius),
+          boxShadow: [_elevatedCardShadow],
+        );
     final effectiveDecoration = base.copyWith(
-      boxShadow: [
-        ...?base.boxShadow,
-        if (_hovering) _hoverShadow,
-      ],
+      boxShadow: [...?base.boxShadow, if (_hovering) _hoverShadow],
     );
 
     return MouseRegion(
@@ -398,16 +403,16 @@ class _SessionCardState extends State<_SessionCard> {
         onTapDown: (_) => setState(() => _pressing = true),
         onTapUp: (_) => setState(() => _pressing = false),
         onTapCancel: () => setState(() => _pressing = false),
-        onTap: () => context.go(
-          '/events/${widget.eventSlug}/checkin/${widget.slug}',
-        ),
+        onTap: () =>
+            context.go('/events/${widget.eventSlug}/checkin/${widget.slug}'),
         child: AnimatedScale(
           scale: _pressing ? 0.98 : 1.0,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            transform: Matrix4.identity()..translate(0.0, _hovering ? -2.0 : 0.0),
+            transform: Matrix4.identity()
+              ..translate(0.0, _hovering ? -2.0 : 0.0),
             transformAlignment: Alignment.center,
             child: Material(
               color: Colors.transparent,
@@ -462,7 +467,9 @@ class _SessionCardState extends State<_SessionCard> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.liveBadgeGreen.withValues(alpha: 0.4),
+                                color: AppColors.liveBadgeGreen.withValues(
+                                  alpha: 0.4,
+                                ),
                                 blurRadius: 8,
                               ),
                             ],

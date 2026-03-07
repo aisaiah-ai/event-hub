@@ -38,6 +38,7 @@ class EventStats {
   final Map<String, int> ministryCounts;
   final Map<String, int> serviceCounts;
   final Map<String, int> sessionTotals;
+
   /// sessionId -> { at: DateTime, registrantId: String }
   final Map<String, FirstSessionCheckIn> firstSessionCheckIn;
   final List<MapEntry<String, int>> top5Regions;
@@ -57,14 +58,17 @@ class EventStats {
   factory EventStats.fromFirestore(Map<String, dynamic>? json) {
     if (json == null) return const EventStats();
     final regionCounts = json['regionCounts'] as Map<String, dynamic>? ?? {};
-    final ministryCounts = json['ministryCounts'] as Map<String, dynamic>? ?? {};
+    final ministryCounts =
+        json['ministryCounts'] as Map<String, dynamic>? ?? {};
     final serviceCounts = json['serviceCounts'] as Map<String, dynamic>? ?? {};
     final sessionTotals = json['sessionTotals'] as Map<String, dynamic>? ?? {};
-    final firstSessionRaw = json['firstSessionCheckIn'] as Map<String, dynamic>? ?? {};
+    final firstSessionRaw =
+        json['firstSessionCheckIn'] as Map<String, dynamic>? ?? {};
     final top5RegionsRaw = (json['top5Regions'] as List<dynamic>?) ?? [];
     final top5MinistriesRaw = (json['top5Ministries'] as List<dynamic>?) ?? [];
     final top5ServicesRaw = (json['top5Services'] as List<dynamic>?) ?? [];
-    final top5RegionOtherRaw = (json['top5RegionOtherText'] as List<dynamic>?) ?? [];
+    final top5RegionOtherRaw =
+        (json['top5RegionOtherText'] as List<dynamic>?) ?? [];
 
     DateTime? parseTs(dynamic v) {
       if (v is Timestamp) return v.toDate();
@@ -87,8 +91,9 @@ class EventStats {
           .toList();
     }
 
-    int toInt(dynamic v) =>
-        v is int ? v : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
+    int toInt(dynamic v) => v is int
+        ? v
+        : (v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0);
 
     final firstSessionCheckIn = <String, FirstSessionCheckIn>{};
     for (final e in firstSessionRaw.entries) {

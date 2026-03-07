@@ -8,8 +8,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'config/environment.dart';
 import 'firebase_options.dart';
 import 'src/app_router.dart';
-import 'src/config/firestore_config.dart'
-    show AppEnvironment, FirestoreConfig;
+import 'src/config/firestore_config.dart' show AppEnvironment, FirestoreConfig;
 import 'src/theme/app_theme.dart';
 import 'src/utils/url_utils.dart';
 
@@ -20,8 +19,10 @@ void main() async {
   // ignore: avoid_print
   print('Running in ENV: $env');
 
-  assert(Environment.isDev || Environment.isProd,
-      'Environment must be dev or prod; got $env');
+  assert(
+    Environment.isDev || Environment.isProd,
+    'Environment must be dev or prod; got $env',
+  );
 
   usePathUrlStrategy();
   if (kIsWeb) {
@@ -65,9 +66,9 @@ void main() async {
     // START DEBUGGING: APP CHECK DISABLED
     // Note: If App Check Enforcement is ON in Console, this will fail with permission-denied.
     // Ensure Enforcement is OFF for Firestore in Firebase Console.
-    debugPrint('🛑 APP CHECK ACTIVATION COMMENTED OUT.'); 
-    appCheckOk = true; 
-    
+    debugPrint('🛑 APP CHECK ACTIVATION COMMENTED OUT.');
+    appCheckOk = true;
+
     /*
     try {
       if (kIsWeb) {
@@ -113,7 +114,8 @@ void main() async {
     FirestoreConfig.initFromEnvironment();
     // Safety: ensure Firestore matches ENV (debug mode only; asserts removed in release)
     assert(
-      (Environment.isDev && FirestoreConfig.environment == AppEnvironment.dev) ||
+      (Environment.isDev &&
+              FirestoreConfig.environment == AppEnvironment.dev) ||
           (Environment.isProd &&
               FirestoreConfig.environment == AppEnvironment.prod),
       'FirestoreConfig must match Environment',

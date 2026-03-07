@@ -156,10 +156,22 @@ class EventModel {
     if (venueRaw is Map<String, dynamic>) {
       venue = Venue.fromMap(venueRaw);
     } else if (venueRaw is String && venueRaw.isNotEmpty) {
-      venue = Venue(name: venueRaw, street: address, city: '', state: '', zip: '');
+      venue = Venue(
+        name: venueRaw,
+        street: address,
+        city: '',
+        state: '',
+        zip: '',
+      );
     }
     if (venue == null && (locationName.isNotEmpty || address.isNotEmpty)) {
-      venue = Venue(name: locationName, street: address, city: '', state: '', zip: '');
+      venue = Venue(
+        name: locationName,
+        street: address,
+        city: '',
+        state: '',
+        zip: '',
+      );
     }
     return EventModel(
       id: doc.id,

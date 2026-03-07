@@ -19,10 +19,7 @@ class EventRepository {
     final fs = _firestore;
     if (fs == null) return null;
     try {
-      final snap = await fs
-          .collection(_eventsCollection)
-          .doc(eventId)
-          .get();
+      final snap = await fs.collection(_eventsCollection).doc(eventId).get();
       if (snap.exists && snap.data() != null) {
         return EventModel.fromFirestore(snap);
       }
@@ -80,10 +77,7 @@ class EventRepository {
     isActive: true,
     allowRsvp: false,
     allowCheckin: true,
-    metadata: {
-      'selfCheckinEnabled': true,
-      'sessionsEnabled': true,
-    },
+    metadata: {'selfCheckinEnabled': true, 'sessionsEnabled': true},
     logoUrl: 'assets/checkin/nlc_logo.png',
     backgroundImageUrl: 'assets/images/nlc_background.png',
     backgroundPatternUrl: 'assets/checkin/mossaic.svg',
@@ -194,18 +188,24 @@ class EventRepository {
       if (sp == null) {
         // Speaker document ID from session does not match any loaded speaker.
         // This can happen if the speakers sub-collection is not yet seeded.
-        _log('WARNING: speakerId "$firstId" not found in speakers map for session "${s.id}" — no speaker will be shown');
+        _log(
+          'WARNING: speakerId "$firstId" not found in speakers map for session "${s.id}" — no speaker will be shown',
+        );
         return s;
       }
       final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(sp));
-      _log('Enriched session "${s.id}" → speakerId=${enriched.speaker?.speakerId} name=${enriched.speaker?.name}');
+      _log(
+        'Enriched session "${s.id}" → speakerId=${enriched.speaker?.speakerId} name=${enriched.speaker?.name}',
+      );
       return enriched;
     }).toList();
   }
 
   /// Internal: fetches raw sessions without speaker resolution.
   Future<List<EventSession>> _getSessionsRaw(
-      String eventId, {String? slug}) async {
+    String eventId, {
+    String? slug,
+  }) async {
     _log('getSessions: eventId=$eventId slug=$slug');
     // March Cluster: always use fallback for correct session names (incl. Birthdays & Anniversaries Celebration at 7 PM) and ids.
     if (_isMarchCluster(eventId) || (slug != null && _isMarchCluster(slug))) {
@@ -235,7 +235,9 @@ class EventRepository {
       // Enrich speakerIds from fallback when Firestore sessions have none set.
       final hasAnySpeakerIds = sessions.any((s) => s.speakerIds.isNotEmpty);
       if (!hasAnySpeakerIds) {
-        _log('getSessions: no speakerIds in Firestore docs → enriching from fallback');
+        _log(
+          'getSessions: no speakerIds in Firestore docs → enriching from fallback',
+        );
         final fallback = _fallbackSessions(eventId, slug: slug);
         final fallbackById = {for (final f in fallback) f.id: f};
         return sessions.map((s) {
@@ -324,13 +326,15 @@ class EventRepository {
       backgroundImageUrl:
           e.backgroundImageUrl ?? _marchCluster2026Fallback.backgroundImageUrl,
       backgroundPatternUrl:
-          e.backgroundPatternUrl ?? _marchCluster2026Fallback.backgroundPatternUrl,
+          e.backgroundPatternUrl ??
+          _marchCluster2026Fallback.backgroundPatternUrl,
       primaryColorHex: e.primaryColorHex,
       accentColorHex: e.accentColorHex,
       backgroundOverlayColorHex: e.backgroundOverlayColorHex,
       backgroundOverlayOpacity: e.backgroundOverlayOpacity,
       bannerUrl: e.bannerUrl,
-      organizationName: e.organizationName ?? _marchCluster2026Fallback.organizationName,
+      organizationName:
+          e.organizationName ?? _marchCluster2026Fallback.organizationName,
       shortDescription: e.shortDescription,
       cardBackgroundColorHex: e.cardBackgroundColorHex,
       checkInButtonColorHex: e.checkInButtonColorHex,
@@ -363,10 +367,19 @@ class EventRepository {
         order: 1,
         startAt: DateTime(2026, 3, 14, 15, 0),
         endAt: DateTime(2026, 3, 14, 18, 0),
-        description: 'A Spirit-filled rally centered on evangelization and community.',
+        description:
+            'A Spirit-filled rally centered on evangelization and community.',
         materials: const [
-          SessionMaterial(title: 'Rally Program & Reflections', url: '', type: 'pdf'),
-          SessionMaterial(title: 'Small Group Discussion Guide', url: '', type: 'pdf'),
+          SessionMaterial(
+            title: 'Rally Program & Reflections',
+            url: '',
+            type: 'pdf',
+          ),
+          SessionMaterial(
+            title: 'Small Group Discussion Guide',
+            url: '',
+            type: 'pdf',
+          ),
           SessionMaterial(title: 'Worship Song Sheet', url: '', type: 'pdf'),
         ],
         speakerIds: const ['rommel-dolar'],
@@ -377,10 +390,19 @@ class EventRepository {
         order: 2,
         startAt: DateTime(2026, 3, 14, 19, 0), // 7:00 PM
         endAt: DateTime(2026, 3, 14, 21, 0),
-        description: 'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
+        description:
+            'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
         materials: const [
-          SessionMaterial(title: 'Birthdays & Anniversaries Program', url: '', type: 'pdf'),
-          SessionMaterial(title: 'Fellowship Night Agenda', url: '', type: 'pdf'),
+          SessionMaterial(
+            title: 'Birthdays & Anniversaries Program',
+            url: '',
+            type: 'pdf',
+          ),
+          SessionMaterial(
+            title: 'Fellowship Night Agenda',
+            url: '',
+            type: 'pdf',
+          ),
         ],
         speakerIds: const ['mike-suela'],
       ),

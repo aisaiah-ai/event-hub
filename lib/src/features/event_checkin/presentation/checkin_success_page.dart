@@ -23,6 +23,7 @@ class CheckinSuccessPage extends StatefulWidget {
   final String name;
   final String sessionName;
   final String eventSlug;
+
   /// Where to redirect after 3s; defaults to /events/:slug/checkin.
   final String? returnPath;
 

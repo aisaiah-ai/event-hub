@@ -4,12 +4,7 @@ import '../config/firestore_config.dart';
 import '../models/session.dart';
 
 /// UI availability label for a session.
-enum SessionAvailabilityLabel {
-  available,
-  almostFull,
-  full,
-  closed,
-}
+enum SessionAvailabilityLabel { available, almostFull, full, closed }
 
 /// Session with computed availability for UI.
 class SessionWithAvailability {
@@ -27,7 +22,7 @@ class SessionWithAvailability {
 /// Lists and watches sessions; computes availability (remaining seats, status label).
 class SessionCatalogService {
   SessionCatalogService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirestoreConfig.instance;
+    : _firestore = firestore ?? FirestoreConfig.instance;
 
   final FirebaseFirestore _firestore;
 
@@ -39,9 +34,7 @@ class SessionCatalogService {
         .collection(_sessionsPath(eventId))
         .orderBy('order')
         .get();
-    return snap.docs
-        .map((d) => Session.fromFirestore(d.id, d.data()))
-        .toList();
+    return snap.docs.map((d) => Session.fromFirestore(d.id, d.data())).toList();
   }
 
   /// Stream of sessions for real-time UI.
@@ -50,9 +43,11 @@ class SessionCatalogService {
         .collection(_sessionsPath(eventId))
         .orderBy('order')
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => Session.fromFirestore(d.id, d.data()))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => Session.fromFirestore(d.id, d.data()))
+              .toList(),
+        );
   }
 
   /// Get a single session by id.
@@ -76,7 +71,8 @@ class SessionCatalogService {
 
   /// Compute availability label from session.
   static SessionAvailabilityLabel availabilityLabel(Session s) {
-    if (s.status == SessionStatus.closed) return SessionAvailabilityLabel.closed;
+    if (s.status == SessionStatus.closed)
+      return SessionAvailabilityLabel.closed;
     if (s.capacity <= 0) return SessionAvailabilityLabel.available;
     if (s.attendanceCount >= s.capacity) return SessionAvailabilityLabel.full;
     final remaining = s.capacity - s.attendanceCount;
@@ -137,9 +133,11 @@ class SessionCatalogService {
     List<String>? filterSessionIds,
   }) async {
     final list = await listSessionsWithAvailability(eventId);
-    var result = list.where((e) =>
-        e.label != SessionAvailabilityLabel.full &&
-        e.label != SessionAvailabilityLabel.closed);
+    var result = list.where(
+      (e) =>
+          e.label != SessionAvailabilityLabel.full &&
+          e.label != SessionAvailabilityLabel.closed,
+    );
     if (filterSessionIds != null && filterSessionIds.isNotEmpty) {
       final set = filterSessionIds.toSet();
       result = result.where((e) => set.contains(e.session.id));

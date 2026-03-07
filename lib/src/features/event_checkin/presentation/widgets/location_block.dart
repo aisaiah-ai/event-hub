@@ -19,15 +19,20 @@ class LocationBlock extends StatelessWidget {
 
   final String venue;
   final String address;
+
   /// Optional card decoration (e.g. white card with shadow for light theme).
   final BoxDecoration? decoration;
+
   /// Padding around the content. Default: 20 all sides when decoration is set.
   final EdgeInsetsGeometry? padding;
+
   /// Icon color. Default: NlcPalette.brandBlue.
   final Color? iconColor;
   final double iconSize;
+
   /// Override venue text style.
   final TextStyle? venueStyle;
+
   /// Override address text style.
   final TextStyle? addressStyle;
 
@@ -54,7 +59,8 @@ class LocationBlock extends StatelessWidget {
                   style: venueStyle ?? AppTypography.locationVenue(context),
                 ),
               if (address.isNotEmpty) ...[
-                if (venue.isNotEmpty) const SizedBox(height: AppSpacing.betweenTitleAddress),
+                if (venue.isNotEmpty)
+                  const SizedBox(height: AppSpacing.betweenTitleAddress),
                 Text(
                   address,
                   style: addressStyle ?? AppTypography.locationAddress(context),

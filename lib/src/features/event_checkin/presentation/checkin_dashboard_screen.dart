@@ -34,7 +34,8 @@ class CheckinDashboardScreen extends StatefulWidget {
 }
 
 class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
-  static const AggregationLevel _kDefaultExportLevel = AggregationLevel.entireEvent;
+  static const AggregationLevel _kDefaultExportLevel =
+      AggregationLevel.entireEvent;
   bool _isExporting = false;
   bool _isEditLayout = false;
   List<String>? _localDashboardOrder;
@@ -42,10 +43,13 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
   late final DashboardLayoutService _layoutService;
   late final Stream<GlobalAnalytics> _globalStream;
   late final Stream<List<SessionCheckinStat>> _sessionStream;
-  late final Stream<({
-    List<({String name, DateTime timestamp})> registrations,
-    List<({String name, DateTime timestamp})> checkins,
-  })> _first3Stream;
+  late final Stream<
+    ({
+      List<({String name, DateTime timestamp})> registrations,
+      List<({String name, DateTime timestamp})> checkins,
+    })
+  >
+  _first3Stream;
   late final Stream<List<String>> _layoutStream;
 
   String get _eventSlug => widget.eventId.replaceAll('-', '_');
@@ -84,110 +88,123 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: StreamBuilder<GlobalAnalytics>(
-          stream: _globalStream,
-          builder: (context, snapshot) {
-            final global = snapshot.data ?? const GlobalAnalytics();
-            final lastUpdated = global.lastUpdated ?? DateTime.now();
-            return StreamBuilder<List<SessionCheckinStat>>(
-              stream: _sessionStream,
-              builder: (context, sessSnap) {
-                // Show loading only when we have no data (initial load). Keep content during refresh.
-                if (!sessSnap.hasData && sessSnap.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.all(64),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (sessSnap.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Failed to load: ${sessSnap.error}',
-                      style: TextStyle(color: Colors.red.shade700),
-                    ),
-                  );
-                }
-                final sessions = sessSnap.data ?? [];
-                final registrantCount = global.totalRegistrants;
-                return StreamBuilder<
+            stream: _globalStream,
+            builder: (context, snapshot) {
+              final global = snapshot.data ?? const GlobalAnalytics();
+              final lastUpdated = global.lastUpdated ?? DateTime.now();
+              return StreamBuilder<List<SessionCheckinStat>>(
+                stream: _sessionStream,
+                builder: (context, sessSnap) {
+                  // Show loading only when we have no data (initial load). Keep content during refresh.
+                  if (!sessSnap.hasData &&
+                      sessSnap.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(64),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (sessSnap.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Failed to load: ${sessSnap.error}',
+                        style: TextStyle(color: Colors.red.shade700),
+                      ),
+                    );
+                  }
+                  final sessions = sessSnap.data ?? [];
+                  final registrantCount = global.totalRegistrants;
+                  return StreamBuilder<
                     ({
                       List<({String name, DateTime timestamp})> registrations,
                       List<({String name, DateTime timestamp})> checkins,
-                    })>(
-                  stream: _first3Stream,
-                  builder: (context, first3Snap) {
-                    final first3 = first3Snap.data ?? (
-                      registrations: <({String name, DateTime timestamp})>[],
-                      checkins: <({String name, DateTime timestamp})>[],
-                    );
-                    return StreamBuilder<List<String>>(
-                      stream: _layoutStream,
-                      initialData: kDefaultDashboardOrder,
-                      builder: (context, orderSnap) {
-                        final streamOrder = orderSnap.data ?? kDefaultDashboardOrder;
-                        final order = _localDashboardOrder ?? streamOrder;
-                        return Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1200),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _DashboardHeader(
-                          eventId: widget.eventId,
-                          eventTitle: widget.eventTitle ?? 'NLC Dashboard',
-                          eventVenue: widget.eventVenue,
-                          lastUpdated: lastUpdated,
-                          isExporting: _isExporting,
-                          isEditLayout: _isEditLayout,
-                          onEditLayout: () => setState(() {
-                            _isEditLayout = !_isEditLayout;
-                            // Keep _localDashboardOrder after exit so layout persists when Firestore fails
-                          }),
-                          onExport: (type) => _runExport(
-                            context,
-                            type,
-                            exportService,
-                            analyticsService,
-                          ),
-                            ),
-                            const SizedBox(height: 32),
-                            _isEditLayout
-                                ? _ReorderableDashboardSections(
-                            order: order,
-                            global: global,
-                            sessions: sessions,
-                            registrantCount: registrantCount,
-                            first3: first3,
-                            onReorder: (newOrder) {
-                              setState(() => _localDashboardOrder = newOrder);
-                              layoutService.saveDashboardOrder(
-                                widget.eventId,
-                                newOrder,
-                              );
-                            },
-                                  )
-                                : _DashboardSectionsInOrder(
-                            order: order,
-                            global: global,
-                            sessions: sessions,
-                            registrantCount: registrantCount,
-                                    first3: first3,
-                                  ),
-                                ],
+                    })
+                  >(
+                    stream: _first3Stream,
+                    builder: (context, first3Snap) {
+                      final first3 =
+                          first3Snap.data ??
+                          (
+                            registrations:
+                                <({String name, DateTime timestamp})>[],
+                            checkins: <({String name, DateTime timestamp})>[],
+                          );
+                      return StreamBuilder<List<String>>(
+                        stream: _layoutStream,
+                        initialData: kDefaultDashboardOrder,
+                        builder: (context, orderSnap) {
+                          final streamOrder =
+                              orderSnap.data ?? kDefaultDashboardOrder;
+                          final order = _localDashboardOrder ?? streamOrder;
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1200),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _DashboardHeader(
+                                      eventId: widget.eventId,
+                                      eventTitle:
+                                          widget.eventTitle ?? 'NLC Dashboard',
+                                      eventVenue: widget.eventVenue,
+                                      lastUpdated: lastUpdated,
+                                      isExporting: _isExporting,
+                                      isEditLayout: _isEditLayout,
+                                      onEditLayout: () => setState(() {
+                                        _isEditLayout = !_isEditLayout;
+                                        // Keep _localDashboardOrder after exit so layout persists when Firestore fails
+                                      }),
+                                      onExport: (type) => _runExport(
+                                        context,
+                                        type,
+                                        exportService,
+                                        analyticsService,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 32),
+                                    _isEditLayout
+                                        ? _ReorderableDashboardSections(
+                                            order: order,
+                                            global: global,
+                                            sessions: sessions,
+                                            registrantCount: registrantCount,
+                                            first3: first3,
+                                            onReorder: (newOrder) {
+                                              setState(
+                                                () => _localDashboardOrder =
+                                                    newOrder,
+                                              );
+                                              layoutService.saveDashboardOrder(
+                                                widget.eventId,
+                                                newOrder,
+                                              );
+                                            },
+                                          )
+                                        : _DashboardSectionsInOrder(
+                                            order: order,
+                                            global: global,
+                                            sessions: sessions,
+                                            registrantCount: registrantCount,
+                                            first3: first3,
+                                          ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
-        ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -211,7 +228,7 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
             eventSlug: _eventSlug,
           );
           break;
-          case 'aggregated':
+        case 'aggregated':
           ok = await exportService.exportAndDownloadAggregated(
             widget.eventId,
             sessionStats: sessions,
@@ -241,7 +258,10 @@ class _CheckinDashboardScreenState extends State<CheckinDashboardScreen> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Export error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -357,75 +377,81 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-        const _LiveIndicator(),
-        const SizedBox(width: 16),
-        LastUpdatedWithTimezone(
-          lastUpdated: lastUpdated,
-          fontSize: 13,
-          color: Colors.white.withOpacity(0.8),
-        ),
-        const SizedBox(width: 16),
-        TextButton.icon(
-          onPressed: () {
-            final uri = Uri(
-              path: '/admin/wallboard',
-              queryParameters: {
-                'eventId': eventId,
-                if (eventTitle.isNotEmpty) 'eventTitle': eventTitle,
-                if (eventVenue != null && eventVenue!.isNotEmpty) 'eventVenue': eventVenue!,
+            const _LiveIndicator(),
+            const SizedBox(width: 16),
+            LastUpdatedWithTimezone(
+              lastUpdated: lastUpdated,
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.8),
+            ),
+            const SizedBox(width: 16),
+            TextButton.icon(
+              onPressed: () {
+                final uri = Uri(
+                  path: '/admin/wallboard',
+                  queryParameters: {
+                    'eventId': eventId,
+                    if (eventTitle.isNotEmpty) 'eventTitle': eventTitle,
+                    if (eventVenue != null && eventVenue!.isNotEmpty)
+                      'eventVenue': eventVenue!,
+                  },
+                );
+                context.go(uri.toString());
               },
-            );
-            context.go(uri.toString());
-          },
-          icon: const Icon(Icons.tv, size: 18),
-          label: const Text('Wallboard Mode'),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          ),
-        ),
-        const SizedBox(width: 8),
-        PopupMenuButton<String>(
-          icon: isExporting
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+              icon: const Icon(Icons.tv, size: 18),
+              label: const Text('Wallboard Mode'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            PopupMenuButton<String>(
+              icon: isExporting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(Icons.more_vert, color: Colors.white.withOpacity(0.9)),
+              tooltip: 'More options',
+              onSelected: (value) {
+                if (value == 'editLayout') {
+                  onEditLayout();
+                } else {
+                  onExport(value);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'editLayout',
+                  child: Text(
+                    isEditLayout ? 'Done editing layout' : 'Edit layout',
                   ),
-                )
-              : Icon(Icons.more_vert, color: Colors.white.withOpacity(0.9)),
-          tooltip: 'More options',
-          onSelected: (value) {
-            if (value == 'editLayout') {
-              onEditLayout();
-            } else {
-              onExport(value);
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'editLayout',
-              child: Text(isEditLayout ? 'Done editing layout' : 'Edit layout'),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'excel',
-              child: Text('Export Summary (Excel)'),
-            ),
-            const PopupMenuItem(
-              value: 'raw',
-              child: Text('Export Raw Attendance (CSV)'),
-            ),
-            const PopupMenuItem(
-              value: 'aggregated',
-              child: Text('Export Aggregated (CSV)'),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'excel',
+                  child: Text('Export Summary (Excel)'),
+                ),
+                const PopupMenuItem(
+                  value: 'raw',
+                  child: Text('Export Raw Attendance (CSV)'),
+                ),
+                const PopupMenuItem(
+                  value: 'aggregated',
+                  child: Text('Export Aggregated (CSV)'),
+                ),
+              ],
             ),
           ],
         ),
-      ],
-    ),
       ],
     );
   }
@@ -439,7 +465,8 @@ Widget _buildDashboardSection(
   required ({
     List<({String name, DateTime timestamp})> registrations,
     List<({String name, DateTime timestamp})> checkins,
-  }) first3,
+  })
+  first3,
 }) {
   switch (sectionId) {
     case 'metrics':
@@ -481,7 +508,8 @@ class _DashboardSectionsInOrder extends StatelessWidget {
   final ({
     List<({String name, DateTime timestamp})> registrations,
     List<({String name, DateTime timestamp})> checkins,
-  }) first3;
+  })
+  first3;
 
   @override
   Widget build(BuildContext context) {
@@ -489,7 +517,13 @@ class _DashboardSectionsInOrder extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final id in order) ...[
-          _buildDashboardSection(id, global, sessions, registrantCount: registrantCount, first3: first3),
+          _buildDashboardSection(
+            id,
+            global,
+            sessions,
+            registrantCount: registrantCount,
+            first3: first3,
+          ),
           const SizedBox(height: 32),
         ],
       ],
@@ -514,7 +548,8 @@ class _ReorderableDashboardSections extends StatelessWidget {
   final ({
     List<({String name, DateTime timestamp})> registrations,
     List<({String name, DateTime timestamp})> checkins,
-  }) first3;
+  })
+  first3;
   final void Function(List<String>) onReorder;
 
   @override
@@ -650,8 +685,13 @@ class _MetricsTiles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const mainCheckinId = 'main-checkin';
-    final mainCheckin = sessions.where((s) => s.sessionId == mainCheckinId).firstOrNull;
-    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(0, 0x7FFFFFFF);
+    final mainCheckin = sessions
+        .where((s) => s.sessionId == mainCheckinId)
+        .firstOrNull;
+    final mainCheckinCount = (mainCheckin?.checkInCount ?? 0).clamp(
+      0,
+      0x7FFFFFFF,
+    );
     // Sum breakout sessions only (avoids negative when global.totalCheckins is stale)
     final sessionCheckins = sessions
         .where((s) => s.sessionId != mainCheckinId)
@@ -685,11 +725,7 @@ class _MetricsTiles extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 900) {
-          return Wrap(
-            spacing: 24,
-            runSpacing: 24,
-            children: tiles,
-          );
+          return Wrap(spacing: 24, runSpacing: 24, children: tiles);
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -781,7 +817,10 @@ class _MetricTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtext!,
-                style: GoogleFonts.inter(fontSize: 14, color: NlcColors.mutedText),
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: NlcColors.mutedText,
+                ),
               ),
             ],
           ],
@@ -793,14 +832,13 @@ class _MetricTile extends StatelessWidget {
 
 /// First 3 Registrations + First 3 Check-Ins (side by side).
 class _First3Section extends StatelessWidget {
-  const _First3Section({
-    required this.first3,
-  });
+  const _First3Section({required this.first3});
 
   final ({
     List<({String name, DateTime timestamp})> registrations,
     List<({String name, DateTime timestamp})> checkins,
-  }) first3;
+  })
+  first3;
 
   @override
   Widget build(BuildContext context) {
@@ -811,7 +849,11 @@ class _First3Section extends StatelessWidget {
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: _First3RegistrationsCard(items: first3.registrations)),
+                  Expanded(
+                    child: _First3RegistrationsCard(
+                      items: first3.registrations,
+                    ),
+                  ),
                   const SizedBox(width: 24),
                   Expanded(child: _First3CheckinsCard(items: first3.checkins)),
                 ],
@@ -829,9 +871,7 @@ class _First3Section extends StatelessWidget {
 }
 
 class _First3RegistrationsCard extends StatelessWidget {
-  const _First3RegistrationsCard({
-    required this.items,
-  });
+  const _First3RegistrationsCard({required this.items});
 
   final List<({String name, DateTime timestamp})> items;
 
@@ -845,7 +885,11 @@ class _First3RegistrationsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.schedule_rounded, size: 20, color: NlcPalette.brandBlue),
+              Icon(
+                Icons.schedule_rounded,
+                size: 20,
+                color: NlcPalette.brandBlue,
+              ),
               const SizedBox(width: 8),
               Text(
                 'First 3 Registrations',
@@ -864,7 +908,10 @@ class _First3RegistrationsCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   '—',
-                  style: GoogleFonts.inter(fontSize: 15, color: NlcColors.mutedText),
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: NlcColors.mutedText,
+                  ),
                 ),
               );
             }
@@ -885,13 +932,19 @@ class _First3RegistrationsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       r.name,
-                      style: GoogleFonts.inter(fontSize: 15, color: NlcColors.slate),
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        color: NlcColors.slate,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     ' — ${DateFormat.MMMd().add_jm().format(r.timestamp)}',
-                    style: GoogleFonts.inter(fontSize: 13, color: NlcColors.mutedText),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: NlcColors.mutedText,
+                    ),
                   ),
                 ],
               ),
@@ -904,9 +957,7 @@ class _First3RegistrationsCard extends StatelessWidget {
 }
 
 class _First3CheckinsCard extends StatelessWidget {
-  const _First3CheckinsCard({
-    required this.items,
-  });
+  const _First3CheckinsCard({required this.items});
 
   final List<({String name, DateTime timestamp})> items;
 
@@ -920,7 +971,11 @@ class _First3CheckinsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle_rounded, size: 20, color: NlcPalette.brandBlue),
+              Icon(
+                Icons.check_circle_rounded,
+                size: 20,
+                color: NlcPalette.brandBlue,
+              ),
               const SizedBox(width: 8),
               Text(
                 'First 3 Check-Ins',
@@ -939,7 +994,10 @@ class _First3CheckinsCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   '—',
-                  style: GoogleFonts.inter(fontSize: 15, color: NlcColors.mutedText),
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: NlcColors.mutedText,
+                  ),
                 ),
               );
             }
@@ -960,13 +1018,19 @@ class _First3CheckinsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       c.name,
-                      style: GoogleFonts.inter(fontSize: 15, color: NlcColors.slate),
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        color: NlcColors.slate,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     ' — ${DateFormat.MMMd().add_jm().format(c.timestamp)}',
-                    style: GoogleFonts.inter(fontSize: 13, color: NlcColors.mutedText),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: NlcColors.mutedText,
+                    ),
                   ),
                 ],
               ),
@@ -977,7 +1041,6 @@ class _First3CheckinsCard extends StatelessWidget {
     );
   }
 }
-
 
 // --- Top 5 Row ---
 
@@ -1005,10 +1068,7 @@ class _DashboardTrendSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Hourly Attendance Progress',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: NlcColors.mutedText,
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: NlcColors.mutedText),
           ),
           const SizedBox(height: 24),
           HourlyTrendChart(
@@ -1115,7 +1175,10 @@ class _Top5Card extends StatelessWidget {
           if (top5.isEmpty)
             Text(
               'No data yet',
-              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
+              style: GoogleFonts.inter(
+                color: NlcColors.mutedText,
+                fontSize: 14,
+              ),
             )
           else
             ...top5.asMap().entries.map((e) {
@@ -1163,8 +1226,12 @@ class _Top5Card extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct.clamp(0.0, 1.0),
                         minHeight: 8,
-                        backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
-                        valueColor: const AlwaysStoppedAnimation<Color>(NlcColors.secondaryBlue),
+                        backgroundColor: NlcColors.secondaryBlue.withValues(
+                          alpha: 0.15,
+                        ),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          NlcColors.secondaryBlue,
+                        ),
                       ),
                     )
                   else
@@ -1206,8 +1273,13 @@ class _SessionLeaderboardSection extends StatelessWidget {
         .toList();
     final sorted = excludedMain
       ..sort((a, b) => b.checkInCount.compareTo(a.checkInCount));
-    final total = excludedMain.fold<int>(0, (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)));
-    final maxCount = sorted.isNotEmpty ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF)) : 1;
+    final total = excludedMain.fold<int>(
+      0,
+      (sum, s) => sum + (s.checkInCount.clamp(0, 0x7FFFFFFF)),
+    );
+    final maxCount = sorted.isNotEmpty
+        ? (sorted.first.checkInCount.clamp(0, 0x7FFFFFFF))
+        : 1;
 
     return SizedBox(
       width: double.infinity,
@@ -1219,39 +1291,42 @@ class _SessionLeaderboardSection extends StatelessWidget {
           children: [
             Text(
               'Session Leaderboard',
-            style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: NlcColors.slate,
+              style: GoogleFonts.inter(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: NlcColors.slate,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          if (sorted.isEmpty)
-            Text(
-              'No sessions yet',
-              style: GoogleFonts.inter(color: NlcColors.mutedText, fontSize: 14),
-            )
-          else
-            ...sorted.asMap().entries.map((e) {
-              final i = e.key;
-              final s = e.value;
-              final isTop = i == 0;
-              final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
-              final pct = total > 0 ? (count / total) * 100 : 0.0;
-              final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _SessionLeaderboardRow(
-                  rank: i + 1,
-                  sessionName: s.name,
-                  count: count,
-                  percent: pct,
-                  barValue: barPct.clamp(0.0, 1.0),
-                  isTop: isTop,
-                  isActive: s.isActive,
+            const SizedBox(height: 24),
+            if (sorted.isEmpty)
+              Text(
+                'No sessions yet',
+                style: GoogleFonts.inter(
+                  color: NlcColors.mutedText,
+                  fontSize: 14,
                 ),
-              );
-            }),
+              )
+            else
+              ...sorted.asMap().entries.map((e) {
+                final i = e.key;
+                final s = e.value;
+                final isTop = i == 0;
+                final count = s.checkInCount.clamp(0, 0x7FFFFFFF);
+                final pct = total > 0 ? (count / total) * 100 : 0.0;
+                final barPct = maxCount > 0 ? (count / maxCount) : 0.0;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _SessionLeaderboardRow(
+                    rank: i + 1,
+                    sessionName: s.name,
+                    count: count,
+                    percent: pct,
+                    barValue: barPct.clamp(0.0, 1.0),
+                    isTop: isTop,
+                    isActive: s.isActive,
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -1294,7 +1369,9 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
         duration: const Duration(milliseconds: 120),
         padding: EdgeInsets.all(_hover ? 8 : 4),
         decoration: BoxDecoration(
-          color: _hover ? NlcPalette.brandBlue.withValues(alpha: 0.06) : Colors.transparent,
+          color: _hover
+              ? NlcPalette.brandBlue.withValues(alpha: 0.06)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -1327,7 +1404,10 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 if (widget.isActive)
                   Container(
                     margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: NlcColors.successGreen.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(6),
@@ -1344,7 +1424,9 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 SizedBox(
                   width: 56,
                   child: Text(
-                    NumberFormat.decimalPattern().format(widget.count.clamp(0, 0x7FFFFFFF)),
+                    NumberFormat.decimalPattern().format(
+                      widget.count.clamp(0, 0x7FFFFFFF),
+                    ),
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1376,9 +1458,13 @@ class _SessionLeaderboardRowState extends State<_SessionLeaderboardRow> {
                 child: LinearProgressIndicator(
                   value: widget.barValue.clamp(0.0, 1.0),
                   minHeight: 8,
-                  backgroundColor: NlcColors.secondaryBlue.withValues(alpha: 0.15),
+                  backgroundColor: NlcColors.secondaryBlue.withValues(
+                    alpha: 0.15,
+                  ),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    widget.isTop ? NlcPalette.brandBlue : NlcColors.secondaryBlue,
+                    widget.isTop
+                        ? NlcPalette.brandBlue
+                        : NlcColors.secondaryBlue,
                   ),
                 ),
               )

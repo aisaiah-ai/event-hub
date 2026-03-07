@@ -8,10 +8,7 @@ import '../theme/checkin_theme.dart';
 class ConferenceHeader extends StatelessWidget {
   static const String defaultLogoPath = 'assets/checkin/nlc_logo.png';
 
-  const ConferenceHeader({
-    super.key,
-    this.logoUrl,
-  });
+  const ConferenceHeader({super.key, this.logoUrl});
 
   final String? logoUrl;
 
@@ -33,8 +30,12 @@ class ConferenceHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use new NLC logo even when event still has old empower.png in Firestore
-    final raw = logoUrl != null && logoUrl!.isNotEmpty ? logoUrl! : defaultLogoPath;
-    final effectiveLogoUrl = raw == 'assets/checkin/empower.png' ? defaultLogoPath : raw;
+    final raw = logoUrl != null && logoUrl!.isNotEmpty
+        ? logoUrl!
+        : defaultLogoPath;
+    final effectiveLogoUrl = raw == 'assets/checkin/empower.png'
+        ? defaultLogoPath
+        : raw;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.horizontal),
       child: Center(

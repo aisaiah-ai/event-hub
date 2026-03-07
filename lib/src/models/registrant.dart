@@ -94,8 +94,10 @@ class Registrant {
   final DateTime? updatedAt;
   final EventAttendance eventAttendance;
   final RegistrantFlags flags;
+
   /// 'QR' | 'SEARCH' | 'MANUAL' — set by check-in flow.
   final String? checkInSource;
+
   /// sessionId -> check-in time (per NLC 2026 data model).
   final Map<String, DateTime> sessionsCheckedIn;
 
@@ -122,7 +124,8 @@ class Registrant {
     final registeredAt = json['registeredAt'];
     final createdAt = json['createdAt'];
     final updatedAt = json['updatedAt'];
-    final sessionsRaw = json['sessionsCheckedIn'] as Map<String, dynamic>? ?? {};
+    final sessionsRaw =
+        json['sessionsCheckedIn'] as Map<String, dynamic>? ?? {};
     final sessionsCheckedIn = <String, DateTime>{};
     for (final e in sessionsRaw.entries) {
       final v = e.value;

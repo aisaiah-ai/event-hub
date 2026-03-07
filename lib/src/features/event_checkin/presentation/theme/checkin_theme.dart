@@ -93,22 +93,22 @@ class AppTypography {
       );
 
   static TextStyle locationVenue(BuildContext context) => GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: NlcPalette.cream,
-      );
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: NlcPalette.cream,
+  );
 
   static TextStyle locationAddress(BuildContext context) => GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: NlcPalette.cream.withValues(alpha: 0.9),
-      );
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: NlcPalette.cream.withValues(alpha: 0.9),
+  );
 
   static TextStyle primaryCardTitle(BuildContext context) => GoogleFonts.inter(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: NlcPalette.ink,
-      );
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    color: NlcPalette.ink,
+  );
 
   static TextStyle primaryCardSubtitle(BuildContext context) =>
       GoogleFonts.inter(
@@ -132,20 +132,20 @@ class AppTypography {
       );
 
   static TextStyle footer(BuildContext context) => GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        color: NlcPalette.cream.withValues(alpha: 0.85),
-      );
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: NlcPalette.cream.withValues(alpha: 0.85),
+  );
 
   static TextStyle footerBold(BuildContext context) => GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: NlcPalette.cream.withValues(alpha: 0.85),
-      );
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: NlcPalette.cream.withValues(alpha: 0.85),
+  );
 
   static TextStyle sessionDropdown(BuildContext context) => GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        color: NlcPalette.muted,
-      );
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: NlcPalette.muted,
+  );
 }

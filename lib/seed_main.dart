@@ -19,7 +19,10 @@ void main(List<String> args) async {
 
   // Env vars (macOS) or dart-define (web). String.fromEnvironment is compile-time.
   const seedFileDefine = String.fromEnvironment('SEED_FILE', defaultValue: '');
-  const seedNoHashDefine = String.fromEnvironment('SEED_NO_HASH', defaultValue: '');
+  const seedNoHashDefine = String.fromEnvironment(
+    'SEED_NO_HASH',
+    defaultValue: '',
+  );
 
   var filePath = seedFileDefine.isNotEmpty ? seedFileDefine : null;
   if (filePath == null) {
@@ -42,8 +45,12 @@ void main(List<String> args) async {
 
   if (filePath == null || filePath.isEmpty) {
     print('Usage:');
-    print('  flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev -- <path-to-file>');
-    print('  SEED_FILE=/path/to/file flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev');
+    print(
+      '  flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev -- <path-to-file>',
+    );
+    print(
+      '  SEED_FILE=/path/to/file flutter run -t lib/seed_main.dart -d macos --dart-define=ENV=dev',
+    );
     print('');
     print('  SEED_NO_HASH=1 or --dart-define=SEED_NO_HASH=1  Skip PII hashing');
     print('');
@@ -52,13 +59,20 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  final noHash = seedNoHashDefine == '1' || seedNoHashDefine == 'true'
-      || (Platform.environment['SEED_NO_HASH'] ?? '').toLowerCase() == '1';
+  final noHash =
+      seedNoHashDefine == '1' ||
+      seedNoHashDefine == 'true' ||
+      (Platform.environment['SEED_NO_HASH'] ?? '').toLowerCase() == '1';
 
-  const clearFirstDefine = String.fromEnvironment('SEED_CLEAR_FIRST', defaultValue: '');
-  final clearFirst = clearFirstDefine == '1' || clearFirstDefine == 'true'
-      || (Platform.environment['SEED_CLEAR_FIRST'] ?? '').toLowerCase() == '1'
-      || (filePath.contains('nlc_main_clean'));
+  const clearFirstDefine = String.fromEnvironment(
+    'SEED_CLEAR_FIRST',
+    defaultValue: '',
+  );
+  final clearFirst =
+      clearFirstDefine == '1' ||
+      clearFirstDefine == 'true' ||
+      (Platform.environment['SEED_CLEAR_FIRST'] ?? '').toLowerCase() == '1' ||
+      (filePath.contains('nlc_main_clean'));
 
   try {
     await Firebase.initializeApp(
@@ -79,7 +93,11 @@ void main(List<String> args) async {
   }
 
   try {
-    final result = await runSeed(filePath, hashPii: !noHash, clearFirst: clearFirst);
+    final result = await runSeed(
+      filePath,
+      hashPii: !noHash,
+      clearFirst: clearFirst,
+    );
     print('');
     print('Done. Imported: ${result.imported}, Skipped: ${result.skipped}');
     if (result.sessionRegistrationsWritten > 0) {

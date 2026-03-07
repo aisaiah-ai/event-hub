@@ -17,7 +17,8 @@ class NlcSessions {
   );
 
   static const String genderIdeologySlug = 'gender-ideology';
-  static const String contraceptionIvfAbortionSlug = 'contraception-ivf-abortion';
+  static const String contraceptionIvfAbortionSlug =
+      'contraception-ivf-abortion';
   static const String immigrationSlug = 'immigration';
 
   static const Session genderIdeology = Session(

@@ -77,9 +77,11 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
         _filter();
       }
     } catch (e) {
-      final isPermissionDenied = e.toString().contains('permission-denied') ||
+      final isPermissionDenied =
+          e.toString().contains('permission-denied') ||
           e.toString().contains('permission_denied');
-      if (mounted && (isPermissionDenied || widget.eventId == 'march-cluster-2026')) {
+      if (mounted &&
+          (isPermissionDenied || widget.eventId == 'march-cluster-2026')) {
         await _loadRsvps();
         return;
       }
@@ -211,18 +213,20 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
     ];
     final rows = <List<dynamic>>[
       columns,
-      ...list.map((r) => [
-            r.name,
-            r.household,
-            r.area ?? '',
-            r.attendingRally,
-            r.attendingDinner,
-            r.attendeesCount,
-            r.celebrationType ?? '',
-            r.cfcId ?? '',
-            r.source ?? '',
-            DateFormat('yyyy-MM-dd HH:mm:ss').format(r.createdAt),
-          ]),
+      ...list.map(
+        (r) => [
+          r.name,
+          r.household,
+          r.area ?? '',
+          r.attendingRally,
+          r.attendingDinner,
+          r.attendeesCount,
+          r.celebrationType ?? '',
+          r.cfcId ?? '',
+          r.source ?? '',
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(r.createdAt),
+        ],
+      ),
     ];
     return rows;
   }
@@ -241,8 +245,17 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
     allKeys.add('checkedInAt');
     allKeys.add('registeredAt');
     allKeys.add('createdAt');
-    final baseColumns = ['id', 'source', 'registrationStatus', 'checkedIn', 'checkedInAt', 'registeredAt', 'createdAt'];
-    final extraColumns = allKeys.where((k) => !baseColumns.contains(k)).toList()..sort();
+    final baseColumns = [
+      'id',
+      'source',
+      'registrationStatus',
+      'checkedIn',
+      'checkedInAt',
+      'registeredAt',
+      'createdAt',
+    ];
+    final extraColumns = allKeys.where((k) => !baseColumns.contains(k)).toList()
+      ..sort();
     final columns = [...baseColumns, ...extraColumns];
 
     String cell(Registrant r, String col) {
@@ -250,9 +263,20 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
       if (col == 'source') return r.source.name;
       if (col == 'registrationStatus') return r.registrationStatus;
       if (col == 'checkedIn') return r.eventAttendance.checkedIn.toString();
-      if (col == 'checkedInAt') return r.eventAttendance.checkedInAt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(r.eventAttendance.checkedInAt!) : '';
-      if (col == 'registeredAt') return r.registeredAt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(r.registeredAt!) : '';
-      if (col == 'createdAt') return r.createdAt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(r.createdAt!) : '';
+      if (col == 'checkedInAt')
+        return r.eventAttendance.checkedInAt != null
+            ? DateFormat(
+                'yyyy-MM-dd HH:mm:ss',
+              ).format(r.eventAttendance.checkedInAt!)
+            : '';
+      if (col == 'registeredAt')
+        return r.registeredAt != null
+            ? DateFormat('yyyy-MM-dd HH:mm:ss').format(r.registeredAt!)
+            : '';
+      if (col == 'createdAt')
+        return r.createdAt != null
+            ? DateFormat('yyyy-MM-dd HH:mm:ss').format(r.createdAt!)
+            : '';
       if (col.startsWith('profile.')) {
         final key = col.substring('profile.'.length);
         final v = r.profile[key];
@@ -280,10 +304,16 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reportLabel = _mode == _ReportMode.rsvps ? 'RSVP Report' : 'Registrant Report';
+    final reportLabel = _mode == _ReportMode.rsvps
+        ? 'RSVP Report'
+        : 'Registrant Report';
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.eventTitle != null ? '$reportLabel — ${widget.eventTitle}' : reportLabel),
+        title: Text(
+          widget.eventTitle != null
+              ? '$reportLabel — ${widget.eventTitle}'
+              : reportLabel,
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/admin?eventId=${widget.eventId}'),
@@ -319,9 +349,7 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
               ),
             ),
           ),
-          Expanded(
-            child: _buildBody(theme),
-          ),
+          Expanded(child: _buildBody(theme)),
         ],
       ),
     );
@@ -350,8 +378,12 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
       if (_filteredRsvps.isEmpty) {
         return Center(
           child: Text(
-            _rsvps.isEmpty ? 'No RSVPs yet' : 'No matches for "${_searchController.text}"',
-            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            _rsvps.isEmpty
+                ? 'No RSVPs yet'
+                : 'No matches for "${_searchController.text}"',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         );
       }
@@ -362,8 +394,13 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
           final r = _filteredRsvps[index];
           return ListTile(
             title: Text(r.name),
-            subtitle: Text('${r.household}${r.area != null ? ' • ${r.area}' : ''} • ${r.attendeesCount} attending'),
-            trailing: Text(DateFormat.yMMMd().format(r.createdAt), style: theme.textTheme.bodySmall),
+            subtitle: Text(
+              '${r.household}${r.area != null ? ' • ${r.area}' : ''} • ${r.attendeesCount} attending',
+            ),
+            trailing: Text(
+              DateFormat.yMMMd().format(r.createdAt),
+              style: theme.textTheme.bodySmall,
+            ),
           );
         },
       );
@@ -371,8 +408,12 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
     if (_filtered.isEmpty) {
       return Center(
         child: Text(
-          _registrants.isEmpty ? 'No registrants' : 'No matches for "${_searchController.text}"',
-          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          _registrants.isEmpty
+              ? 'No registrants'
+              : 'No matches for "${_searchController.text}"',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       );
     }
@@ -385,9 +426,13 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
         final subtitle = _subtitle(r);
         return ListTile(
           title: Text(name),
-          subtitle: subtitle != null && subtitle.isNotEmpty ? Text(subtitle) : null,
+          subtitle: subtitle != null && subtitle.isNotEmpty
+              ? Text(subtitle)
+              : null,
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.go('/admin/registrants/${r.id}/edit?eventId=${widget.eventId}'),
+          onTap: () => context.go(
+            '/admin/registrants/${r.id}/edit?eventId=${widget.eventId}',
+          ),
         );
       },
     );
