@@ -241,8 +241,9 @@ class _RegistrantReportScreenState extends State<RegistrantReportScreen> {
     allKeys.add('checkedInAt');
     allKeys.add('registeredAt');
     allKeys.add('createdAt');
-    final columns = ['id', 'source', 'registrationStatus', 'checkedIn', 'checkedInAt', 'registeredAt', 'createdAt']
-      ..addAll(allKeys.where((k) => !{'id', 'source', 'registrationStatus', 'checkedIn', 'checkedInAt', 'registeredAt', 'createdAt'}.contains(k)).toList()..sort());
+    final baseColumns = ['id', 'source', 'registrationStatus', 'checkedIn', 'checkedInAt', 'registeredAt', 'createdAt'];
+    final extraColumns = allKeys.where((k) => !baseColumns.contains(k)).toList()..sort();
+    final columns = [...baseColumns, ...extraColumns];
 
     String cell(Registrant r, String col) {
       if (col == 'id') return r.id;

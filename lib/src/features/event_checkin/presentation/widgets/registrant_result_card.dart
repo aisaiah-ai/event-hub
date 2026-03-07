@@ -197,7 +197,7 @@ class _RegistrantResultCardState extends State<RegistrantResultCard> {
                       Text(
                         [
                           ..._ministryAndServiceDisplay,
-                          if (_regionDisplay != null) _regionDisplay!,
+                          ?_regionDisplay,
                         ].join(' · '),
                         style: GoogleFonts.inter(
                           fontSize: 13,

@@ -73,7 +73,7 @@ class SpeakerImageService {
     if (bytes.length > _maxBytes) {
       final sizeMb = (bytes.length / 1024 / 1024).toStringAsFixed(1);
       throw SpeakerImageUploadException(
-        'File is too large (${sizeMb} MB). Maximum allowed size is 2 MB.',
+        'File is too large ($sizeMb MB). Maximum allowed size is 2 MB.',
       );
     }
 
