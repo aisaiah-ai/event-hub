@@ -125,8 +125,8 @@ class EventSession {
       );
 
   static DateTime? _parseTimestamp(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate().toLocal();
+    if (value is DateTime) return value.toLocal();
     return null;
   }
 
