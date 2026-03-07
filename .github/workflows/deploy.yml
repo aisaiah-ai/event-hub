@@ -57,6 +57,12 @@ jobs:
       - name: Build Web
         run: flutter build web --release --dart-define=ENV=${{ steps.env.outputs.ENV }}
 
+      - name: Copy Cloudflare Pages config to build output
+        run: |
+          cp web/_redirects build/web/_redirects
+          cp web/_headers build/web/_headers 2>/dev/null || true
+          cp -r web/.well-known build/web/.well-known 2>/dev/null || true
+
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
