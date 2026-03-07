@@ -1,1 +1,5 @@
+# Serve .well-known files directly (universal links / app links)
+/.well-known/*  /.well-known/:splat  200
+
+# SPA fallback
 /*    /index.html   200
