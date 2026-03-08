@@ -46,6 +46,7 @@ const announcementsRoutes = __importStar(require("./announcements.routes"));
 const speakersRoutes = __importStar(require("./speakers.routes"));
 const registrationsRoutes = __importStar(require("./registrations.routes"));
 const checkinRoutes = __importStar(require("./checkin.routes"));
+const imagesRoutes = __importStar(require("./images.routes"));
 const router = (0, express_1.Router)();
 // —— Public ———
 router.get("/events", eventsRoutes.list);
@@ -55,6 +56,11 @@ router.get("/events/:eventId/schedule", validate_1.requireEventId, scheduleRoute
 router.get("/events/:eventId/announcements", validate_1.requireEventId, announcementsRoutes.list);
 router.get("/events/:eventId/speakers", validate_1.requireEventId, speakersRoutes.list);
 router.get("/events/:eventId/speakers/:speakerId", validate_1.requireEventId, validate_1.requireSpeakerId, speakersRoutes.getById);
+// —— Images (public read, auth write) ———
+router.get("/events/:eventId/images", validate_1.requireEventId, imagesRoutes.list);
+router.get("/events/:eventId/images/:imageId", validate_1.requireEventId, imagesRoutes.getById);
+router.post("/events/:eventId/images", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.upload);
+router.delete("/events/:eventId/images/:imageId", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.remove);
 // —— Member (auth required) ———
 router.post("/events/:eventId/register", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.register);
 router.get("/me/registrations", auth_1.requireAuth, registrationsRoutes.listMyRegistrations);

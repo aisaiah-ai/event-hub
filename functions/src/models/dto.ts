@@ -25,6 +25,7 @@ export interface EventDetailDto extends EventSummaryDto {
   description?: string | null;
   address?: string | null;
   registrationSettings?: Record<string, unknown>;
+  campaignCard?: Record<string, unknown>;
 }
 
 /** Speaker (event-level: events/{eventId}/speakers/{speakerId}) */
@@ -86,6 +87,15 @@ export interface AnnouncementDto {
   createdAt: string;
 }
 
+/** Additional registrant (spouse or guest) attached to a primary registration */
+export interface AdditionalRegistrantDto {
+  type: "spouse" | "guest";
+  firstName: string;
+  lastName?: string;
+  memberId?: string;
+  count?: number;
+}
+
 /** Registration (my registration or register response) */
 export interface RegistrationDto {
   eventId: string;
@@ -94,6 +104,8 @@ export interface RegistrationDto {
   createdAt: string;
   eventStartAt?: string;
   profile?: { name?: string; email?: string };
+  additionalRegistrants?: AdditionalRegistrantDto[];
+  additionalGuests?: number;
 }
 
 /** Check-in status for a user at an event */
@@ -105,6 +117,23 @@ export interface CheckInStatusDto {
   sessionIds: string[];
   /** Session IDs the user has registered for (separate from event registration). */
   sessionRegisteredIds: string[];
+}
+
+/** Event image (uploaded photo) */
+export interface ImageDto {
+  id: string;
+  eventId: string;
+  url: string;
+  thumbnailUrl?: string;
+  uploadedBy: string;
+  uploaderName?: string;
+  createdAt: string; // ISO
+}
+
+/** Paginated image list response */
+export interface ImageListDto {
+  images: ImageDto[];
+  hasMore: boolean;
 }
 
 /** User attached by auth middleware */

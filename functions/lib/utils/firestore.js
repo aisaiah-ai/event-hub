@@ -51,6 +51,8 @@ exports.attendanceDocRef = attendanceDocRef;
 exports.announcementsRef = announcementsRef;
 exports.speakersRef = speakersRef;
 exports.speakerRef = speakerRef;
+exports.imagesRef = imagesRef;
+exports.imageRef = imageRef;
 exports.findRegistrantByUid = findRegistrantByUid;
 exports.generateZzRegistrantId = generateZzRegistrantId;
 exports.userRegistrationsRef = userRegistrationsRef;
@@ -91,6 +93,12 @@ function speakersRef(eventId) {
 }
 function speakerRef(eventId, speakerId) {
     return speakersRef(eventId).doc(speakerId);
+}
+function imagesRef(eventId) {
+    return eventRef(eventId).collection("images");
+}
+function imageRef(eventId, imageId) {
+    return imagesRef(eventId).doc(imageId);
 }
 /**
  * Find the registrant document for a user by uid field.

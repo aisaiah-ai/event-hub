@@ -62,6 +62,14 @@ export function speakerRef(eventId: string, speakerId: string): admin.firestore.
   return speakersRef(eventId).doc(speakerId);
 }
 
+export function imagesRef(eventId: string): admin.firestore.CollectionReference {
+  return eventRef(eventId).collection("images");
+}
+
+export function imageRef(eventId: string, imageId: string): admin.firestore.DocumentReference {
+  return imagesRef(eventId).doc(imageId);
+}
+
 /**
  * Find the registrant document for a user by uid field.
  * Returns { ref, data, id } or null if not found.

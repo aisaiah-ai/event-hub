@@ -28,6 +28,7 @@ app.get("/", (_req, res) => {
                 checkinMain: "POST /v1/events/:eventId/checkin/main",
                 checkinSession: "POST /v1/events/:eventId/checkin/sessions/:sessionId",
                 checkinStatus: "GET /v1/events/:eventId/checkin/status",
+                images: "GET /v1/events/:eventId/images, POST /v1/events/:eventId/images, DELETE /v1/events/:eventId/images/:imageId",
             },
         },
     });

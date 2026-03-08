@@ -12,6 +12,7 @@ import * as announcementsRoutes from "./announcements.routes";
 import * as speakersRoutes from "./speakers.routes";
 import * as registrationsRoutes from "./registrations.routes";
 import * as checkinRoutes from "./checkin.routes";
+import * as imagesRoutes from "./images.routes";
 
 const router = Router();
 
@@ -23,6 +24,12 @@ router.get("/events/:eventId/schedule", requireEventId, scheduleRoutes.listSessi
 router.get("/events/:eventId/announcements", requireEventId, announcementsRoutes.list);
 router.get("/events/:eventId/speakers", requireEventId, speakersRoutes.list);
 router.get("/events/:eventId/speakers/:speakerId", requireEventId, requireSpeakerId, speakersRoutes.getById);
+
+// —— Images (public read, auth write) ———
+router.get("/events/:eventId/images", requireEventId, imagesRoutes.list);
+router.get("/events/:eventId/images/:imageId", requireEventId, imagesRoutes.getById);
+router.post("/events/:eventId/images", requireAuth, requireEventId, imagesRoutes.upload);
+router.delete("/events/:eventId/images/:imageId", requireAuth, requireEventId, imagesRoutes.remove);
 
 // —— Member (auth required) ———
 router.post("/events/:eventId/register", requireAuth, requireEventId, registrationsRoutes.register);
