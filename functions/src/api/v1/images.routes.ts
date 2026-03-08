@@ -1,9 +1,13 @@
 /**
  * Image routes:
- *   GET  /v1/events/:eventId/images          — list event images (public)
- *   GET  /v1/events/:eventId/images/:imageId  — get single image (public)
- *   POST /v1/events/:eventId/images           — upload image (auth required)
- *   DELETE /v1/events/:eventId/images/:imageId — delete image (auth required, owner only)
+ *   GET    /v1/events/:eventId/images              — list approved images (public)
+ *   GET    /v1/events/:eventId/images/mine          — list my uploads, any status (auth)
+ *   GET    /v1/events/:eventId/images/review         — list all images for admin review (auth)
+ *   GET    /v1/events/:eventId/images/:imageId       — get single image (public)
+ *   POST   /v1/events/:eventId/images               — upload image, status=pending (auth)
+ *   PATCH  /v1/events/:eventId/images/:imageId       — approve/reject (auth, admin)
+ *   PATCH  /v1/events/:eventId/images/bulk-status     — bulk approve/reject (auth, admin)
+ *   DELETE /v1/events/:eventId/images/:imageId       — delete image (auth, owner or admin)
  *
  * Upload accepts:
  *   - multipart/form-data with field "image" (for web/QR uploads)
@@ -11,10 +15,11 @@
  */
 
 import { Request, Response } from "express";
-import { RequestUser } from "../../models/dto";
+import { RequestUser, ImageStatus } from "../../models/dto";
 import { ApiError, invalidArgument } from "../../models/errors";
 import * as imagesService from "../../services/images.service";
 
+/** List approved images (public). */
 export function list(req: Request, res: Response): void {
   const eventId = req.params.eventId as string;
   const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
@@ -26,6 +31,32 @@ export function list(req: Request, res: Response): void {
     .catch((err) => sendError(res, err));
 }
 
+/** List my uploads (any status) — so uploaders can see their pending images. */
+export function listMine(req: Request, res: Response): void {
+  const eventId = req.params.eventId as string;
+  const user = (req as Request & { user: RequestUser }).user;
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+  imagesService
+    .listMyImages(eventId, user.uid, { limit })
+    .then((images) => res.json({ ok: true, data: { images } }))
+    .catch((err) => sendError(res, err));
+}
+
+/** List all images for admin review — optionally filter by status. */
+export function listForReview(req: Request, res: Response): void {
+  const eventId = req.params.eventId as string;
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+  const startAfter = req.query.startAfter as string | undefined;
+  const status = req.query.status as ImageStatus | undefined;
+
+  imagesService
+    .listAllImages(eventId, { limit, startAfter, status })
+    .then((data) => res.json({ ok: true, data }))
+    .catch((err) => sendError(res, err));
+}
+
+/** Get single image. */
 export function getById(req: Request, res: Response): void {
   const eventId = req.params.eventId as string;
   const imageId = req.params.imageId as string;
@@ -36,6 +67,7 @@ export function getById(req: Request, res: Response): void {
     .catch((err) => sendError(res, err));
 }
 
+/** Upload image — status set to "pending". */
 export function upload(req: Request, res: Response): void {
   const eventId = req.params.eventId as string;
   const user = (req as Request & { user: RequestUser }).user;
@@ -46,6 +78,49 @@ export function upload(req: Request, res: Response): void {
     .catch((err) => sendError(res, err));
 }
 
+/** Approve or reject a single image. */
+export function updateStatus(req: Request, res: Response): void {
+  const eventId = req.params.eventId as string;
+  const imageId = req.params.imageId as string;
+  const user = (req as Request & { user: RequestUser }).user;
+  const body = req.body as Record<string, unknown>;
+  const status = body.status as ImageStatus | undefined;
+
+  if (!status || !["approved", "rejected"].includes(status)) {
+    sendError(res, invalidArgument("Status must be 'approved' or 'rejected'"));
+    return;
+  }
+
+  imagesService
+    .updateImageStatus(eventId, imageId, status, user.uid)
+    .then((data) => res.json({ ok: true, data }))
+    .catch((err) => sendError(res, err));
+}
+
+/** Bulk approve or reject images. */
+export function bulkUpdateStatus(req: Request, res: Response): void {
+  const eventId = req.params.eventId as string;
+  const user = (req as Request & { user: RequestUser }).user;
+  const body = req.body as Record<string, unknown>;
+  const status = body.status as ImageStatus | undefined;
+  const imageIds = body.imageIds as string[] | undefined;
+
+  if (!status || !["approved", "rejected"].includes(status)) {
+    sendError(res, invalidArgument("Status must be 'approved' or 'rejected'"));
+    return;
+  }
+  if (!imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
+    sendError(res, invalidArgument("imageIds must be a non-empty array"));
+    return;
+  }
+
+  imagesService
+    .bulkUpdateImageStatus(eventId, imageIds, status, user.uid)
+    .then((data) => res.json({ ok: true, data }))
+    .catch((err) => sendError(res, err));
+}
+
+/** Delete image (owner only for regular users). */
 export function remove(req: Request, res: Response): void {
   const eventId = req.params.eventId as string;
   const imageId = req.params.imageId as string;
@@ -60,12 +135,9 @@ export function remove(req: Request, res: Response): void {
 /**
  * Parse the uploaded file from the request.
  *
- * Firebase Cloud Functions automatically parses multipart/form-data
- * and populates req.body with fields and req.rawBody with the raw bytes.
- * For multipart, files are available via busboy (built into Cloud Functions).
- *
- * We also support JSON body with base64-encoded image for app uploads:
- *   { "image": "<base64>", "mimetype": "image/jpeg", "filename": "photo.jpg" }
+ * Supports:
+ *   - multipart/form-data with file field (for web/QR uploads)
+ *   - application/json with base64 "image" field (for app uploads)
  */
 async function parseUploadedFile(
   req: Request
@@ -85,8 +157,7 @@ async function parseUploadedFile(
     return { buffer, mimetype, originalname: filename };
   }
 
-  // Multipart form data — Cloud Functions v2 uses rawBody
-  // The request body is parsed by Cloud Functions middleware
+  // Multipart form data
   if (contentType.includes("multipart/form-data")) {
     return parseMultipart(req);
   }
@@ -97,7 +168,6 @@ async function parseUploadedFile(
 /**
  * Parse multipart form data from Cloud Functions request.
  * Cloud Functions populates req.rawBody for HTTP functions.
- * We use busboy to extract the file from the raw body.
  */
 function parseMultipart(
   req: Request

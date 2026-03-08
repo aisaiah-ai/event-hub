@@ -25,10 +25,14 @@ router.get("/events/:eventId/announcements", requireEventId, announcementsRoutes
 router.get("/events/:eventId/speakers", requireEventId, speakersRoutes.list);
 router.get("/events/:eventId/speakers/:speakerId", requireEventId, requireSpeakerId, speakersRoutes.getById);
 
-// —— Images (public read, auth write) ———
+// —— Images (public read approved only, auth write) ———
 router.get("/events/:eventId/images", requireEventId, imagesRoutes.list);
+router.get("/events/:eventId/images/mine", requireAuth, requireEventId, imagesRoutes.listMine);
+router.get("/events/:eventId/images/review", requireAuth, requireEventId, imagesRoutes.listForReview);
 router.get("/events/:eventId/images/:imageId", requireEventId, imagesRoutes.getById);
 router.post("/events/:eventId/images", requireAuth, requireEventId, imagesRoutes.upload);
+router.patch("/events/:eventId/images/bulk-status", requireAuth, requireEventId, imagesRoutes.bulkUpdateStatus);
+router.patch("/events/:eventId/images/:imageId", requireAuth, requireEventId, imagesRoutes.updateStatus);
 router.delete("/events/:eventId/images/:imageId", requireAuth, requireEventId, imagesRoutes.remove);
 
 // —— Member (auth required) ———

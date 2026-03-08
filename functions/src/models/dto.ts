@@ -119,6 +119,9 @@ export interface CheckInStatusDto {
   sessionRegisteredIds: string[];
 }
 
+/** Image approval status */
+export type ImageStatus = "pending" | "approved" | "rejected";
+
 /** Event image (uploaded photo) */
 export interface ImageDto {
   id: string;
@@ -127,6 +130,7 @@ export interface ImageDto {
   thumbnailUrl?: string;
   uploadedBy: string;
   uploaderName?: string;
+  status: ImageStatus;
   createdAt: string; // ISO
 }
 

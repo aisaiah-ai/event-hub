@@ -56,10 +56,14 @@ router.get("/events/:eventId/schedule", validate_1.requireEventId, scheduleRoute
 router.get("/events/:eventId/announcements", validate_1.requireEventId, announcementsRoutes.list);
 router.get("/events/:eventId/speakers", validate_1.requireEventId, speakersRoutes.list);
 router.get("/events/:eventId/speakers/:speakerId", validate_1.requireEventId, validate_1.requireSpeakerId, speakersRoutes.getById);
-// —— Images (public read, auth write) ———
+// —— Images (public read approved only, auth write) ———
 router.get("/events/:eventId/images", validate_1.requireEventId, imagesRoutes.list);
+router.get("/events/:eventId/images/mine", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.listMine);
+router.get("/events/:eventId/images/review", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.listForReview);
 router.get("/events/:eventId/images/:imageId", validate_1.requireEventId, imagesRoutes.getById);
 router.post("/events/:eventId/images", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.upload);
+router.patch("/events/:eventId/images/bulk-status", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.bulkUpdateStatus);
+router.patch("/events/:eventId/images/:imageId", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.updateStatus);
 router.delete("/events/:eventId/images/:imageId", auth_1.requireAuth, validate_1.requireEventId, imagesRoutes.remove);
 // —— Member (auth required) ———
 router.post("/events/:eventId/register", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.register);

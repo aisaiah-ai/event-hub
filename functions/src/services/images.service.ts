@@ -3,14 +3,20 @@
  * Collection: events/{eventId}/images
  * Storage: events/{eventId}/images/{imageId}.jpg
  *
+ * Approval workflow:
+ *   - Uploaded images start with status "pending"
+ *   - Public list only returns "approved" images
+ *   - Admins can approve/reject via PATCH endpoint
+ *   - Uploaders can see their own pending images
+ *
  * Supports both authenticated (app) and web (QR code) uploads.
  */
 
 import * as admin from "firebase-admin";
 import { eventRef, imagesRef } from "../utils/firestore";
 import { timestampToIso, serverTimestamp } from "../utils/now";
-import { ImageDto } from "../models/dto";
-import { notFound, invalidArgument, internal } from "../models/errors";
+import { ImageDto, ImageStatus } from "../models/dto";
+import { notFound, invalidArgument, forbidden, internal } from "../models/errors";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
@@ -27,12 +33,14 @@ function toDto(doc: admin.firestore.DocumentSnapshot): ImageDto {
     thumbnailUrl: (d.thumbnailUrl as string) ?? undefined,
     uploadedBy: (d.uploadedBy as string) ?? "",
     uploaderName: (d.uploaderName as string) ?? undefined,
+    status: (d.status as ImageStatus) ?? "pending",
     createdAt: timestampToIso(createdAt) ?? new Date().toISOString(),
   };
 }
 
 /**
- * List images for an event, ordered by createdAt DESC.
+ * List approved images for an event, ordered by createdAt DESC.
+ * Public endpoint — only returns images with status "approved".
  * Supports cursor-based pagination via `startAfter` (image ID).
  */
 export async function listImages(
@@ -46,13 +54,15 @@ export async function listImages(
 
   const limit = Math.min(opts?.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
   let query = imagesRef(eventId)
+    .where("status", "==", "approved")
     .orderBy("createdAt", "desc")
-    .limit(limit + 1); // fetch one extra to determine hasMore
+    .limit(limit + 1);
 
   if (opts?.startAfter) {
     const cursorDoc = await imagesRef(eventId).doc(opts.startAfter).get();
     if (cursorDoc.exists) {
       query = imagesRef(eventId)
+        .where("status", "==", "approved")
         .orderBy("createdAt", "desc")
         .startAfter(cursorDoc)
         .limit(limit + 1);
@@ -68,6 +78,65 @@ export async function listImages(
 }
 
 /**
+ * List all images for an event (any status) — for admin review.
+ * Optionally filter by status.
+ */
+export async function listAllImages(
+  eventId: string,
+  opts?: { limit?: number; startAfter?: string; status?: ImageStatus }
+): Promise<{ images: ImageDto[]; hasMore: boolean }> {
+  const eventSnap = await eventRef(eventId).get();
+  if (!eventSnap.exists) {
+    throw notFound("Event not found");
+  }
+
+  const limit = Math.min(opts?.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+  let baseQuery: admin.firestore.Query = imagesRef(eventId);
+
+  if (opts?.status) {
+    baseQuery = baseQuery.where("status", "==", opts.status);
+  }
+
+  let query = baseQuery.orderBy("createdAt", "desc").limit(limit + 1);
+
+  if (opts?.startAfter) {
+    const cursorDoc = await imagesRef(eventId).doc(opts.startAfter).get();
+    if (cursorDoc.exists) {
+      query = baseQuery
+        .orderBy("createdAt", "desc")
+        .startAfter(cursorDoc)
+        .limit(limit + 1);
+    }
+  }
+
+  const snap = await query.get();
+  const docs = snap.docs;
+  const hasMore = docs.length > limit;
+  const images = docs.slice(0, limit).map((doc) => toDto(doc));
+
+  return { images, hasMore };
+}
+
+/**
+ * List images uploaded by a specific user (any status).
+ * Lets uploaders see their own pending/rejected images.
+ */
+export async function listMyImages(
+  eventId: string,
+  userId: string,
+  opts?: { limit?: number }
+): Promise<ImageDto[]> {
+  const limit = Math.min(opts?.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+  const snap = await imagesRef(eventId)
+    .where("uploadedBy", "==", userId)
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+
+  return snap.docs.map((doc) => toDto(doc));
+}
+
+/**
  * Get a single image by ID.
  */
 export async function getImage(eventId: string, imageId: string): Promise<ImageDto> {
@@ -80,7 +149,7 @@ export async function getImage(eventId: string, imageId: string): Promise<ImageD
 
 /**
  * Upload an image: save to Firebase Storage, write metadata to Firestore.
- * Accepts raw file buffer (from multipart upload or base64 decode).
+ * Status is set to "pending" — requires admin approval before appearing publicly.
  */
 export async function uploadImage(
   eventId: string,
@@ -128,13 +197,13 @@ export async function uploadImage(
       },
     });
 
-    // Make the file publicly readable
+    // Make the file publicly readable (URL works, but gallery only shows approved)
     await fileRef.makePublic();
 
     // Get the public URL
     const url = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
 
-    // Write metadata to Firestore
+    // Write metadata to Firestore with pending status
     const imageData = {
       eventId,
       url,
@@ -143,6 +212,7 @@ export async function uploadImage(
       uploaderName: user.name ?? null,
       mimetype: file.mimetype,
       sizeBytes: file.buffer.length,
+      status: "pending" as ImageStatus,
       createdAt: serverTimestamp(),
     };
 
@@ -154,6 +224,7 @@ export async function uploadImage(
       url,
       uploadedBy: user.uid,
       uploaderName: user.name ?? undefined,
+      status: "pending",
       createdAt: new Date().toISOString(),
     };
   } catch (err) {
@@ -170,7 +241,69 @@ export async function uploadImage(
 }
 
 /**
- * Delete an image (only the uploader or an admin can delete).
+ * Update image status (approve or reject).
+ * Only event admins should call this (enforced at route level).
+ */
+export async function updateImageStatus(
+  eventId: string,
+  imageId: string,
+  status: ImageStatus,
+  reviewedBy: string
+): Promise<ImageDto> {
+  const docRef = imagesRef(eventId).doc(imageId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    throw notFound("Image not found");
+  }
+
+  await docRef.update({
+    status,
+    reviewedBy,
+    reviewedAt: serverTimestamp(),
+  });
+
+  const updated = await docRef.get();
+  return toDto(updated);
+}
+
+/**
+ * Bulk approve/reject multiple images at once.
+ */
+export async function bulkUpdateImageStatus(
+  eventId: string,
+  imageIds: string[],
+  status: ImageStatus,
+  reviewedBy: string
+): Promise<{ updated: number }> {
+  if (imageIds.length === 0) {
+    throw invalidArgument("No image IDs provided");
+  }
+  if (imageIds.length > 50) {
+    throw invalidArgument("Maximum 50 images per bulk operation");
+  }
+
+  const batch = admin.firestore().batch();
+  let count = 0;
+
+  for (const imageId of imageIds) {
+    const docRef = imagesRef(eventId).doc(imageId);
+    const doc = await docRef.get();
+    if (doc.exists) {
+      batch.update(docRef, {
+        status,
+        reviewedBy,
+        reviewedAt: serverTimestamp(),
+      });
+      count++;
+    }
+  }
+
+  await batch.commit();
+  return { updated: count };
+}
+
+/**
+ * Delete an image (only the uploader can delete their own).
  */
 export async function deleteImage(
   eventId: string,
@@ -185,8 +318,6 @@ export async function deleteImage(
 
   const data = doc.data() ?? {};
   if (data.uploadedBy !== userId) {
-    // Only the uploader can delete their own image
-    const { forbidden } = await import("../models/errors");
     throw forbidden("You can only delete your own images");
   }
 
@@ -202,6 +333,33 @@ export async function deleteImage(
   }
 
   // Delete Firestore document
+  await docRef.delete();
+}
+
+/**
+ * Admin delete — can remove any image regardless of uploader.
+ */
+export async function adminDeleteImage(
+  eventId: string,
+  imageId: string
+): Promise<void> {
+  const docRef = imagesRef(eventId).doc(imageId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    throw notFound("Image not found");
+  }
+
+  const data = doc.data() ?? {};
+  const storagePath = data.storagePath as string | undefined;
+  if (storagePath) {
+    try {
+      const bucket = admin.storage().bucket();
+      await bucket.file(storagePath).delete();
+    } catch {
+      // Ignore
+    }
+  }
+
   await docRef.delete();
 }
 
