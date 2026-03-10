@@ -31,6 +31,8 @@ analyzer:
     prefer_conditional_assignment: ignore
     curly_braces_in_flow_control_structures: ignore
     deprecated_member_use: ignore
+    avoid_print: ignore
+    unnecessary_underscores: ignore
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
