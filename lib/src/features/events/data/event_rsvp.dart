@@ -1,5 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// A child entry in an RSVP.
+class RsvpChild {
+  const RsvpChild({
+    required this.name,
+    this.age,
+    this.allergies,
+  });
+
+  final String name;
+  final int? age;
+  final String? allergies;
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    if (age != null) 'age': age,
+    if (allergies != null && allergies!.isNotEmpty) 'allergies': allergies,
+  };
+
+  static RsvpChild fromMap(Map<String, dynamic> data) => RsvpChild(
+    name: data['name'] as String? ?? '',
+    age: (data['age'] as num?)?.toInt(),
+    allergies: data['allergies'] as String?,
+  );
+}
+
 /// RSVP record stored in events/{eventId}/rsvps
 class EventRsvp {
   const EventRsvp({
@@ -13,6 +38,7 @@ class EventRsvp {
     this.source,
     this.area,
     this.cfcId,
+    this.kids = const [],
   });
 
   final String name;
@@ -25,6 +51,7 @@ class EventRsvp {
   final String? source;
   final String? area;
   final String? cfcId;
+  final List<RsvpChild> kids;
 
   Map<String, dynamic> toFirestore() => {
     'name': name,
@@ -37,11 +64,21 @@ class EventRsvp {
     if (source != null) 'source': source,
     if (area != null) 'area': area,
     if (cfcId != null) 'cfcId': cfcId,
+    if (kids.isNotEmpty) 'kids': kids.map((k) => k.toMap()).toList(),
   };
 
   /// Parse from Firestore document (id + data).
   static EventRsvp fromFirestore(String id, Map<String, dynamic> data) {
     final createdAt = data['createdAt'];
+    final kidsRaw = data['kids'];
+    final kidsList = <RsvpChild>[];
+    if (kidsRaw is List) {
+      for (final item in kidsRaw) {
+        if (item is Map<String, dynamic>) {
+          kidsList.add(RsvpChild.fromMap(item));
+        }
+      }
+    }
     return EventRsvp(
       name: data['name'] as String? ?? '',
       household: data['household'] as String? ?? '',
@@ -55,6 +92,7 @@ class EventRsvp {
       source: data['source'] as String?,
       area: data['area'] as String?,
       cfcId: data['cfcId'] as String?,
+      kids: kidsList,
     );
   }
 }

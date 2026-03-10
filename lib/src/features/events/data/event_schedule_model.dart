@@ -54,7 +54,7 @@ class SessionSpeaker {
   /// Create from a Firestore [EventSpeaker] sub-document, preserving its ID.
   factory SessionSpeaker.fromEventSpeaker(EventSpeaker speaker) =>
       SessionSpeaker(
-        name: speaker.name,
+        name: speaker.displayName ?? speaker.name,
         speakerId: speaker.id,
         title: speaker.title,
         imageUrl: speaker.photoUrl,
@@ -88,6 +88,7 @@ class EventSession {
     this.speakerIds = const [],
     this.sessionCheckedIn = false,
     this.speaker,
+    this.registrationRequired = false,
   });
 
   final String id;
@@ -105,6 +106,9 @@ class EventSession {
 
   /// When true, show "Checked In ✓" and disable the check-in button.
   final bool sessionCheckedIn;
+
+  /// When true, this session has its own check-in / registration.
+  final bool registrationRequired;
 
   /// Resolved speaker for this session. Populated by the repository after
   /// fetching the speaker sub-document identified by [speakerIds].
@@ -126,6 +130,7 @@ class EventSession {
     speakerIds: speakerIds,
     sessionCheckedIn: sessionCheckedIn,
     speaker: speaker,
+    registrationRequired: registrationRequired,
   );
 
   static DateTime? _parseTimestamp(dynamic value) {
@@ -150,6 +155,15 @@ class EventSession {
         if (item is String) speakerIdsList.add(item);
       }
     }
+    // Resolve plain-text speaker fields when no speakerIds array is present.
+    final speakerName = (data['speaker'] as String?)?.trim() ??
+        (data['speakerName'] as String?)?.trim();
+    final speakerTitle = (data['speakerTitle'] as String?)?.trim() ??
+        (data['speaker_title'] as String?)?.trim();
+    final inlineSpeaker = speakerIdsList.isEmpty
+        ? SessionSpeaker.fromApiStrings(speakerName, speakerTitle)
+        : null;
+
     return EventSession(
       id: id,
       name: data['name'] as String? ?? data['title'] as String? ?? '',
@@ -162,7 +176,8 @@ class EventSession {
       materials: materialsList,
       speakerIds: speakerIdsList,
       sessionCheckedIn: data['sessionCheckedIn'] as bool? ?? false,
-      // speaker is resolved by the repository after fetching the speaker doc
+      speaker: inlineSpeaker,
+      registrationRequired: data['registrationRequired'] as bool? ?? false,
     );
   }
 
@@ -224,6 +239,8 @@ class EventSpeaker {
     this.bio,
     this.photoUrl,
     this.order = 0,
+    this.sessionId,
+    this.displayName,
   });
 
   final String id;
@@ -233,14 +250,25 @@ class EventSpeaker {
   final String? photoUrl;
   final int order;
 
+  /// The session this speaker is linked to (e.g. "talk-1", "worship").
+  final String? sessionId;
+
+  /// Display name (e.g. "Bro. Mike Suela") used for matching plain-text speaker fields.
+  final String? displayName;
+
   static EventSpeaker fromFirestore(String id, Map<String, dynamic> data) {
     return EventSpeaker(
       id: id,
-      name: data['name'] as String? ?? '',
+      name: data['name'] as String? ??
+          data['displayName'] as String? ??
+          data['fullName'] as String? ??
+          '',
       title: data['title'] as String?,
       bio: data['bio'] as String?,
       photoUrl: data['photoUrl'] as String?,
       order: (data['order'] as num?)?.toInt() ?? 0,
+      sessionId: data['sessionId'] as String?,
+      displayName: data['displayName'] as String?,
     );
   }
 }

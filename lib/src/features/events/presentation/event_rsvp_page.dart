@@ -43,6 +43,9 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
   int _attendeesCount = 1;
   String? _area; // Required: BBS, Tampa, Port Charlotte, or Others
 
+  // Kids entries — each has name, age, allergies controllers.
+  final List<_KidEntry> _kids = [];
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +59,9 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
     _householdController.dispose();
     _celebrationController.dispose();
     _cfcIdController.dispose();
+    for (final kid in _kids) {
+      kid.dispose();
+    }
     super.dispose();
   }
 
@@ -96,6 +102,16 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
       _error = null;
     });
     try {
+      final kidsList = _kids
+          .where((k) => k.nameController.text.trim().isNotEmpty)
+          .map((k) => RsvpChild(
+                name: k.nameController.text.trim(),
+                age: int.tryParse(k.ageController.text.trim()),
+                allergies: k.allergiesController.text.trim().isEmpty
+                    ? null
+                    : k.allergiesController.text.trim(),
+              ))
+          .toList();
       final rsvp = EventRsvp(
         name: name,
         household: household,
@@ -111,6 +127,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
         cfcId: _cfcIdController.text.trim().isEmpty
             ? null
             : _cfcIdController.text.trim(),
+        kids: kidsList,
       );
       await _repo.submitRsvp(_event!.id, rsvp);
       HapticFeedback.mediumImpact();
@@ -181,6 +198,9 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
   }
 
   void _resetFormForAnother() {
+    for (final kid in _kids) {
+      kid.dispose();
+    }
     setState(() {
       _submitted = false;
       _nameController.clear();
@@ -191,6 +211,7 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
       _attendingDinner = true;
       _attendeesCount = 1;
       _area = null;
+      _kids.clear();
     });
   }
 
@@ -472,6 +493,43 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
             decoration: _inputDecoration('Birthday or Anniversary? (optional)'),
             textCapitalization: TextCapitalization.words,
           ),
+          const SizedBox(height: EventTokens.spacingL),
+          _SectionHeader(icon: Icons.child_care, title: 'Kids (CFC Kids)'),
+          const SizedBox(height: EventTokens.spacingS),
+          Text(
+            'Add children attending the event:',
+            style: TextStyle(
+              color: EventTokens.textOffWhite.withValues(alpha: 0.9),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: EventTokens.spacingM),
+          for (var i = 0; i < _kids.length; i++) ...[
+            _KidFormRow(
+              index: i,
+              entry: _kids[i],
+              inputDecoration: _inputDecoration,
+              onRemove: () {
+                _kids[i].dispose();
+                setState(() => _kids.removeAt(i));
+              },
+            ),
+            const SizedBox(height: EventTokens.spacingM),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _kids.add(_KidEntry())),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add Child'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: EventTokens.accentGold,
+              side: BorderSide(
+                color: EventTokens.accentGold.withValues(alpha: 0.5),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
+              ),
+            ),
+          ),
           const SizedBox(height: EventTokens.spacingXL),
           FilledButton(
             onPressed: _submitting ? null : _submit,
@@ -709,6 +767,101 @@ class _RsvpCheckbox extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Controllers for a single kid entry in the RSVP form.
+class _KidEntry {
+  final nameController = TextEditingController();
+  final ageController = TextEditingController();
+  final allergiesController = TextEditingController();
+
+  void dispose() {
+    nameController.dispose();
+    ageController.dispose();
+    allergiesController.dispose();
+  }
+}
+
+/// A row of fields for one child: name, age, allergies, and a remove button.
+class _KidFormRow extends StatelessWidget {
+  const _KidFormRow({
+    required this.index,
+    required this.entry,
+    required this.inputDecoration,
+    required this.onRemove,
+  });
+
+  final int index;
+  final _KidEntry entry;
+  final InputDecoration Function(String) inputDecoration;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(EventTokens.spacingM),
+      decoration: BoxDecoration(
+        color: EventTokens.surfaceCard.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(EventTokens.radiusMedium),
+        border: Border.all(
+          color: EventTokens.accentGold.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Child ${index + 1}',
+                style: TextStyle(
+                  color: EventTokens.accentGold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: onRemove,
+                icon: const Icon(Icons.close, size: 18),
+                color: EventTokens.textMuted,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+          const SizedBox(height: EventTokens.spacingS),
+          TextField(
+            controller: entry.nameController,
+            decoration: inputDecoration("Child's Name"),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: EventTokens.spacingS),
+          Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: entry.ageController,
+                  decoration: inputDecoration('Age'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
+              const SizedBox(width: EventTokens.spacingM),
+              Expanded(
+                child: TextField(
+                  controller: entry.allergiesController,
+                  decoration: inputDecoration('Allergies (optional)'),
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
