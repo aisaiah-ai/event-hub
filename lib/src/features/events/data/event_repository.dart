@@ -581,4 +581,75 @@ class EventRepository {
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
+
+  /// Fetch registrants from events/{eventId}/registrants collection.
+  /// Returns a lightweight list of maps with name, source, createdAt, and
+  /// additionalGuests count so the dashboard can merge them with RSVPs.
+  Future<List<Map<String, dynamic>>> listRegistrants(String eventId) async {
+    final fs = _firestore;
+    if (fs == null) return [];
+
+    final list = <Map<String, dynamic>>[];
+    final seen = <String>{};
+
+    Future<void> fetchFrom(FirebaseFirestore db, String docId) async {
+      try {
+        final snap = await db
+            .collection(_eventsCollection)
+            .doc(docId)
+            .collection('registrants')
+            .get();
+        for (final d in snap.docs) {
+          if (!seen.add(d.id)) continue;
+          final data = d.data();
+          final profile = data['profile'] as Map<String, dynamic>? ?? {};
+          final name =
+              profile['name'] as String? ??
+              '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
+                  .trim();
+          final additional = (data['additionalGuests'] as num?)?.toInt() ?? 0;
+          final additionalRegs =
+              data['additionalRegistrants'] as List<dynamic>? ?? [];
+          final createdAt = data['createdAt'];
+          DateTime created;
+          if (createdAt is Timestamp) {
+            created = createdAt.toDate();
+          } else {
+            created = DateTime.now();
+          }
+          list.add({
+            'id': d.id,
+            'name': name,
+            'source': data['source'] as String? ?? 'app',
+            'service': profile['service'] as String? ?? '',
+            'chapter': profile['chapter'] as String? ?? '',
+            'additionalGuests': additional,
+            'additionalRegistrants': additionalRegs.length,
+            'createdAt': created,
+            'checkedIn': data['eventAttendance'] != null,
+          });
+        }
+      } catch (_) {}
+    }
+
+    await fetchFrom(fs, eventId);
+
+    // Also check event-hub-prod named database.
+    try {
+      final prodDb = FirebaseFirestore.instanceFor(
+        app: fs.app,
+        databaseId: 'event-hub-prod',
+      );
+      final prodDocId = eventId == 'march-assembly'
+          ? 'march-cluster-2026'
+          : eventId;
+      await fetchFrom(prodDb, prodDocId);
+    } catch (_) {}
+
+    list.sort(
+      (a, b) =>
+          (b['createdAt'] as DateTime).compareTo(a['createdAt'] as DateTime),
+    );
+    return list;
+  }
 }

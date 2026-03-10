@@ -23,6 +23,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   final _repo = EventRepository();
   EventModel? _event;
   List<EventRsvp> _rsvps = [];
+  List<Map<String, dynamic>> _registrants = [];
   bool _loading = true;
   String? _error;
 
@@ -40,10 +41,14 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     try {
       final event = await _repo.getEventBySlug(widget.eventSlug);
       if (event == null) throw StateError('Event not found');
-      final rsvps = await _repo.listRsvps(event.id);
+      final results = await Future.wait([
+        _repo.listRsvps(event.id),
+        _repo.listRegistrants(event.id),
+      ]);
       setState(() {
         _event = event;
-        _rsvps = rsvps;
+        _rsvps = results[0] as List<EventRsvp>;
+        _registrants = results[1] as List<Map<String, dynamic>>;
         _loading = false;
       });
     } catch (e) {
@@ -116,7 +121,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   // ── Dashboard Layout ────────────────────────────────────────────────
 
   Widget _buildDashboard() {
-    final stats = _RsvpStats.compute(_rsvps);
+    final stats = _RsvpStats.compute(_rsvps, _registrants);
     final event = _event;
 
     return Column(
@@ -255,27 +260,27 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           _OverviewTile(
             icon: Icons.groups_rounded,
             iconColor: _gold,
-            value: stats.totalAttendees,
-            label: 'TOTAL ATTENDEES',
+            value: stats.totalAttendees + stats.registrantCount,
+            label: 'TOTAL EXPECTED',
             highlighted: true,
           ),
           _OverviewTile(
-            icon: Icons.mic_rounded,
-            iconColor: const Color(0xFFB0B0B0),
-            value: stats.rallyCount,
-            label: 'RALLY',
+            icon: Icons.how_to_reg_rounded,
+            iconColor: const Color(0xFF4CAF50),
+            value: stats.registrantCount,
+            label: 'REGISTERED',
           ),
           _OverviewTile(
-            icon: Icons.restaurant_rounded,
+            icon: Icons.mail_rounded,
             iconColor: const Color(0xFFB0B0B0),
-            value: stats.dinnerCount,
-            label: 'DINNER',
+            value: stats.totalAttendees,
+            label: 'RSVPs',
           ),
           _OverviewTile(
             icon: Icons.celebration_rounded,
             iconColor: const Color(0xFFE87D2E),
-            value: stats.celebrationCount,
-            label: 'CELEBRATIONS',
+            value: stats.registrantCheckedIn,
+            label: 'CHECKED IN',
           ),
         ];
 
@@ -542,7 +547,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length} RSVPs on record',
+          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length} RSVPs \u00B7 ${_registrants.length} Registrations',
           style: GoogleFonts.inter(
             color: _textMuted.withValues(alpha: 0.5),
             fontSize: 11,
@@ -596,6 +601,8 @@ class _RsvpStats {
   final int dinnerCount;
   final int celebrationCount;
   final int kidsCount;
+  final int registrantCount;
+  final int registrantCheckedIn;
   final Map<String, _AreaData> byArea;
 
   const _RsvpStats({
@@ -604,10 +611,15 @@ class _RsvpStats {
     required this.dinnerCount,
     required this.celebrationCount,
     required this.kidsCount,
+    required this.registrantCount,
+    required this.registrantCheckedIn,
     required this.byArea,
   });
 
-  factory _RsvpStats.compute(List<EventRsvp> rsvps) {
+  factory _RsvpStats.compute(
+    List<EventRsvp> rsvps,
+    List<Map<String, dynamic>> registrants,
+  ) {
     var totalAttendees = 0;
     var rallyCount = 0;
     var dinnerCount = 0;
@@ -630,12 +642,22 @@ class _RsvpStats {
       if (r.household.isNotEmpty) areaData.households.add(r.household);
     }
 
+    // Count registrants and their additional guests.
+    var regCount = registrants.length;
+    var regCheckedIn = 0;
+    for (final r in registrants) {
+      regCount += (r['additionalGuests'] as int? ?? 0);
+      if (r['checkedIn'] == true) regCheckedIn++;
+    }
+
     return _RsvpStats(
       totalAttendees: totalAttendees,
       rallyCount: rallyCount,
       dinnerCount: dinnerCount,
       celebrationCount: celebrationCount,
       kidsCount: kidsCount,
+      registrantCount: regCount,
+      registrantCheckedIn: regCheckedIn,
       byArea: byArea,
     );
   }
