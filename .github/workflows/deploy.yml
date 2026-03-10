@@ -24,7 +24,7 @@ jobs:
           BRANCH="${GITHUB_REF#refs/heads/}"
           if [ "$BRANCH" = "main" ]; then
             echo "ENV=prod" >> $GITHUB_OUTPUT
-            echo "PROJECT=event-hub-8pq" >> $GITHUB_OUTPUT
+            echo "PROJECT=event-hub" >> $GITHUB_OUTPUT
           elif [ "$BRANCH" = "dev" ]; then
             echo "ENV=dev" >> $GITHUB_OUTPUT
             echo "PROJECT=event-hub-dev" >> $GITHUB_OUTPUT
