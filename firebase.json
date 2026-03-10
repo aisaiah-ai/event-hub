@@ -18,13 +18,36 @@
     "source": "functions"
   },
   "hosting": {
-    "public": "build/web",
+    "public": "web",
     "ignore": [
       "firebase.json",
-      "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cache-Control", "value": "public, max-age=3600" }
+        ]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Cache-Control", "value": "public, max-age=3600" }
+        ]
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/e/**",
+        "function": "e"
+      },
+      {
+        "source": "/s/**",
+        "function": "e"
+      },
       {
         "source": "**",
         "destination": "/index.html"

@@ -7,7 +7,7 @@ How to rollback production when a deployment causes issues.
 **Expected recovery time: < 2 minutes**
 
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages**
-2. Select **event-hub** (prod project)
+2. Select **event-hub-8pq** (prod project)
 3. Open the **Deployments** tab
 4. Find the previous working deployment in the list
 5. Click the **⋮** menu on that deployment

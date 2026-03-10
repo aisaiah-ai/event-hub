@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -101,9 +102,13 @@ class _EventLandingPageState extends State<EventLandingPage>
             '[EventLandingPage]   session: ${s.id} speaker=${s.speaker?.name}',
           );
         }
+        // Filter out the background check-in session from schedule display.
+        final visible = sessions
+            .where((s) => s.id != 'main' && s.id != 'main-checkin')
+            .toList();
         setState(() {
           _event = event;
-          _sessions = sessions;
+          _sessions = visible;
           _scheduleUpdatedAt = DateTime.now();
           _loading = false;
         });
@@ -248,11 +253,27 @@ class _EventLandingPageState extends State<EventLandingPage>
                 context.push(uri.toString());
               },
             ),
-            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: TextButton.icon(
+                onPressed: () => context.push('/events/${event.slug}/rsvp-dashboard'),
+                icon: Icon(Icons.bar_chart_rounded, size: 18, color: theme.accent),
+                label: Text(
+                  'View RSVP Dashboard',
+                  style: TextStyle(
+                    color: theme.accent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             _TabsHeader(tab: _tab, updatedAt: _scheduleUpdatedAt, theme: theme),
             const SizedBox(height: 12),
             SizedBox(
-              height: MediaQuery.of(context).size.height * 0.90,
+              height: max(MediaQuery.of(context).size.height * 0.90,
+                  _sessions.length * 140.0 + 300),
               child: TabBarView(
                 controller: _tab,
                 children: [
@@ -742,17 +763,21 @@ class _ScheduleTab extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.only(top: 6, bottom: 120),
-      itemCount: sessions.length,
+      itemCount: sessions.length + 1, // +1 for ANCOP campaign card
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
-        final s = sessions[i];
-        return _SessionTimelineCard(
-          session: s,
-          eventSlug: event.slug,
-          showCheckIn: event.allowCheckin,
-          theme: theme,
-          onCheckIn: onCheckIn,
-        );
+        if (i < sessions.length) {
+          final s = sessions[i];
+          return _SessionTimelineCard(
+            session: s,
+            eventSlug: event.slug,
+            showCheckIn: event.allowCheckin,
+            theme: theme,
+            onCheckIn: onCheckIn,
+          );
+        }
+        // ANCOP Campaign card at the end
+        return const _AncopCampaignCard();
       },
     );
   }
@@ -930,7 +955,7 @@ class _SessionTimelineCard extends StatelessWidget {
                   ),
                 ],
 
-                if (showCheckIn) ...[
+                if (showCheckIn && session.registrationRequired) ...[
                   const SizedBox(height: 12),
                   _SessionCheckInButton(
                     session: session,
@@ -1397,5 +1422,179 @@ class _AnnouncementsEmpty extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ─── ANCOP Campaign Card ────────────────────────────────────────────────────
+
+class _AncopCampaignCard extends StatelessWidget {
+  const _AncopCampaignCard();
+
+  static const _campaignUrl =
+      'https://ancop.app.link/FpkHxKCkzTb';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A2E1A), Color(0xFF0F1F14), Color(0xFF162016)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A4A2A)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4CE0A0).withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _launchCampaign(),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF4A340), Color(0xFFE87D2E)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.favorite,
+                          size: 12, color: Colors.white),
+                      const SizedBox(width: 5),
+                      Text(
+                        'COMMUNITY CAMPAIGN',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Content row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Art Barlaan photo
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFF4A340),
+                          width: 2,
+                        ),
+                        image: const DecorationImage(
+                          image: AssetImage(
+                              'assets/images/speakers/art_barlaan.jpg'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Text
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Bro Art's Big 70th Birthday\nANCOP Campaign",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'A personal campaign sponsored by Arthur Barlaan',
+                            style: TextStyle(
+                              color: const Color(0xFFA7A7B3),
+                              fontSize: 13,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // CTA button
+                SizedBox(
+                  width: double.infinity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF4A340), Color(0xFFE87D2E)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _launchCampaign(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.open_in_new,
+                                  size: 16, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Support This Campaign',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchCampaign() async {
+    final uri = Uri.parse(_campaignUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

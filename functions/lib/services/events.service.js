@@ -29,7 +29,7 @@ function toDetail(doc) {
     var _a;
     const summary = toSummary(doc);
     const d = (_a = doc.data()) !== null && _a !== void 0 ? _a : {};
-    return Object.assign(Object.assign({}, summary), { description: d.description || null, address: d.address || null, registrationSettings: d.registrationSettings });
+    return Object.assign(Object.assign(Object.assign({}, summary), { description: d.description || null, address: d.address || null, registrationSettings: d.registrationSettings }), (d.campaignCard ? { campaignCard: d.campaignCard } : {}));
 }
 async function listEvents(query) {
     let ref = (0, firestore_1.eventsRef)();
@@ -57,7 +57,19 @@ async function listEvents(query) {
         const vis = (_a = doc === null || doc === void 0 ? void 0 : doc.data()) === null || _a === void 0 ? void 0 : _a.visibility;
         return vis !== "private";
     });
-    list.sort((a, b) => a.startAt.localeCompare(b.startAt));
+    // Sort: upcoming events first (nearest first), then past events (most recent first)
+    const now = new Date().toISOString();
+    list.sort((a, b) => {
+        const aUpcoming = a.startAt >= now;
+        const bUpcoming = b.startAt >= now;
+        if (aUpcoming && !bUpcoming)
+            return -1; // upcoming before past
+        if (!aUpcoming && bUpcoming)
+            return 1;
+        if (aUpcoming)
+            return a.startAt.localeCompare(b.startAt); // nearest upcoming first
+        return b.startAt.localeCompare(a.startAt); // most recent past first
+    });
     return list;
 }
 async function getEvent(eventId) {

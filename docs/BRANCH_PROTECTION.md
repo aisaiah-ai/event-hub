@@ -10,14 +10,14 @@ feature/* → dev → main
 
 1. **feature branches** — developers work on feature branches (e.g. `feature/rsvp-update`)
 2. **dev** — merge feature branches via PR; deploys to event-hub-dev (events-dev.aisaiah.org)
-3. **main** — merge dev via PR when ready for production; deploys to event-hub (events.aisaiah.org, rsvp.aisaiah.org)
+3. **main** — merge dev via PR when ready for production; deploys to event-hub-8pq (events.aisaiah.org, rsvp.aisaiah.org)
 
 ## Cloudflare Pages Mapping
 
 | Branch | Cloudflare Project | Custom Domain |
 |--------|--------------------|---------------|
 | **dev** | event-hub-dev | events-dev.aisaiah.org |
-| **main** | event-hub | events.aisaiah.org, rsvp.aisaiah.org |
+| **main** | event-hub-8pq | events.aisaiah.org, rsvp.aisaiah.org |
 
 ## Required GitHub Settings
 
@@ -47,7 +47,7 @@ Configure in **Settings** → **Repository** → **Branches** → **Add branch p
 
 1. **Development**: Create feature branch from `dev`, make changes, open PR to `dev`.
 2. **Dev deployment**: On merge to `dev`, GitHub Actions deploys to event-hub-dev with ENV=dev.
-3. **Production release**: When dev is stable, open PR from `dev` to `main`. After review and merge, GitHub Actions deploys to event-hub with ENV=prod.
+3. **Production release**: When dev is stable, open PR from `dev` to `main`. After review and merge, GitHub Actions deploys to event-hub-8pq with ENV=prod.
 4. **No direct pushes to main**: All production changes flow through dev first.
 
 ## Safety Guarantees

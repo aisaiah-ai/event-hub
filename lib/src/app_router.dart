@@ -19,6 +19,9 @@ import 'services/checkin_orchestrator_service.dart';
 import 'features/events/presentation/event_checkin_entry_page.dart';
 import 'features/events/presentation/event_landing_page.dart';
 import 'features/events/presentation/event_rsvp_page.dart';
+import 'features/events/presentation/image_admin_dashboard_page.dart';
+import 'features/events/presentation/photo_wall_page.dart';
+import 'features/events/presentation/rsvp_dashboard_page.dart';
 import 'features/events/presentation/events_index_page.dart';
 import 'features/speakers/presentation/speaker_details_page.dart';
 import 'screens/admin/import_registrants_screen.dart';
@@ -112,6 +115,27 @@ GoRouter createAppRouter() {
         builder: (context, state) =>
             EventRsvpPage(eventSlug: _defaultRsvpEventSlug),
       ),
+      // Short URL: /s/mca → /events/march-cluster-2026
+      GoRoute(
+        path: '/s/:shortCode',
+        redirect: (context, state) {
+          const shortcuts = {
+            'mca': 'march-cluster-2026',
+            'nlc': 'nlc-2026',
+          };
+          final code = state.pathParameters['shortCode'] ?? '';
+          final slug = shortcuts[code] ?? code;
+          return '/events/$slug';
+        },
+      ),
+      // Full event URL: /e/march-assembly → /events/march-assembly
+      GoRoute(
+        path: '/e/:eventId',
+        redirect: (context, state) {
+          final id = state.pathParameters['eventId'] ?? '';
+          return '/events/$id';
+        },
+      ),
       // Events subdomain routes
       GoRoute(
         path: '/events',
@@ -139,6 +163,27 @@ GoRouter createAppRouter() {
           final slug = state.pathParameters['eventSlug'] ?? '';
           final source = state.uri.queryParameters['rsvpSource'];
           return EventRsvpPage(eventSlug: slug, source: source);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/rsvp-dashboard',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return RsvpDashboardPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/images/admin',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return ImageAdminDashboardPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/photo-wall',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return PhotoWallPage(eventSlug: slug);
         },
       ),
       GoRoute(

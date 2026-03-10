@@ -89,7 +89,7 @@ export interface AnnouncementDto {
 
 /** Additional registrant (spouse or guest) attached to a primary registration */
 export interface AdditionalRegistrantDto {
-  type: "spouse" | "guest";
+  type: "spouse" | "guest" | "family";
   firstName: string;
   lastName?: string;
   memberId?: string;

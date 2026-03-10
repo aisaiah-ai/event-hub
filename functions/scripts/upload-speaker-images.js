@@ -38,19 +38,58 @@ const EVENT_ID = 'march-assembly';
 const SPEAKERS = [
   {
     id: 'rommel-dolar',
-    localFile: path.join(
-      __dirname,
-      '../../assets/images/speakers/rommel_dolar.png',
-    ),
+    localFile: path.join(__dirname, '../../assets/images/speakers/rommel_dolar.png'),
     storagePath: `events/${EVENT_ID}/speakers/rommel-dolar/profile.png`,
   },
   {
     id: 'mike-suela',
-    localFile: path.join(
-      __dirname,
-      '../../assets/images/speakers/mike_suela.png',
-    ),
+    localFile: path.join(__dirname, '../../assets/images/speakers/mike_suela.png'),
     storagePath: `events/${EVENT_ID}/speakers/mike-suela/profile.png`,
+  },
+  {
+    id: 'alvin-martinez',
+    localFile: path.join(__dirname, '../../assets/images/speakers/alvin_martinez.png'),
+    storagePath: `events/${EVENT_ID}/speakers/alvin-martinez/profile.png`,
+  },
+  {
+    id: 'francis',
+    localFile: path.join(__dirname, '../../assets/images/speakers/francis_navales.png'),
+    storagePath: `events/${EVENT_ID}/speakers/francis/profile.png`,
+  },
+  {
+    id: 'ernie-angeles',
+    localFile: path.join(__dirname, '../../assets/images/speakers/ernie_angeles.png'),
+    storagePath: `events/${EVENT_ID}/speakers/ernie-angeles/profile.png`,
+  },
+  {
+    id: 'ed-bilbao',
+    localFile: path.join(__dirname, '../../assets/images/speakers/ed_bilbao.png'),
+    storagePath: `events/${EVENT_ID}/speakers/ed-bilbao/profile.png`,
+  },
+  {
+    id: 'eric-zalamea',
+    localFile: path.join(__dirname, '../../assets/images/speakers/eric_zalamea.png'),
+    storagePath: `events/${EVENT_ID}/speakers/eric-zalamea/profile.png`,
+  },
+  {
+    id: 'ron-ares',
+    localFile: path.join(__dirname, '../../assets/images/speakers/ron_ares.png'),
+    storagePath: `events/${EVENT_ID}/speakers/ron-ares/profile.png`,
+  },
+  {
+    id: 'art-barlaan',
+    localFile: path.join(__dirname, '../../assets/images/speakers/art_barlaan.jpg'),
+    storagePath: `events/${EVENT_ID}/speakers/art-barlaan/profile.jpg`,
+  },
+  {
+    id: 'sam-jutba',
+    localFile: path.join(__dirname, '../../assets/images/speakers/sam_jutba.png'),
+    storagePath: `events/${EVENT_ID}/speakers/sam-jutba/profile.png`,
+  },
+  {
+    id: 'irwin-goingo',
+    localFile: path.join(__dirname, '../../assets/images/speakers/irwin_goingo.png'),
+    storagePath: `events/${EVENT_ID}/speakers/irwin-goingo/profile.png`,
   },
 ];
 
@@ -90,9 +129,10 @@ async function main() {
     // Generate a stable download token (same mechanism as Firebase client SDK).
     const token = crypto.randomUUID();
 
+    const contentType = speaker.storagePath.endsWith('.jpg') ? 'image/jpeg' : 'image/png';
     const file = bucket.file(speaker.storagePath);
     await file.save(buffer, {
-      contentType: 'image/png',
+      contentType,
       metadata: {
         // firebaseStorageDownloadTokens is the field Firebase Storage reads
         // to validate token-based download URLs.
@@ -103,16 +143,16 @@ async function main() {
 
     const downloadUrl = buildDownloadUrl(bucketName, speaker.storagePath, token);
 
-    // Update the speaker document in Firestore.
+    // Update the speaker document in Firestore (merge to create if missing).
     await db
       .collection('events')
       .doc(EVENT_ID)
       .collection('speakers')
       .doc(speaker.id)
-      .update({
+      .set({
         photoUrl: downloadUrl,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
 
     console.log('done');
     console.log(`  Storage : gs://${bucketName}/${speaker.storagePath}`);

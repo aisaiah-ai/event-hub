@@ -28,8 +28,9 @@ export function listMyRegistrations(req: Request, res: Response): void {
 export function getMyRegistration(req: Request, res: Response): void {
   const user = (req as Request & { user: RequestUser }).user;
   const eventId = req.params.eventId as string;
+  const memberId = req.query.memberId as string | undefined;
   registrationsService
-    .getMyRegistration(eventId, user)
+    .getMyRegistration(eventId, user, memberId)
     .then((data) => {
       if (data === null) {
         res.status(404).json({ ok: false, error: { code: "not_found", message: "Registration not found" } });
@@ -37,6 +38,21 @@ export function getMyRegistration(req: Request, res: Response): void {
       }
       res.json({ ok: true, data });
     })
+    .catch((err) => sendError(res, err));
+}
+
+/** Check which memberIds are already registered for an event. */
+export function checkRegisteredMembers(req: Request, res: Response): void {
+  const eventId = req.params.eventId as string;
+  const memberIds = req.query.memberIds as string | undefined;
+  if (!memberIds) {
+    res.json({ ok: true, data: { registeredMemberIds: [] } });
+    return;
+  }
+  const ids = memberIds.split(",").map((id) => id.trim()).filter(Boolean);
+  registrationsService
+    .checkRegisteredMembers(eventId, ids)
+    .then((registeredIds) => res.json({ ok: true, data: { registeredMemberIds: registeredIds } }))
     .catch((err) => sendError(res, err));
 }
 

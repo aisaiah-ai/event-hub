@@ -7,7 +7,7 @@ CI/CD and infrastructure for Event Hub (Cloudflare Pages + Firestore).
 | Branch | ENV  | Pages project    | Domain (typical)   |
 |--------|------|------------------|--------------------|
 | `dev`  | dev  | event-hub-dev    | *.pages.dev        |
-| `main` | prod | event-hub        | rsvp.aisaiah.org   |
+| `main` | prod | event-hub-8pq    | rsvp.aisaiah.org   |
 | `nlc`  | prod | event-hub-nlc    | nlc.aisaiah.org    |
 
 Pushing to **nlc** deploys the same app (prod build) to a separate project so **rsvp.aisaiah.org** is not updated.
@@ -33,7 +33,7 @@ Google may warn that your **Web API key** (in `lib/firebase_options.dart`) is pu
    - Add referrers (one per line), e.g.:
      - `https://nlc.aisaiah.org/*`
      - `https://rsvp.aisaiah.org/*`
-     - `https://*.event-hub.pages.dev/*`
+     - `https://*.event-hub-8pq.pages.dev/*`
      - `https://*.event-hub-dev.pages.dev/*`
      - `https://*.event-hub-nlc.pages.dev/*`
      - `http://localhost:*/*`

@@ -123,7 +123,14 @@ class EventPageScaffold extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 _buildBackground(primary),
-                body ?? const SizedBox.shrink(),
+                SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxW),
+                      child: body ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
               ],
             ),
     );

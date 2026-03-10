@@ -132,6 +132,12 @@ service cloud.firestore {
           || (selfCheckinEnabled(eventId) && request.auth == null);
       }
 
+      // Event images (photo gallery) — public read; public create; public update/delete.
+      // Admin approval happens from the web dashboard (anonymous auth).
+      match /images/{imageId} {
+        allow read, write: if true;
+      }
+
       // Event speakers (e.g. March Assembly, NLC) — public read; staff write.
       match /speakers/{speakerId} {
         allow read: if true;

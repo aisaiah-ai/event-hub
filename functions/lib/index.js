@@ -582,34 +582,142 @@ exports.backfillAnalytics = functions.https.onCall(async (data, context) => {
 __exportStar(require("./checkinAnalytics"), exports);
 // —— /v1 API (Express) ———
 exports.api = functions.runWith({ invoker: "public" }).https.onRequest(api_1.default);
-// —— Deep link landing: GET /e/:eventId (QR → app or fallback page) ———
-exports.e = functions.runWith({ invoker: "public" }).https.onRequest((req, res) => {
+// —— Deep link landing: GET /e/:eventId or /:shortCode (NFC/QR → app or fallback page) ———
+// Short codes are stored in Firestore: shortlinks/{code} → { eventId: "..." }
+// Add new short URLs anytime via Firebase Console without code changes.
+exports.e = functions.runWith({ invoker: "public" }).https.onRequest(async (req, res) => {
+    var _a;
     if (req.method !== "GET") {
         res.status(405).send("Method Not Allowed");
         return;
     }
     const path = req.path || req.url || "";
-    const eventId = path.replace(/^\/e\/?/, "").split("/")[0] || path.slice(1).split("/")[0];
-    if (!eventId) {
-        res.status(400).send("Missing event ID. Use /e/:eventId");
+    // Parse: /e/{eventId}, /s/{shortCode}, or /{shortCode}
+    let rawId = path.replace(/^\/(e|s)\/?/, "").split("/")[0] || path.slice(1).split("/")[0];
+    if (!rawId) {
+        res.status(400).send("Missing event ID. Use /e/:eventId or /:shortCode");
         return;
     }
+    // Check if rawId is a short code by looking up shortlinks collection
+    let eventId = rawId;
+    try {
+        const shortlinkSnap = await db.doc(`shortlinks/${rawId}`).get();
+        if (shortlinkSnap.exists) {
+            const data = shortlinkSnap.data();
+            eventId = (data === null || data === void 0 ? void 0 : data.eventId) || rawId;
+        }
+    }
+    catch (_b) {
+        // Continue with rawId as eventId
+    }
+    // Detect platform: mobile browser gets "download app" page, desktop gets Flutter web app
     const ua = (req.get("user-agent") || "").toLowerCase();
     const isApp = ua.includes("spiritual") || ua.includes("events-hub");
-    if (isApp) {
+    const isMobile = /iphone|ipad|ipod|android|mobile/i.test(ua);
+    // App or desktop browser → redirect to Flutter web app
+    if (isApp || !isMobile) {
         res.redirect(302, `https://events.aisaiah.org/events/${eventId}`);
         return;
     }
+    // Mobile browser → show "download app" landing page with event details
+    let title = "CFC Event";
+    let venue = "";
+    let dateStr = "";
+    let description = "";
+    try {
+        const eventSnap = await db.doc(`events/${eventId}`).get();
+        if (eventSnap.exists) {
+            const data = (_a = eventSnap.data()) !== null && _a !== void 0 ? _a : {};
+            title = data.title || data.name || title;
+            venue = data.venue || "";
+            description = data.description || data.subtitle || "";
+            const startAt = data.startAt;
+            if (startAt) {
+                const d = startAt.toDate();
+                dateStr = d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" });
+            }
+        }
+    }
+    catch (_c) {
+        // Continue with defaults
+    }
+    const deepLink = `https://events.aisaiah.org/e/${eventId}`;
+    const appScheme = `aisaiah://event/${eventId}`;
+    const appStoreUrl = "https://apps.apple.com/app/aisaiah-spiritual-fitness/id6504508744";
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=org.aisaiah.spiritualfitness";
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.status(200).send(`
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Event</title></head>
-<body style="font-family:system-ui;max-width:480px;margin:2rem auto;padding:1rem;text-align:center">
-  <h1>Event</h1>
-  <p>Open in the Spiritual App for the best experience.</p>
-  <p><a href="https://events.aisaiah.org/events/${eventId}">Continue in browser</a></p>
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${esc(title)}</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="${esc(title)}">
+  <meta property="og:description" content="${esc(venue ? `${dateStr} — ${venue}` : dateStr || "View event details in the AIsaiah app")}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${deepLink}">
+
+  <!-- App Links -->
+  <meta property="al:ios:url" content="${appScheme}">
+  <meta property="al:ios:app_store_id" content="6504508744">
+  <meta property="al:ios:app_name" content="AIsaiah Spiritual Fitness">
+  <meta property="al:android:url" content="${appScheme}">
+  <meta property="al:android:package" content="org.aisaiah.spiritualfitness">
+  <meta property="al:android:app_name" content="AIsaiah Spiritual Fitness">
+
+  <!-- Apple Smart App Banner -->
+  <meta name="apple-itunes-app" content="app-id=6504508744, app-argument=${deepLink}">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0F0F1E; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { max-width: 420px; width: 90%; padding: 2rem; text-align: center; }
+    .logo { font-size: 2.5rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.4rem; line-height: 1.3; margin-bottom: 1rem; color: #FFD54F; }
+    .meta { color: #aaa; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .venue { color: #ccc; font-size: 0.95rem; margin-bottom: 1.5rem; }
+    .desc { color: #999; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .btn { display: inline-block; padding: 14px 32px; border-radius: 12px; font-size: 1rem; font-weight: 700; text-decoration: none; margin: 0.4rem; }
+    .btn-primary { background: #6A43FF; color: #fff; }
+    .btn-secondary { background: transparent; color: #6A43FF; border: 1.5px solid #6A43FF; }
+    .store-links { margin-top: 1.5rem; }
+    .store-links a { color: #888; font-size: 0.8rem; text-decoration: underline; margin: 0 0.5rem; }
+    .divider { color: #444; margin-top: 2rem; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">&#9769;</div>
+    <h1>${esc(title)}</h1>
+    ${dateStr ? `<p class="meta">${esc(dateStr)}</p>` : ""}
+    ${venue ? `<p class="venue">${esc(venue)}</p>` : ""}
+    ${description ? `<p class="desc">${esc(description)}</p>` : ""}
+
+    <a class="btn btn-primary" id="openApp" href="${appScheme}">Open in App</a>
+
+    <div class="store-links">
+      <p style="color:#666;font-size:0.8rem;margin-bottom:0.5rem;">Don't have the app?</p>
+      <a href="${appStoreUrl}">App Store</a>
+      <a href="${playStoreUrl}">Google Play</a>
+    </div>
+
+    <p class="divider">AIsaiah Spiritual Fitness</p>
+  </div>
+
+  <script>
+    // Try to open the app via Universal Link first, fall back to custom scheme
+    setTimeout(function() {
+      window.location.href = "${deepLink}";
+    }, 100);
+  </script>
 </body>
 </html>`);
 });
+/** Escape HTML entities */
+function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 //# sourceMappingURL=index.js.map

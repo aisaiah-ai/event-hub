@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.register = register;
 exports.listMyRegistrations = listMyRegistrations;
 exports.getMyRegistration = getMyRegistration;
+exports.checkRegisteredMembers = checkRegisteredMembers;
 const registrationsService = __importStar(require("../../services/registrations.service"));
 const errors_1 = require("../../models/errors");
 function register(req, res) {
@@ -60,8 +61,9 @@ function listMyRegistrations(req, res) {
 function getMyRegistration(req, res) {
     const user = req.user;
     const eventId = req.params.eventId;
+    const memberId = req.query.memberId;
     registrationsService
-        .getMyRegistration(eventId, user)
+        .getMyRegistration(eventId, user, memberId)
         .then((data) => {
         if (data === null) {
             res.status(404).json({ ok: false, error: { code: "not_found", message: "Registration not found" } });
@@ -69,6 +71,20 @@ function getMyRegistration(req, res) {
         }
         res.json({ ok: true, data });
     })
+        .catch((err) => sendError(res, err));
+}
+/** Check which memberIds are already registered for an event. */
+function checkRegisteredMembers(req, res) {
+    const eventId = req.params.eventId;
+    const memberIds = req.query.memberIds;
+    if (!memberIds) {
+        res.json({ ok: true, data: { registeredMemberIds: [] } });
+        return;
+    }
+    const ids = memberIds.split(",").map((id) => id.trim()).filter(Boolean);
+    registrationsService
+        .checkRegisteredMembers(eventId, ids)
+        .then((registeredIds) => res.json({ ok: true, data: { registeredMemberIds: registeredIds } }))
         .catch((err) => sendError(res, err));
 }
 function sendError(res, err) {

@@ -197,11 +197,10 @@ export async function uploadImage(
       },
     });
 
-    // Make the file publicly readable (URL works, but gallery only shows approved)
-    await fileRef.makePublic();
-
-    // Get the public URL
-    const url = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+    // Build a Firebase Storage download URL using the token-less public
+    // format. This works because Firebase Storage rules allow read access.
+    const encodedPath = encodeURIComponent(storagePath);
+    const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media`;
 
     // Write metadata to Firestore with pending status
     const imageData = {

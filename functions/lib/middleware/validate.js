@@ -20,7 +20,18 @@ function requireParam(name) {
         next();
     };
 }
+/**
+ * Event ID aliases — maps alternative IDs to canonical Firestore doc IDs.
+ * This lets the mobile app use either ID to refer to the same event.
+ */
+const EVENT_ID_ALIASES = {
+    "march-cluster-2026": "march-assembly",
+};
 function requireEventId(req, res, next) {
+    const raw = req.params.eventId;
+    if (raw && EVENT_ID_ALIASES[raw]) {
+        req.params.eventId = EVENT_ID_ALIASES[raw];
+    }
     requireParam("eventId")(req, res, next);
 }
 function requireSessionId(req, res, next) {

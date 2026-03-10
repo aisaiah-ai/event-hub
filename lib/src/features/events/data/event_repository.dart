@@ -161,43 +161,76 @@ class EventRepository {
     return _enrichSessionsWithSpeakers(raw, eventId, slug: slug);
   }
 
-  /// Resolves the first [speakerId] for each session into a [SessionSpeaker]
-  /// and returns enriched copies. Sessions without speakerIds are unchanged.
+  /// Resolves speakers for each session and returns enriched copies.
   ///
-  /// Matching uses the Firestore document ID directly — no name matching.
-  // TODO: If the API ever returns a speakerId field in SessionDto, wire it
-  // through EventSession.fromApiJson so the API path can also resolve full
-  // profiles. Currently the API only returns speaker/speakerTitle strings,
-  // so sessions arriving via the API path always have speakerId == null and
-  // show the lightweight bottom-sheet preview instead of navigating.
+  /// Resolution order per session:
+  ///  1. speakerIds array → match by Firestore document ID
+  ///  2. Speaker subcollection sessionId → match speaker.sessionId == session.id
+  ///  3. Plain-text speaker name → match speaker.displayName or speaker.name
   Future<List<EventSession>> _enrichSessionsWithSpeakers(
     List<EventSession> sessions,
     String eventId, {
     String? slug,
   }) async {
-    final hasAnySpeakerIds = sessions.any((s) => s.speakerIds.isNotEmpty);
-    if (!hasAnySpeakerIds) return sessions;
+    // Check if any session has a speaker to resolve (either by ID or inline name).
+    final needsEnrichment = sessions.any(
+      (s) => s.speakerIds.isNotEmpty || s.speaker != null,
+    );
+    if (!needsEnrichment) return sessions;
 
     final eventSpeakers = await getSpeakers(eventId, slug: slug);
     final byId = {for (final sp in eventSpeakers) sp.id: sp};
+    final bySessionId = <String, EventSpeaker>{};
+    final byName = <String, EventSpeaker>{};
+    for (final sp in eventSpeakers) {
+      if (sp.sessionId != null && sp.sessionId!.isNotEmpty) {
+        bySessionId[sp.sessionId!] = sp;
+      }
+      // Index by displayName and name (lowercased) for plain-text matching.
+      if (sp.displayName != null && sp.displayName!.isNotEmpty) {
+        byName[sp.displayName!.toLowerCase()] = sp;
+      }
+      byName[sp.name.toLowerCase()] = sp;
+    }
 
     return sessions.map((s) {
-      if (s.speakerIds.isEmpty) return s;
-      final firstId = s.speakerIds.first;
-      final sp = byId[firstId];
-      if (sp == null) {
-        // Speaker document ID from session does not match any loaded speaker.
-        // This can happen if the speakers sub-collection is not yet seeded.
-        _log(
-          'WARNING: speakerId "$firstId" not found in speakers map for session "${s.id}" — no speaker will be shown',
-        );
-        return s;
+      // 1. Match by speakerIds array.
+      if (s.speakerIds.isNotEmpty) {
+        final firstId = s.speakerIds.first;
+        final sp = byId[firstId];
+        if (sp != null) {
+          final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(sp));
+          _log(
+            'Enriched session "${s.id}" via speakerIds → ${enriched.speaker?.name}',
+          );
+          return enriched;
+        }
       }
-      final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(sp));
-      _log(
-        'Enriched session "${s.id}" → speakerId=${enriched.speaker?.speakerId} name=${enriched.speaker?.name}',
-      );
-      return enriched;
+
+      // 2. Match by speaker subcollection sessionId field.
+      final bySession = bySessionId[s.id];
+      if (bySession != null) {
+        final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(bySession));
+        _log(
+          'Enriched session "${s.id}" via sessionId → ${enriched.speaker?.name}',
+        );
+        return enriched;
+      }
+
+      // 3. Match by inline plain-text speaker name.
+      if (s.speaker != null && s.speaker!.name.isNotEmpty) {
+        final nameKey = s.speaker!.name.toLowerCase();
+        final sp = byName[nameKey];
+        if (sp != null) {
+          final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(sp));
+          _log(
+            'Enriched session "${s.id}" via name match → ${enriched.speaker?.name}',
+          );
+          return enriched;
+        }
+      }
+
+      return s;
     }).toList();
   }
 
@@ -207,11 +240,6 @@ class EventRepository {
     String? slug,
   }) async {
     _log('getSessions: eventId=$eventId slug=$slug');
-    // March Cluster: always use fallback for correct session names (incl. Birthdays & Anniversaries Celebration at 7 PM) and ids.
-    if (_isMarchCluster(eventId) || (slug != null && _isMarchCluster(slug))) {
-      _log('getSessions: March Cluster → fallback');
-      return _fallbackSessions(eventId, slug: slug);
-    }
     final fs = _firestore;
     if (fs == null) {
       _log('getSessions: firestore null → fallback');
@@ -232,34 +260,6 @@ class EventRepository {
         _log('getSessions: empty → fallback');
         return _fallbackSessions(eventId, slug: slug);
       }
-      // Enrich speakerIds from fallback when Firestore sessions have none set.
-      final hasAnySpeakerIds = sessions.any((s) => s.speakerIds.isNotEmpty);
-      if (!hasAnySpeakerIds) {
-        _log(
-          'getSessions: no speakerIds in Firestore docs → enriching from fallback',
-        );
-        final fallback = _fallbackSessions(eventId, slug: slug);
-        final fallbackById = {for (final f in fallback) f.id: f};
-        return sessions.map((s) {
-          final fb = fallbackById[s.id];
-          if (fb != null && fb.speakerIds.isNotEmpty) {
-            return EventSession(
-              id: s.id,
-              name: s.name,
-              title: s.title,
-              description: s.description,
-              location: s.location,
-              order: s.order,
-              startAt: s.startAt,
-              endAt: s.endAt,
-              materials: s.materials,
-              speakerIds: fb.speakerIds,
-              speaker: s.speaker,
-            );
-          }
-          return s;
-        }).toList();
-      }
       return sessions;
     } catch (e) {
       _log('getSessions: error $e → fallback');
@@ -271,11 +271,6 @@ class EventRepository {
   /// [slug] is the original route slug used for fallback matching.
   Future<List<EventSpeaker>> getSpeakers(String eventId, {String? slug}) async {
     _log('getSpeakers: eventId=$eventId slug=$slug');
-    // March Cluster: always use fallback so speaker asset paths (rommel_dolar.png, mike_suela.png) load correctly.
-    if (_isMarchCluster(eventId) || (slug != null && _isMarchCluster(slug))) {
-      _log('getSpeakers: March Cluster → fallback');
-      return _fallbackSpeakers(eventId, slug: slug);
-    }
     final fs = _firestore;
     if (fs == null) {
       _log('getSpeakers: firestore null → fallback');
@@ -348,63 +343,174 @@ class EventRepository {
       id.contains('cluster') ||
       id.contains('assembly');
 
+  // All timestamps are UTC — Firestore stores UTC; the UI converts to local.
   static List<EventSession> _fallbackSessions(String eventId, {String? slug}) {
     if (!_isMarchCluster(eventId) && !_isMarchCluster(slug ?? '')) {
       return [];
     }
     return [
       EventSession(
-        id: 'main-checkin',
-        name: 'Main Check-In',
+        id: 'main',
+        name: 'Event Check-In',
+        title: 'Event Check-In',
+        description: 'Main event registration and check-in',
         order: 0,
-        startAt: DateTime(2026, 3, 14, 13, 30), // 1:30 PM
+        startAt: DateTime.utc(2026, 3, 14, 0, 0),
+        endAt: DateTime.utc(2026, 3, 14, 23, 59, 59),
         materials: const [],
         speakerIds: const [],
       ),
       EventSession(
-        id: 'evangelization-rally',
-        name: 'Evangelization Rally',
+        id: 'arrival',
+        name: 'Arrival',
+        title: 'Arrival',
+        description: 'Registration — QR Code print outs',
         order: 1,
-        startAt: DateTime(2026, 3, 14, 15, 0),
-        endAt: DateTime(2026, 3, 14, 18, 0),
-        description:
-            'A Spirit-filled rally centered on evangelization and community.',
-        materials: const [
-          SessionMaterial(
-            title: 'Rally Program & Reflections',
-            url: '',
-            type: 'pdf',
-          ),
-          SessionMaterial(
-            title: 'Small Group Discussion Guide',
-            url: '',
-            type: 'pdf',
-          ),
-          SessionMaterial(title: 'Worship Song Sheet', url: '', type: 'pdf'),
-        ],
-        speakerIds: const ['rommel-dolar'],
+        startAt: DateTime.utc(2026, 3, 14, 17, 30),
+        endAt: DateTime.utc(2026, 3, 14, 17, 45),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Alvin Martinez'),
       ),
       EventSession(
-        id: 'dinner-fellowship',
-        name: 'Birthdays & Anniversaries Celebration',
+        id: 'setup',
+        name: 'Set Up',
+        title: 'Set Up',
+        description: 'CFC — Tampa Bay, Tech Set-up',
         order: 2,
-        startAt: DateTime(2026, 3, 14, 19, 0), // 7:00 PM
-        endAt: DateTime(2026, 3, 14, 21, 0),
+        startAt: DateTime.utc(2026, 3, 14, 17, 45),
+        endAt: DateTime.utc(2026, 3, 14, 19, 30),
+        materials: const [],
+        speakerIds: const [],
+      ),
+      EventSession(
+        id: 'parade-cheer',
+        name: 'Parade / Cheer',
+        title: 'Parade / Cheer',
+        description: 'Parade / Cheer by Chapter — Inside',
+        order: 3,
+        startAt: DateTime.utc(2026, 3, 14, 19, 30),
+        endAt: DateTime.utc(2026, 3, 14, 20, 0),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(
+          name: 'Bro. Ernie Angeles',
+          title: 'Emcee',
+        ),
+      ),
+      EventSession(
+        id: 'gathering-song',
+        name: 'Gathering Song',
+        title: 'Gathering Song',
         description:
-            'Dinner, fellowship, and dancing as we celebrate milestones, relationships, and the joy of community life.',
-        materials: const [
-          SessionMaterial(
-            title: 'Birthdays & Anniversaries Program',
-            url: '',
-            type: 'pdf',
-          ),
-          SessionMaterial(
-            title: 'Fellowship Night Agenda',
-            url: '',
-            type: 'pdf',
-          ),
-        ],
-        speakerIds: const ['mike-suela'],
+            'CFC Theme Song 2026 — In The One, We Are One. CFC Kids will use the St. John\'s Room.',
+        order: 4,
+        startAt: DateTime.utc(2026, 3, 14, 20, 0),
+        endAt: DateTime.utc(2026, 3, 14, 20, 5),
+        materials: const [],
+        speakerIds: const [],
+      ),
+      EventSession(
+        id: 'worship',
+        name: 'Worship',
+        title: 'Worship',
+        description: 'BBS Music Ministry',
+        order: 5,
+        startAt: DateTime.utc(2026, 3, 14, 20, 5),
+        endAt: DateTime.utc(2026, 3, 14, 20, 20),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(
+          name: 'Bro. Mike Suela',
+          title: 'Worship Leader',
+        ),
+      ),
+      EventSession(
+        id: 'talk-1',
+        name: 'Talk 1: The Great Commission',
+        title: 'Talk 1: The Great Commission',
+        description:
+            "The Great Commission is Jesus Christ's final command to his disciples to spread the Gospel and make disciples of all nations, recorded in Matthew 28:18-20. Key commands include going, baptizing in the name of the Trinity, and teaching obedience to his commands. It serves as a universal, ongoing mission for all Christians to share their faith.",
+        order: 6,
+        startAt: DateTime.utc(2026, 3, 14, 20, 20),
+        endAt: DateTime.utc(2026, 3, 14, 20, 55),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Eric Zalamea'),
+      ),
+      EventSession(
+        id: 'talk-2',
+        name: 'Talk 2: Evangelization in CFC',
+        title: 'Talk 2: Evangelization in CFC',
+        description:
+            "In CFC, we do all these different types of evangelization. But the most basic method for every CFC member to carry out Christ's Great Commission is to undertake everyday evangelization.",
+        order: 7,
+        startAt: DateTime.utc(2026, 3, 14, 20, 55),
+        endAt: DateTime.utc(2026, 3, 14, 21, 30),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Art Barlaan'),
+      ),
+      EventSession(
+        id: 'declaration-of-goals',
+        name: 'Declaration of Goals',
+        title: 'Declaration of Goals',
+        description: 'By Chapter — with slides presentation',
+        order: 8,
+        startAt: DateTime.utc(2026, 3, 14, 21, 30),
+        endAt: DateTime.utc(2026, 3, 14, 21, 50),
+        materials: const [],
+        speakerIds: const [],
+      ),
+      EventSession(
+        id: 'welcoming-new-members',
+        name: 'Welcoming of New CFC Members',
+        title: 'Welcoming of New CFC Members',
+        order: 9,
+        startAt: DateTime.utc(2026, 3, 14, 21, 50),
+        endAt: DateTime.utc(2026, 3, 14, 22, 0),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Francis Navales'),
+      ),
+      EventSession(
+        id: 'prayover-installation',
+        name: 'Prayover & Installation of New Leaders',
+        title: 'Prayover & Installation of New Leaders',
+        description:
+            'March Birthday and Anniversary Celebrants, Install New Leaders',
+        order: 10,
+        startAt: DateTime.utc(2026, 3, 14, 22, 0),
+        endAt: DateTime.utc(2026, 3, 14, 22, 10),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(
+          name: 'Bro. Ron Ares, Bro. Sam Jutba',
+        ),
+      ),
+      EventSession(
+        id: 'closing',
+        name: 'Closing Message, Closing Prayer & Closing Song',
+        title: 'Closing Message, Closing Prayer & Closing Song',
+        description: 'BBS Music Ministry',
+        order: 11,
+        startAt: DateTime.utc(2026, 3, 14, 22, 10),
+        endAt: DateTime.utc(2026, 3, 14, 22, 20),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Ed Bilbao'),
+      ),
+      EventSession(
+        id: 'fellowship',
+        name: 'Fellowship',
+        title: 'Fellowship',
+        description: "Bro. Art's 70th Birthday with DJ",
+        order: 12,
+        startAt: DateTime.utc(2026, 3, 14, 22, 20),
+        endAt: DateTime.utc(2026, 3, 15, 1, 0),
+        materials: const [],
+        speakerIds: const [],
+        speaker: const SessionSpeaker(name: 'Bro. Irwin Goingo'),
       ),
     ];
   }
@@ -432,22 +538,46 @@ class EventRepository {
   }
 
   /// List RSVPs for an event (e.g. March Cluster). Rules allow read: if true.
+  /// Merges RSVPs from the default database AND the event-hub-prod named
+  /// database (which stores prod RSVPs under events/march-cluster-2026).
   Future<List<EventRsvp>> listRsvps(String eventId) async {
     final fs = _firestore;
     if (fs == null) return [];
-    try {
-      final snap = await fs
-          .collection(_eventsCollection)
-          .doc(eventId)
-          .collection('rsvps')
-          .get();
-      final list = snap.docs
-          .map((d) => EventRsvp.fromFirestore(d.id, d.data()))
-          .toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return list;
-    } catch (_) {
-      return [];
+
+    final seen = <String>{};
+    final list = <EventRsvp>[];
+
+    Future<void> fetchFrom(FirebaseFirestore db, String docId) async {
+      try {
+        final snap = await db
+            .collection(_eventsCollection)
+            .doc(docId)
+            .collection('rsvps')
+            .get();
+        for (final d in snap.docs) {
+          if (seen.add(d.id)) {
+            list.add(EventRsvp.fromFirestore(d.id, d.data()));
+          }
+        }
+      } catch (_) {}
     }
+
+    // 1. Default database (events/march-assembly/rsvps).
+    await fetchFrom(fs, eventId);
+
+    // 2. event-hub-prod named database (events/march-cluster-2026/rsvps).
+    try {
+      final prodDb = FirebaseFirestore.instanceFor(
+        app: fs.app,
+        databaseId: 'event-hub-prod',
+      );
+      // The prod database uses march-cluster-2026 as the event doc ID.
+      final prodDocId =
+          eventId == 'march-assembly' ? 'march-cluster-2026' : eventId;
+      await fetchFrom(prodDb, prodDocId);
+    } catch (_) {}
+
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 }

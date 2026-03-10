@@ -69,6 +69,7 @@ router.delete("/events/:eventId/images/:imageId", auth_1.requireAuth, validate_1
 router.post("/events/:eventId/register", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.register);
 router.get("/me/registrations", auth_1.requireAuth, registrationsRoutes.listMyRegistrations);
 router.get("/events/:eventId/my-registration", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.getMyRegistration);
+router.get("/events/:eventId/registered-members", auth_1.requireAuth, validate_1.requireEventId, registrationsRoutes.checkRegisteredMembers);
 router.post("/events/:eventId/checkin/main", auth_1.requireAuth, validate_1.requireEventId, rateLimit_1.checkInRateLimit, checkinRoutes.checkInMain);
 router.post("/events/:eventId/sessions/:sessionId/register", auth_1.requireAuth, validate_1.requireEventId, validate_1.requireSessionId, checkinRoutes.registerForSession);
 router.post("/events/:eventId/checkin/sessions/:sessionId", auth_1.requireAuth, validate_1.requireEventId, validate_1.requireSessionId, rateLimit_1.checkInRateLimit, checkinRoutes.checkInSession);

@@ -45,37 +45,47 @@ exports.optionalAuth = optionalAuth;
 const admin = __importStar(require("firebase-admin"));
 const BEARER_PREFIX = "Bearer ";
 /**
- * Secondary Firebase Admin app for verifying tokens from the main app project.
- * Tokens are issued by aisaiah-app-dev; this API runs on aisaiah-event-hub.
+ * Secondary Firebase Admin apps for verifying tokens from the mobile app projects.
+ * Dev tokens are issued by aisaiah-app-dev; prod tokens by aisaiah-sfa-dev-app.
+ * This API runs on aisaiah-event-hub.
  */
-const MAIN_APP_PROJECT_ID = "aisaiah-app-dev";
-let _mainAppAuth = null;
-function getMainAppAuth() {
-    if (_mainAppAuth)
-        return _mainAppAuth;
-    try {
-        const existing = admin.app("mainApp");
-        _mainAppAuth = existing.auth();
+const APP_PROJECTS = [
+    { id: "aisaiah-app-dev", name: "mainAppDev" },
+    { id: "aisaiah-sfa-dev-app", name: "mainAppProd" },
+];
+const _authInstances = [];
+function getAppAuthInstances() {
+    if (_authInstances.length > 0)
+        return _authInstances;
+    for (const project of APP_PROJECTS) {
+        try {
+            const existing = admin.app(project.name);
+            _authInstances.push(existing.auth());
+        }
+        catch (_a) {
+            const app = admin.initializeApp({ projectId: project.id }, project.name);
+            _authInstances.push(app.auth());
+        }
     }
-    catch (_a) {
-        const mainApp = admin.initializeApp({ projectId: MAIN_APP_PROJECT_ID }, "mainApp");
-        _mainAppAuth = mainApp.auth();
-    }
-    return _mainAppAuth;
+    return _authInstances;
 }
 /**
  * Try verifying a token against multiple projects.
- * First tries the main app project (where users authenticate),
+ * Tries dev and prod app projects (where users authenticate),
  * then falls back to the default (event-hub) project.
  */
 async function verifyTokenMultiProject(idToken) {
-    try {
-        return await getMainAppAuth().verifyIdToken(idToken);
+    const authInstances = getAppAuthInstances();
+    for (const auth of authInstances) {
+        try {
+            return await auth.verifyIdToken(idToken);
+        }
+        catch (_a) {
+            // Try next project
+        }
     }
-    catch (_a) {
-        // Fallback: try the default project (event-hub) in case tokens are issued here too
-        return await admin.auth().verifyIdToken(idToken);
-    }
+    // Final fallback: the default (event-hub) project
+    return await admin.auth().verifyIdToken(idToken);
 }
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;

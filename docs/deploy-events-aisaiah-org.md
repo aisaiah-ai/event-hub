@@ -11,7 +11,7 @@
 | Branch | ENV | Cloudflare project | Custom domain | Firestore |
 |--------|-----|--------------------|---------------|-----------|
 | **dev** | dev | event-hub-dev | events-dev.aisaiah.org | event-hub-dev |
-| **main** | prod | event-hub | events.aisaiah.org, rsvp.aisaiah.org | event-hub-prod |
+| **main** | prod | event-hub-8pq | events.aisaiah.org, rsvp.aisaiah.org | event-hub-prod |
 
 Safety: Dev never deploys to prod. Prod never uses ENV=dev. Environment is determined by branch only.
 
@@ -29,7 +29,7 @@ Safety: Dev never deploys to prod. Prod never uses ENV=dev. Environment is deter
 
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → **Direct Upload**.
 2. Projects:
-   - **event-hub** (for main/prod branch) — you may already have this
+   - **event-hub-8pq** (for main/prod branch) — serves event-hub-8pq.pages.dev and rsvp.aisaiah.org
    - **event-hub-dev** (for dev branch) — create for dev deployments
 
 ### Get API token and Account ID
@@ -54,7 +54,7 @@ In your repo: **Settings** → **Secrets and variables** → **Actions** → **N
 
 ### Add custom domains in Cloudflare
 
-- **event-hub** (prod) → **events.aisaiah.org** and **rsvp.aisaiah.org**
+- **event-hub-8pq** (prod) → **events.aisaiah.org** and **rsvp.aisaiah.org**
 - **event-hub-dev** → **events-dev.aisaiah.org**
 
 ## 2. Required build commands
@@ -122,7 +122,7 @@ Repo → **Actions** → **Deploy** → **Run workflow**. Select branch (dev or 
 |-------|-------|-----|
 | `Error: No account id found` | Missing `CLOUDFLARE_ACCOUNT_ID` secret | Add repo secret in **Settings → Secrets → Actions**. |
 | `Error: Invalid API token` or `401` | Missing or wrong `CLOUDFLARE_API_TOKEN` | Create a new token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens) with **Account → Cloudflare Pages → Edit**. Add as secret. |
-| `Error: Project not found` / `404` | Cloudflare Pages project doesn't exist | Create **event-hub** (prod) and **event-hub-dev** (dev) in Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Direct Upload**. |
+| `Error: Project not found` / `404` | Cloudflare Pages project doesn't exist | Create **event-hub-8pq** (prod) and **event-hub-dev** (dev) in Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Direct Upload**. |
 | `Error: No such file or directory 'build/web'` | Flutter build failed earlier | Fix the Build Web step; the deploy step runs only after a successful build. |
 
 ### Where to see errors
@@ -130,3 +130,22 @@ Repo → **Actions** → **Deploy** → **Run workflow**. Select branch (dev or 
 1. **Actions** → **Deploy** → click the failed run
 2. Expand the failed step (e.g. "Deploy to Cloudflare Pages")
 3. Check the red error lines in the log
+
+## Deploy succeeded but site not updated
+
+If the GitHub deploy workflow succeeds but rsvp.aisaiah.org (or events.aisaiah.org) still shows old content, even in incognito:
+
+1. **Purge Cloudflare cache**  
+   [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Caching** → **Configuration** → **Purge Everything** (or purge by URL for `https://rsvp.aisaiah.org`). Then reload the site.
+
+2. **Confirm which deployment is live**  
+   **Workers & Pages** → **event-hub-8pq** → **Deployments**. The deployment that **main** just produced should be marked **Production**. If Production is an older deployment, use **…** → **Rollback** / **Set as Production** to the latest.
+
+3. **Confirm domain points at this project**  
+   **event-hub-8pq** → **Custom domains**. Ensure **rsvp.aisaiah.org** is listed and points to this project (not another Pages project or old hosting).
+
+4. **Flutter service worker**  
+   The app uses a service worker that caches assets. After a purge and one hard reload, the new SW should take over. If it still doesn’t: DevTools → **Application** → **Storage** → **Clear site data** for rsvp.aisaiah.org, then reload.
+
+5. **Content from Firestore**  
+   If only certain text didn’t change (e.g. “RSVP by March 7”), that may come from the **event document** in Firestore (prod database), not from the deployed app. Update the event’s `metadata.rsvpDeadline` and `shortDescription` in Firebase Console for the prod database, or re-run the seed script with `--database=event-hub-prod`.

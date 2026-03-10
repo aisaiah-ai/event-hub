@@ -13,6 +13,14 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // ── Event images (gallery uploads) ─────────────────────────────────
+    // Public read so gallery images load for all users.
+    // Write is handled by Cloud Functions (admin SDK), not client uploads.
+    match /events/{eventId}/images/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ── Default: deny everything else ──────────────────────────────────
     match /{allPaths=**} {
       allow read, write: if false;

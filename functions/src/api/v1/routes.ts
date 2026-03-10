@@ -39,6 +39,7 @@ router.delete("/events/:eventId/images/:imageId", requireAuth, requireEventId, i
 router.post("/events/:eventId/register", requireAuth, requireEventId, registrationsRoutes.register);
 router.get("/me/registrations", requireAuth, registrationsRoutes.listMyRegistrations);
 router.get("/events/:eventId/my-registration", requireAuth, requireEventId, registrationsRoutes.getMyRegistration);
+router.get("/events/:eventId/registered-members", requireAuth, requireEventId, registrationsRoutes.checkRegisteredMembers);
 
 router.post(
   "/events/:eventId/checkin/main",

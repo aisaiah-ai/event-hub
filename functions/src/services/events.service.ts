@@ -36,6 +36,7 @@ function toDetail(doc: admin.firestore.DocumentSnapshot): EventDetailDto {
     description: (d.description as string) || null,
     address: (d.address as string) || null,
     registrationSettings: d.registrationSettings as Record<string, unknown> | undefined,
+    ...(d.campaignCard ? { campaignCard: d.campaignCard as Record<string, unknown> } : {}),
   };
 }
 
@@ -69,7 +70,16 @@ export async function listEvents(query: {
     const vis = doc?.data()?.visibility;
     return vis !== "private";
   });
-  list.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  // Sort: upcoming events first (nearest first), then past events (most recent first)
+  const now = new Date().toISOString();
+  list.sort((a, b) => {
+    const aUpcoming = a.startAt >= now;
+    const bUpcoming = b.startAt >= now;
+    if (aUpcoming && !bUpcoming) return -1; // upcoming before past
+    if (!aUpcoming && bUpcoming) return 1;
+    if (aUpcoming) return a.startAt.localeCompare(b.startAt); // nearest upcoming first
+    return b.startAt.localeCompare(a.startAt); // most recent past first
+  });
   return list;
 }
 

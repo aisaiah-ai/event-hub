@@ -55,39 +55,63 @@ function toRawSession(doc) {
     };
 }
 async function listSessions(eventId) {
+    var _a;
     const eventSnap = await (0, firestore_1.eventRef)(eventId).get();
     if (!eventSnap.exists) {
         throw (0, errors_1.notFound)("Event not found");
     }
-    const snap = await (0, firestore_1.sessionsRef)(eventId).orderBy("order").get();
-    const raws = snap.docs.map((doc) => toRawSession(doc));
-    // Collect unique speakerIds that need resolving (sessions missing plain-text speaker).
-    const needsResolve = new Set();
-    for (const raw of raws) {
-        if ((!raw.dto.speaker || raw.dto.speaker === "") && raw.speakerIds.length > 0) {
-            needsResolve.add(raw.speakerIds[0]);
+    const [sessSnap, speakersSnap] = await Promise.all([
+        (0, firestore_1.sessionsRef)(eventId).orderBy("order").get(),
+        (0, firestore_1.speakersRef)(eventId).orderBy("order").get(),
+    ]);
+    const raws = sessSnap.docs.map((doc) => toRawSession(doc));
+    // Build speaker lookup maps: by ID, by sessionId, and by displayName.
+    const speakerById = new Map();
+    const speakerBySessionId = new Map();
+    const speakerByName = new Map();
+    for (const sdoc of speakersSnap.docs) {
+        const sd = (_a = sdoc.data()) !== null && _a !== void 0 ? _a : {};
+        const entry = { id: sdoc.id, data: sd };
+        speakerById.set(sdoc.id, entry);
+        const sessionId = sd.sessionId;
+        if (sessionId) {
+            speakerBySessionId.set(sessionId, entry);
         }
+        const dName = (sd.displayName || sd.name || "").toLowerCase();
+        if (dName)
+            speakerByName.set(dName, entry);
     }
-    // Batch-fetch speaker docs for all sessions that need it.
-    const speakerCache = new Map();
-    if (needsResolve.size > 0) {
-        await Promise.all([...needsResolve].map(async (speakerId) => {
-            var _a;
-            const sdoc = await (0, firestore_1.speakerRef)(eventId, speakerId).get();
-            if (sdoc.exists) {
-                speakerCache.set(speakerId, (_a = sdoc.data()) !== null && _a !== void 0 ? _a : {});
-            }
-        }));
-    }
-    // Enrich DTOs with resolved speaker data where needed.
+    // Enrich DTOs: resolve speakerId via speakerIds array, sessionId, or name match.
     const list = raws.map((raw) => {
-        if ((!raw.dto.speaker || raw.dto.speaker === "") && raw.speakerIds.length > 0) {
-            const sd = speakerCache.get(raw.speakerIds[0]);
-            if (sd) {
-                return Object.assign(Object.assign({}, raw.dto), { speaker: sd.displayName ||
-                        sd.fullName ||
-                        sd.name ||
-                        null, speakerTitle: sd.title || sd.speaker_title || null });
+        // 1. Match by speakerIds array.
+        if (raw.speakerIds.length > 0) {
+            const entry = speakerById.get(raw.speakerIds[0]);
+            if (entry) {
+                return Object.assign(Object.assign({}, raw.dto), { speakerId: entry.id, speaker: raw.dto.speaker ||
+                        entry.data.displayName ||
+                        entry.data.fullName ||
+                        entry.data.name ||
+                        null, speakerTitle: raw.dto.speakerTitle ||
+                        entry.data.title || null });
+            }
+        }
+        // 2. Match by speaker subcollection sessionId field.
+        const bySession = speakerBySessionId.get(raw.dto.id);
+        if (bySession) {
+            return Object.assign(Object.assign({}, raw.dto), { speakerId: bySession.id, speaker: raw.dto.speaker ||
+                    bySession.data.displayName ||
+                    bySession.data.fullName ||
+                    bySession.data.name ||
+                    null, speakerTitle: raw.dto.speakerTitle ||
+                    bySession.data.title || null });
+        }
+        // 3. Match by plain-text speaker name.
+        if (raw.dto.speaker) {
+            const nameKey = raw.dto.speaker.toLowerCase();
+            const byName = speakerByName.get(nameKey);
+            if (byName) {
+                return Object.assign(Object.assign({}, raw.dto), { speakerId: byName.id, speakerTitle: raw.dto.speakerTitle ||
+                        byName.data.title || null });
             }
         }
         return raw.dto;
