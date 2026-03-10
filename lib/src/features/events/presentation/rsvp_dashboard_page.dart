@@ -261,26 +261,26 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
             icon: Icons.groups_rounded,
             iconColor: _gold,
             value: stats.totalAttendees + stats.registrantCount,
-            label: 'TOTAL EXPECTED',
+            label: 'TOTAL RSVPs',
             highlighted: true,
           ),
           _OverviewTile(
-            icon: Icons.how_to_reg_rounded,
-            iconColor: const Color(0xFF4CAF50),
-            value: stats.registrantCount,
-            label: 'REGISTERED',
+            icon: Icons.mic_rounded,
+            iconColor: const Color(0xFFB0B0B0),
+            value: stats.rallyCount,
+            label: 'RALLY',
           ),
           _OverviewTile(
-            icon: Icons.mail_rounded,
+            icon: Icons.restaurant_rounded,
             iconColor: const Color(0xFFB0B0B0),
-            value: stats.totalAttendees,
-            label: 'RSVPs',
+            value: stats.dinnerCount,
+            label: 'DINNER',
           ),
           _OverviewTile(
             icon: Icons.celebration_rounded,
             iconColor: const Color(0xFFE87D2E),
-            value: stats.registrantCheckedIn,
-            label: 'CHECKED IN',
+            value: stats.celebrationCount,
+            label: 'CELEBRATIONS',
           ),
         ];
 
@@ -547,7 +547,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length} RSVPs \u00B7 ${_registrants.length} Registrations',
+          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length + _registrants.length} RSVPs on record',
           style: GoogleFonts.inter(
             color: _textMuted.withValues(alpha: 0.5),
             fontSize: 11,
