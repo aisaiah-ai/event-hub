@@ -65,19 +65,19 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _gold))
           : _error != null
-              ? _buildError()
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  color: _gold,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    child: _buildDashboard(),
-                  ),
+          ? _buildError()
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: _gold,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
                 ),
+                child: _buildDashboard(),
+              ),
+            ),
     );
   }
 
@@ -106,10 +106,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           TextButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh, color: _gold),
-            label: Text(
-              'Retry',
-              style: GoogleFonts.inter(color: _gold),
-            ),
+            label: Text('Retry', style: GoogleFonts.inter(color: _gold)),
           ),
         ],
       ),
@@ -301,10 +298,8 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           runSpacing: 8,
           children: cards
               .map(
-                (c) => SizedBox(
-                  width: (constraints.maxWidth - 8) / 2,
-                  child: c,
-                ),
+                (c) =>
+                    SizedBox(width: (constraints.maxWidth - 8) / 2, child: c),
               )
               .toList(),
         );
@@ -315,9 +310,11 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   // ── Attendance Breakdown Bars ───────────────────────────────────────
 
   Widget _buildAttendanceBreakdown(_RsvpStats stats) {
-    final maxVal = [stats.rallyCount, stats.dinnerCount, stats.celebrationCount]
-        .reduce((a, b) => a > b ? a : b)
-        .clamp(1, double.maxFinite.toInt());
+    final maxVal = [
+      stats.rallyCount,
+      stats.dinnerCount,
+      stats.celebrationCount,
+    ].reduce((a, b) => a > b ? a : b).clamp(1, double.maxFinite.toInt());
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -390,12 +387,14 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           spacing: 8,
           runSpacing: 8,
           children: areas
-              .map((e) => SizedBox(
-                    width: areas.length <= 2
-                        ? (constraints.maxWidth - 8) / 2
-                        : (constraints.maxWidth - 16) / 3,
-                    child: _AreaCard(name: e.key, data: e.value),
-                  ))
+              .map(
+                (e) => SizedBox(
+                  width: areas.length <= 2
+                      ? (constraints.maxWidth - 8) / 2
+                      : (constraints.maxWidth - 16) / 3,
+                  child: _AreaCard(name: e.key, data: e.value),
+                ),
+              )
               .toList(),
         );
       },
@@ -544,7 +543,10 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         const SizedBox(height: 4),
         Text(
           'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length} RSVPs on record',
-          style: GoogleFonts.inter(color: _textMuted.withValues(alpha: 0.5), fontSize: 11),
+          style: GoogleFonts.inter(
+            color: _textMuted.withValues(alpha: 0.5),
+            fontSize: 11,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -566,10 +568,10 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   }
 
   static BoxDecoration _cardDecoration() => BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _cardBorder),
-      );
+    color: _cardBg,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: _cardBorder),
+  );
 
   // ── Color Tokens ────────────────────────────────────────────────────
 

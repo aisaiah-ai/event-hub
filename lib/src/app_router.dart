@@ -119,10 +119,7 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/s/:shortCode',
         redirect: (context, state) {
-          const shortcuts = {
-            'mca': 'march-cluster-2026',
-            'nlc': 'nlc-2026',
-          };
+          const shortcuts = {'mca': 'march-cluster-2026', 'nlc': 'nlc-2026'};
           final code = state.pathParameters['shortCode'] ?? '';
           final slug = shortcuts[code] ?? code;
           return '/events/$slug';

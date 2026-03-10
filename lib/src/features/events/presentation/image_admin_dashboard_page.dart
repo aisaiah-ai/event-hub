@@ -64,24 +64,30 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
               .doc(docId)
               .collection('images')
               .get();
-          print('[ImageAdmin] events/$docId/images => ${snap.docs.length} docs');
+          print(
+            '[ImageAdmin] events/$docId/images => ${snap.docs.length} docs',
+          );
           for (final doc in snap.docs) {
             if (images.any((i) => i.id == doc.id)) continue;
             final d = doc.data();
-            print('[ImageAdmin]   doc ${doc.id}: status=${d['status']} uploader=${d['uploaderName']}');
+            print(
+              '[ImageAdmin]   doc ${doc.id}: status=${d['status']} uploader=${d['uploaderName']}',
+            );
             final createdAt = d['createdAt'];
-            images.add(_ImageItem(
-              id: doc.id,
-              url: d['url'] as String? ?? '',
-              thumbnailUrl: d['thumbnailUrl'] as String?,
-              uploaderName: d['uploaderName'] as String? ?? 'Unknown',
-              uploadedBy: d['uploadedBy'] as String? ?? '',
-              status: d['status'] as String? ?? 'pending',
-              createdAt: createdAt is Timestamp
-                  ? createdAt.toDate()
-                  : DateTime.tryParse(createdAt?.toString() ?? '') ??
-                      DateTime.now(),
-            ));
+            images.add(
+              _ImageItem(
+                id: doc.id,
+                url: d['url'] as String? ?? '',
+                thumbnailUrl: d['thumbnailUrl'] as String?,
+                uploaderName: d['uploaderName'] as String? ?? 'Unknown',
+                uploadedBy: d['uploadedBy'] as String? ?? '',
+                status: d['status'] as String? ?? 'pending',
+                createdAt: createdAt is Timestamp
+                    ? createdAt.toDate()
+                    : DateTime.tryParse(createdAt?.toString() ?? '') ??
+                          DateTime.now(),
+              ),
+            );
           }
         } catch (e, st) {
           print('[ImageAdmin] ERROR reading events/$docId/images: $e');
@@ -123,7 +129,9 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
 
   Future<void> _updateStatus(String imageId, String status) async {
     if (_event == null) return;
-    print('[ImageAdmin] Approving $imageId -> $status in events/$_canonicalEventId/images');
+    print(
+      '[ImageAdmin] Approving $imageId -> $status in events/$_canonicalEventId/images',
+    );
     try {
       await FirebaseFirestore.instance
           .collection('events')
@@ -131,9 +139,9 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
           .collection('images')
           .doc(imageId)
           .update({
-        'status': status,
-        'reviewedAt': FieldValue.serverTimestamp(),
-      });
+            'status': status,
+            'reviewedAt': FieldValue.serverTimestamp(),
+          });
       print('[ImageAdmin] Update successful');
       setState(() {
         final idx = _images.indexWhere((i) => i.id == imageId);
@@ -145,7 +153,9 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Image ${status == 'approved' ? 'approved' : 'rejected'}'),
+            content: Text(
+              'Image ${status == 'approved' ? 'approved' : 'rejected'}',
+            ),
             backgroundColor: status == 'approved'
                 ? const Color(0xFF4CE0A0)
                 : const Color(0xFFE04C4C),
@@ -175,10 +185,7 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
             .doc(_canonicalEventId)
             .collection('images')
             .doc(id),
-        {
-          'status': status,
-          'reviewedAt': FieldValue.serverTimestamp(),
-        },
+        {'status': status, 'reviewedAt': FieldValue.serverTimestamp()},
       );
     }
     try {
@@ -204,9 +211,9 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bulk update failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Bulk update failed: $e')));
       }
     }
   }
@@ -245,9 +252,9 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Delete failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
       }
     }
   }
@@ -263,12 +270,11 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _gold))
           : _error != null
-              ? _buildError()
-              : SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  child: _buildDashboard(),
-                ),
+          ? _buildError()
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: _buildDashboard(),
+            ),
     );
   }
 
@@ -497,15 +503,15 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
               final crossCount = constraints.maxWidth > 600
                   ? 3
                   : constraints.maxWidth > 400
-                      ? 2
-                      : 1;
+                  ? 2
+                  : 1;
               return Wrap(
                 spacing: 10,
                 runSpacing: 10,
                 children: filtered.map((img) {
                   final w =
                       (constraints.maxWidth - (crossCount - 1) * 10) /
-                          crossCount;
+                      crossCount;
                   return SizedBox(
                     width: w,
                     child: _ImageCard(
@@ -534,10 +540,10 @@ class _ImageAdminDashboardPageState extends State<ImageAdminDashboardPage> {
   }
 
   static BoxDecoration _cardDecoration() => BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _cardBorder),
-      );
+    color: _cardBg,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: _cardBorder),
+  );
 
   static const Color _gold = Color(0xFFF4A340);
   static const Color _cardBg = Color(0xFF1A1A2A);
@@ -569,14 +575,14 @@ class _ImageItem {
   });
 
   _ImageItem copyWith({String? status}) => _ImageItem(
-        id: id,
-        url: url,
-        thumbnailUrl: thumbnailUrl,
-        uploaderName: uploaderName,
-        uploadedBy: uploadedBy,
-        status: status ?? this.status,
-        createdAt: createdAt,
-      );
+    id: id,
+    url: url,
+    thumbnailUrl: thumbnailUrl,
+    uploaderName: uploaderName,
+    uploadedBy: uploadedBy,
+    status: status ?? this.status,
+    createdAt: createdAt,
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -610,7 +616,9 @@ class _StatChip extends StatelessWidget {
               : const Color(0xFF1A1A2A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color.withValues(alpha: 0.5) : const Color(0xFF2A2A3A),
+            color: selected
+                ? color.withValues(alpha: 0.5)
+                : const Color(0xFF2A2A3A),
           ),
         ),
         child: Row(
@@ -664,7 +672,11 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 16, color: onTap != null ? color : color.withValues(alpha: 0.3)),
+      icon: Icon(
+        icon,
+        size: 16,
+        color: onTap != null ? color : color.withValues(alpha: 0.3),
+      ),
       label: Text(
         label,
         style: GoogleFonts.inter(
@@ -727,9 +739,7 @@ class _ImageCard extends StatelessWidget {
           color: const Color(0xFF1A1A2A),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected
-                ? const Color(0xFFF4A340)
-                : const Color(0xFF2A2A3A),
+            color: selected ? const Color(0xFFF4A340) : const Color(0xFF2A2A3A),
             width: selected ? 2 : 1,
           ),
         ),
@@ -768,8 +778,10 @@ class _ImageCard extends StatelessWidget {
                   top: 6,
                   left: 6,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: _statusColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -811,7 +823,11 @@ class _ImageCard extends StatelessWidget {
                         border: Border.all(color: Colors.white54),
                       ),
                       child: selected
-                          ? const Icon(Icons.check, size: 16, color: Colors.white)
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
                           : null,
                     ),
                   ),

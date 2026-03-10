@@ -96,18 +96,27 @@ class _PhotoWallPageState extends State<PhotoWallPage>
         .doc(docId)
         .collection('images')
         .snapshots()
-        .listen((snap) {
-      final approved = snap.docs.where((d) =>
-          d.data()['status'] == 'approved').toList();
-      print('[PhotoWall] images total=${snap.docs.length} approved=${approved.length}');
-      _mergePhotos(approved, 'default');
-    }, onError: (e) {
-      print('[PhotoWall] Error: $e');
-      if (mounted) setState(() => _loading = false);
-    });
+        .listen(
+          (snap) {
+            final approved = snap.docs
+                .where((d) => d.data()['status'] == 'approved')
+                .toList();
+            print(
+              '[PhotoWall] images total=${snap.docs.length} approved=${approved.length}',
+            );
+            _mergePhotos(approved, 'default');
+          },
+          onError: (e) {
+            print('[PhotoWall] Error: $e');
+            if (mounted) setState(() => _loading = false);
+          },
+        );
   }
 
-  void _mergePhotos(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, String source) {
+  void _mergePhotos(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    String source,
+  ) {
     final list = docs.map((doc) {
       final d = doc.data();
       return _Photo(
@@ -241,8 +250,10 @@ class _PhotoWallPageState extends State<PhotoWallPage>
                 top: 20,
                 right: 20,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(8),
@@ -296,8 +307,11 @@ class _PhotoWallPageState extends State<PhotoWallPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.photo_camera_rounded,
-              color: _gold.withValues(alpha: 0.3), size: 80),
+          Icon(
+            Icons.photo_camera_rounded,
+            color: _gold.withValues(alpha: 0.3),
+            size: 80,
+          ),
           const SizedBox(height: 20),
           Text(
             'Waiting for photos...',
@@ -322,7 +336,13 @@ class _PhotoWallPageState extends State<PhotoWallPage>
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
-        final cols = w > 1600 ? 5 : w > 1200 ? 4 : w > 800 ? 3 : 2;
+        final cols = w > 1600
+            ? 5
+            : w > 1200
+            ? 4
+            : w > 800
+            ? 3
+            : 2;
         final cellW = w / cols;
         // Staggered heights for visual interest
         final bottomPad = 72.0; // branding bar
@@ -390,7 +410,9 @@ class _PhotoWallPageState extends State<PhotoWallPage>
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black45,
                       borderRadius: BorderRadius.circular(24),
@@ -398,8 +420,7 @@ class _PhotoWallPageState extends State<PhotoWallPage>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.camera_alt,
-                            color: _gold, size: 16),
+                        const Icon(Icons.camera_alt, color: _gold, size: 16),
                         const SizedBox(width: 8),
                         Text(
                           photo.uploaderName!,
@@ -583,10 +604,13 @@ class _AnimatedPhotoCellState extends State<_AnimatedPhotoCell>
   @override
   void initState() {
     super.initState();
-    _effect = _TransitionType.values[_rng.nextInt(_TransitionType.values.length)];
+    _effect =
+        _TransitionType.values[_rng.nextInt(_TransitionType.values.length)];
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: _effect == _TransitionType.elastic ? 900 : 700),
+      duration: Duration(
+        milliseconds: _effect == _TransitionType.elastic ? 900 : 700,
+      ),
     );
 
     Future.delayed(widget.delay, () {
@@ -620,10 +644,7 @@ class _AnimatedPhotoCellState extends State<_AnimatedPhotoCell>
             final zoom = Curves.easeOutBack.transform(t);
             return Opacity(
               opacity: t.clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: 0.3 + 0.7 * zoom,
-                child: child,
-              ),
+              child: Transform.scale(scale: 0.3 + 0.7 * zoom, child: child),
             );
 
           case _TransitionType.twirl:
@@ -667,10 +688,7 @@ class _AnimatedPhotoCellState extends State<_AnimatedPhotoCell>
             final bounce = Curves.elasticOut.transform(t);
             return Opacity(
               opacity: t.clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: bounce,
-                child: child,
-              ),
+              child: Transform.scale(scale: bounce, child: child),
             );
         }
       },
@@ -689,12 +707,19 @@ class _AnimatedPhotoCellState extends State<_AnimatedPhotoCell>
                 placeholder: (_, __) => Container(
                   color: const Color(0xFF1A1A2A),
                   child: const Center(
-                    child: Icon(Icons.photo, color: Color(0xFF2A2A3A), size: 24),
+                    child: Icon(
+                      Icons.photo,
+                      color: Color(0xFF2A2A3A),
+                      size: 24,
+                    ),
                   ),
                 ),
                 errorWidget: (_, __, ___) => Container(
                   color: const Color(0xFF1A1A2A),
-                  child: const Icon(Icons.broken_image, color: Color(0xFF2A2A3A)),
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: Color(0xFF2A2A3A),
+                  ),
                 ),
               ),
             ),
@@ -809,8 +834,9 @@ class _LivePulseState extends State<_LivePulse>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE04C4C)
-                        .withValues(alpha: 0.4 * _ctrl.value),
+                    color: const Color(
+                      0xFFE04C4C,
+                    ).withValues(alpha: 0.4 * _ctrl.value),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),

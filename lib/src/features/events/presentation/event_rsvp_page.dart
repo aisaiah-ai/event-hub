@@ -104,13 +104,15 @@ class _EventRsvpPageState extends State<EventRsvpPage> {
     try {
       final kidsList = _kids
           .where((k) => k.nameController.text.trim().isNotEmpty)
-          .map((k) => RsvpChild(
-                name: k.nameController.text.trim(),
-                age: int.tryParse(k.ageController.text.trim()),
-                allergies: k.allergiesController.text.trim().isEmpty
-                    ? null
-                    : k.allergiesController.text.trim(),
-              ))
+          .map(
+            (k) => RsvpChild(
+              name: k.nameController.text.trim(),
+              age: int.tryParse(k.ageController.text.trim()),
+              allergies: k.allergiesController.text.trim().isEmpty
+                  ? null
+                  : k.allergiesController.text.trim(),
+            ),
+          )
           .toList();
       final rsvp = EventRsvp(
         name: name,

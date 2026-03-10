@@ -210,7 +210,9 @@ class EventRepository {
       // 2. Match by speaker subcollection sessionId field.
       final bySession = bySessionId[s.id];
       if (bySession != null) {
-        final enriched = s.withSpeaker(SessionSpeaker.fromEventSpeaker(bySession));
+        final enriched = s.withSpeaker(
+          SessionSpeaker.fromEventSpeaker(bySession),
+        );
         _log(
           'Enriched session "${s.id}" via sessionId → ${enriched.speaker?.name}',
         );
@@ -484,9 +486,7 @@ class EventRepository {
         endAt: DateTime.utc(2026, 3, 14, 22, 10),
         materials: const [],
         speakerIds: const [],
-        speaker: const SessionSpeaker(
-          name: 'Bro. Ron Ares, Bro. Sam Jutba',
-        ),
+        speaker: const SessionSpeaker(name: 'Bro. Ron Ares, Bro. Sam Jutba'),
       ),
       EventSession(
         id: 'closing',
@@ -572,8 +572,9 @@ class EventRepository {
         databaseId: 'event-hub-prod',
       );
       // The prod database uses march-cluster-2026 as the event doc ID.
-      final prodDocId =
-          eventId == 'march-assembly' ? 'march-cluster-2026' : eventId;
+      final prodDocId = eventId == 'march-assembly'
+          ? 'march-cluster-2026'
+          : eventId;
       await fetchFrom(prodDb, prodDocId);
     } catch (_) {}
 

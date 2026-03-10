@@ -156,9 +156,11 @@ class EventSession {
       }
     }
     // Resolve plain-text speaker fields when no speakerIds array is present.
-    final speakerName = (data['speaker'] as String?)?.trim() ??
+    final speakerName =
+        (data['speaker'] as String?)?.trim() ??
         (data['speakerName'] as String?)?.trim();
-    final speakerTitle = (data['speakerTitle'] as String?)?.trim() ??
+    final speakerTitle =
+        (data['speakerTitle'] as String?)?.trim() ??
         (data['speaker_title'] as String?)?.trim();
     final inlineSpeaker = speakerIdsList.isEmpty
         ? SessionSpeaker.fromApiStrings(speakerName, speakerTitle)
@@ -259,7 +261,8 @@ class EventSpeaker {
   static EventSpeaker fromFirestore(String id, Map<String, dynamic> data) {
     return EventSpeaker(
       id: id,
-      name: data['name'] as String? ??
+      name:
+          data['name'] as String? ??
           data['displayName'] as String? ??
           data['fullName'] as String? ??
           '',

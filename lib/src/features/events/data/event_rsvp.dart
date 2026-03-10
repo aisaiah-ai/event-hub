@@ -2,11 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// A child entry in an RSVP.
 class RsvpChild {
-  const RsvpChild({
-    required this.name,
-    this.age,
-    this.allergies,
-  });
+  const RsvpChild({required this.name, this.age, this.allergies});
 
   final String name;
   final int? age;

@@ -256,8 +256,13 @@ class _EventLandingPageState extends State<EventLandingPage>
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: TextButton.icon(
-                onPressed: () => context.push('/events/${event.slug}/rsvp-dashboard'),
-                icon: Icon(Icons.bar_chart_rounded, size: 18, color: theme.accent),
+                onPressed: () =>
+                    context.push('/events/${event.slug}/rsvp-dashboard'),
+                icon: Icon(
+                  Icons.bar_chart_rounded,
+                  size: 18,
+                  color: theme.accent,
+                ),
                 label: Text(
                   'View RSVP Dashboard',
                   style: TextStyle(
@@ -272,8 +277,10 @@ class _EventLandingPageState extends State<EventLandingPage>
             _TabsHeader(tab: _tab, updatedAt: _scheduleUpdatedAt, theme: theme),
             const SizedBox(height: 12),
             SizedBox(
-              height: max(MediaQuery.of(context).size.height * 0.90,
-                  _sessions.length * 140.0 + 300),
+              height: max(
+                MediaQuery.of(context).size.height * 0.90,
+                _sessions.length * 140.0 + 300,
+              ),
               child: TabBarView(
                 controller: _tab,
                 children: [
@@ -1430,8 +1437,7 @@ class _AnnouncementsEmpty extends StatelessWidget {
 class _AncopCampaignCard extends StatelessWidget {
   const _AncopCampaignCard();
 
-  static const _campaignUrl =
-      'https://ancop.app.link/FpkHxKCkzTb';
+  static const _campaignUrl = 'https://ancop.app.link/FpkHxKCkzTb';
 
   @override
   Widget build(BuildContext context) {
@@ -1464,8 +1470,10 @@ class _AncopCampaignCard extends StatelessWidget {
               children: [
                 // Badge
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFF4A340), Color(0xFFE87D2E)],
@@ -1475,8 +1483,7 @@ class _AncopCampaignCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.favorite,
-                          size: 12, color: Colors.white),
+                      const Icon(Icons.favorite, size: 12, color: Colors.white),
                       const SizedBox(width: 5),
                       Text(
                         'COMMUNITY CAMPAIGN',
@@ -1508,7 +1515,8 @@ class _AncopCampaignCard extends StatelessWidget {
                         ),
                         image: const DecorationImage(
                           image: AssetImage(
-                              'assets/images/speakers/art_barlaan.jpg'),
+                            'assets/images/speakers/art_barlaan.jpg',
+                          ),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -1564,8 +1572,11 @@ class _AncopCampaignCard extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.open_in_new,
-                                  size: 16, color: Colors.white),
+                              const Icon(
+                                Icons.open_in_new,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Support This Campaign',
