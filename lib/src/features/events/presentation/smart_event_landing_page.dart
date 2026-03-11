@@ -81,15 +81,19 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
   }
 
   void _openAppStore() {
-    // TODO: Replace with actual App Store URL
-    // launchUrl(Uri.parse('https://apps.apple.com/app/aisaiah/id...'));
-    debugPrint('[SmartLanding] openAppStore');
+    launchUrl(
+      Uri.parse('https://apps.apple.com/us/app/aisaiah/id6751301980'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   void _openPlayStore() {
-    // TODO: Replace with actual Play Store URL
-    // launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=...'));
-    debugPrint('[SmartLanding] openPlayStore');
+    launchUrl(
+      Uri.parse(
+        'https://play.google.com/store/apps/details?id=org.aisaiah.spiritualfitness&pcampaignid=web_share',
+      ),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   void _continueInBrowser() {

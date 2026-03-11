@@ -634,8 +634,8 @@ exports.e = functions.runWith({ invoker: "public" }).https.onRequest(async (req,
     }
     const deepLink = `https://events.aisaiah.org/e/${eventId}`;
     const appScheme = `aisaiah://event/${eventId}`;
-    const appStoreUrl = "https://apps.apple.com/app/aisaiah-spiritual-fitness/id6504508744";
-    const playStoreUrl = "https://play.google.com/store/apps/details?id=org.aisaiah.spiritualfitness";
+    const appStoreUrl = "https://apps.apple.com/us/app/aisaiah/id6751301980";
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=org.aisaiah.spiritualfitness&pcampaignid=web_share";
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=300");
     res.status(200).send(`<!DOCTYPE html>
