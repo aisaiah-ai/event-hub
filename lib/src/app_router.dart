@@ -53,10 +53,9 @@ DateTime? _parseEventDate(String? s) {
 
 String get _initialLocation {
   final host = Uri.base.host;
+  if (host == 'events.aisaiah.org') return '/s/mca';
   if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
-  if (host == 'localhost' || host == '127.0.0.1') {
-    return '/s/mca';
-  }
+  if (host == 'localhost' || host == '127.0.0.1') return '/s/mca';
   if (host == 'rsvp.aisaiah.org') return '/';
   return '/admin/dashboard';
 }
@@ -108,11 +107,10 @@ GoRouter createAppRouter() {
         path: '/',
         redirect: (context, state) {
           final host = Uri.base.host;
+          if (host == 'events.aisaiah.org') return '/s/mca';
           if (host == 'rsvp.aisaiah.org') return null;
           if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
-          if (host == 'localhost' || host == '127.0.0.1') {
-            return '/s/mca';
-          }
+          if (host == 'localhost' || host == '127.0.0.1') return '/s/mca';
           return '/admin/dashboard';
         },
         builder: (context, state) =>
