@@ -92,6 +92,12 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
   }
 
   Widget _buildEventsList() {
+    // Find the first upcoming event index
+    final now = DateTime.now();
+    final firstUpcomingIdx = _events.indexWhere(
+      (e) => !e.endDate.isBefore(now),
+    );
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
@@ -122,15 +128,15 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
               const SizedBox(height: 24),
 
               // Event cards
-              ..._events.map(
-                (event) => Padding(
+              for (var i = 0; i < _events.length; i++)
+                Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _EventCard(
-                    event: event,
-                    onTap: () => context.go('/events/${event.slug}'),
+                    event: _events[i],
+                    isNextUpcoming: i == firstUpcomingIdx,
+                    onTap: () => context.go('/events/${_events[i].slug}'),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -140,9 +146,14 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
 }
 
 class _EventCard extends StatefulWidget {
-  const _EventCard({required this.event, required this.onTap});
+  const _EventCard({
+    required this.event,
+    required this.onTap,
+    this.isNextUpcoming = false,
+  });
   final EventModel event;
   final VoidCallback onTap;
+  final bool isNextUpcoming;
 
   @override
   State<_EventCard> createState() => _EventCardState();
@@ -167,173 +178,245 @@ class _EventCardState extends State<_EventCard> {
       dateText = DateFormat('MMMM d, y').format(event.startDate);
     }
 
+    final cardOpacity = isPast ? 0.6 : 1.0;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
+        child: AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: _hovered ? const Color(0xFF1A1A2E) : const Color(0xFF12121E),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
+          opacity: cardOpacity,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
               color: _hovered
-                  ? const Color(0xFFF4A340).withValues(alpha: 0.3)
-                  : const Color(0xFF2A2A3A),
-            ),
-          ),
-          child: Row(
-            children: [
-              // Date block
-              Container(
-                width: 60,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4A340).withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      DateFormat('MMM').format(event.startDate).toUpperCase(),
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFF4A340),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    Text(
-                      '${event.startDate.day}',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
+                  ? const Color(0xFF1A1A2E)
+                  : const Color(0xFF12121E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isNextUpcoming
+                    ? (_hovered
+                          ? const Color(0xFFF4A340).withValues(alpha: 0.5)
+                          : const Color(0xFFF4A340).withValues(alpha: 0.3))
+                    : (_hovered
+                          ? const Color(0xFFF4A340).withValues(alpha: 0.3)
+                          : const Color(0xFF2A2A3A)),
               ),
-              const SizedBox(width: 16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: _hovered ? 0.35 : 0.2),
+                  blurRadius: _hovered ? 20 : 12,
+                  offset: Offset(0, _hovered ? 8 : 4),
+                ),
+                if (widget.isNextUpcoming)
+                  BoxShadow(
+                    color: const Color(
+                      0xFFF4A340,
+                    ).withValues(alpha: _hovered ? 0.12 : 0.06),
+                    blurRadius: 20,
+                    spreadRadius: 1,
+                  ),
+                if (_hovered && !widget.isNextUpcoming)
+                  BoxShadow(
+                    color: const Color(0xFFF4A340).withValues(alpha: 0.04),
+                    blurRadius: 16,
+                  ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Date badge
+                _DateBadge(date: event.startDate, isPast: isPast),
+                const SizedBox(width: 16),
 
-              // Event details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Tags row
-                    Row(
-                      children: [
-                        if (event.tag != null) ...[
-                          _TagChip(label: event.tag!),
-                          const SizedBox(width: 8),
+                // Event details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Tags row
+                      Row(
+                        children: [
+                          if (event.tag != null) ...[
+                            _TagChip(label: event.tag!),
+                            const SizedBox(width: 8),
+                          ],
+                          if (isPast)
+                            _TagChip(
+                              label: 'PAST',
+                              color: const Color(0xFF8888A0),
+                            )
+                          else if (event.startDate
+                                  .difference(DateTime.now())
+                                  .inDays <=
+                              7)
+                            _TagChip(
+                              label: 'UPCOMING',
+                              color: const Color(0xFF7AE3A5),
+                            ),
                         ],
-                        if (isPast)
-                          _TagChip(
-                            label: 'PAST',
-                            color: const Color(0xFF8888A0),
-                          )
-                        else if (event.startDate
-                                .difference(DateTime.now())
-                                .inDays <=
-                            7)
-                          _TagChip(
-                            label: 'UPCOMING',
-                            color: const Color(0xFF7AE3A5),
-                          ),
-                      ],
-                    ),
-                    if (event.tag != null || isPast) const SizedBox(height: 6),
-                    // Event name
-                    Text(
-                      event.name,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // Date + location
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 13,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          dateText,
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withValues(alpha: 0.6),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (event.locationName.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              '\u00B7',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 13,
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              event.locationName,
-                              style: GoogleFonts.inter(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (event.shortDescription != null) ...[
-                      const SizedBox(height: 6),
+                      if (event.tag != null || isPast)
+                        const SizedBox(height: 6),
+                      // Event name
                       Text(
-                        event.shortDescription!,
+                        event.name,
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF8888A0),
-                          fontSize: 12,
-                          height: 1.4,
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 6),
+                      // Date + location
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 13,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            dateText,
+                            style: GoogleFonts.inter(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (event.locationName.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Text(
+                                '\u00B7',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 13,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                event.locationName,
+                                style: GoogleFonts.inter(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (event.shortDescription != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          event.shortDescription!,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF8888A0),
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
-            ],
+                const SizedBox(width: 12),
+                AnimatedPadding(
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(right: _hovered ? 0 : 2),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: Colors.white.withValues(alpha: _hovered ? 0.5 : 0.3),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DateBadge extends StatelessWidget {
+  const _DateBadge({required this.date, required this.isPast});
+  final DateTime date;
+  final bool isPast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isPast
+              ? [
+                  const Color(0xFF8888A0).withValues(alpha: 0.10),
+                  const Color(0xFF8888A0).withValues(alpha: 0.05),
+                ]
+              : [
+                  const Color(0xFFF4A340).withValues(alpha: 0.14),
+                  const Color(0xFFF4A340).withValues(alpha: 0.06),
+                ],
+        ),
+        border: Border.all(
+          color: isPast
+              ? const Color(0xFF8888A0).withValues(alpha: 0.12)
+              : const Color(0xFFF4A340).withValues(alpha: 0.12),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            DateFormat('MMM').format(date).toUpperCase(),
+            style: GoogleFonts.inter(
+              color: isPast ? const Color(0xFF8888A0) : const Color(0xFFF4A340),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+          ),
+          Text(
+            '${date.day}',
+            style: GoogleFonts.inter(
+              color: isPast
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              height: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }
