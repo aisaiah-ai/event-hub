@@ -125,6 +125,7 @@ GoRouter createAppRouter() {
           const shortcuts = {
             'mca': 'march-cluster-2026',
             'nlc': 'nlc-2026',
+            'refresh': 'refresh-seminar-jax-2026',
             'twr': 'twr-southeast-b-2026',
           };
           final code = state.pathParameters['shortCode'] ?? '';

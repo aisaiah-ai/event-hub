@@ -116,6 +116,25 @@ class EventRepository {
         'RSVP by March 14.',
   );
 
+  static final EventModel _refreshSeminarFallback = EventModel(
+    id: 'refresh-seminar-jax-2026',
+    slug: 'refresh-seminar-jax-2026',
+    name: '"REFRESH" Seminar in Jacksonville',
+    startDate: DateTime(2026, 4, 11),
+    endDate: DateTime(2026, 4, 11),
+    locationName: 'Jacksonville, Florida',
+    address: 'Jacksonville, FL',
+    isActive: true,
+    allowRsvp: true,
+    allowCheckin: false,
+    metadata: {},
+    organizationName: 'CFC SE-B Region (FL, GA, AL, MS)',
+    shortDescription:
+        'A leadership refresh seminar covering New Evangelization, Basic Pastoring, Communication, '
+        'Building Our Homes for God, and more. Speakers: Joe Duran & Monina Duran, M.D.',
+    tag: 'Regional Seminar',
+  );
+
   static final EventModel _twrSoutheastRetreatFallback = EventModel(
     id: 'twr-southeast-b-2026',
     slug: 'twr-southeast-b-2026',
@@ -139,6 +158,7 @@ class EventRepository {
     final events = <EventModel>[
       _nlcFallback,
       _marchCluster2026Fallback,
+      _refreshSeminarFallback,
       _twrSoutheastRetreatFallback,
     ];
 
