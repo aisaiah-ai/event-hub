@@ -15,8 +15,7 @@ import '../event_tokens.dart';
 import '../widgets/event_page_scaffold.dart';
 
 /// Event landing page — /events/:eventSlug
-/// Fetches event by slug, shows 404 if not found.
-/// Uses dynamic branding (logo, background) from event.
+/// Full-screen hero with countdown, action buttons, and live schedule.
 class EventLandingPage extends StatefulWidget {
   const EventLandingPage({
     super.key,
@@ -50,8 +49,8 @@ class _EventLandingPageState extends State<EventLandingPage>
     super.initState();
     _tab = TabController(length: 2, vsync: this);
     _repo = widget.repository ?? EventRepository();
-    // Rebuild "Updated X mins ago" label periodically.
-    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+    // Tick every second for countdown, also refreshes schedule "ago" label.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
     _load();
@@ -83,25 +82,12 @@ class _EventLandingPageState extends State<EventLandingPage>
       _sessions = [];
     });
     try {
-      // ignore: avoid_print
-      print('[EventLandingPage] loading slug=${widget.eventSlug}');
       final event = await _repo.getEventBySlug(widget.eventSlug);
-      // ignore: avoid_print
-      print('[EventLandingPage] event: id=${event?.id} name=${event?.name}');
       if (event != null) {
-        // getSessions internally resolves speakers and embeds SessionSpeaker.
         final sessions = await _repo.getSessions(
           event.id,
           slug: widget.eventSlug,
         );
-        // ignore: avoid_print
-        print('[EventLandingPage] loaded ${sessions.length} sessions');
-        for (final s in sessions) {
-          // ignore: avoid_print
-          print(
-            '[EventLandingPage]   session: ${s.id} speaker=${s.speaker?.name}',
-          );
-        }
         // Filter out the background check-in session from schedule display.
         final visible = sessions
             .where((s) => s.id != 'main' && s.id != 'main-checkin')
@@ -113,16 +99,12 @@ class _EventLandingPageState extends State<EventLandingPage>
           _loading = false;
         });
       } else {
-        // ignore: avoid_print
-        print('[EventLandingPage] event not found');
         setState(() {
           _event = null;
           _loading = false;
         });
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('[EventLandingPage] error: $e');
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -141,12 +123,8 @@ class _EventLandingPageState extends State<EventLandingPage>
         child: CircularProgressIndicator(color: EventTokens.textOffWhite),
       );
     }
-    if (_error != null) {
-      return _buildError();
-    }
-    if (_event == null) {
-      return _buildNotFound();
-    }
+    if (_error != null) return _buildError();
+    if (_event == null) return _buildNotFound();
     return _buildContent(_event!);
   }
 
@@ -223,76 +201,100 @@ class _EventLandingPageState extends State<EventLandingPage>
 
   Widget _buildContent(EventModel event) {
     final theme = _EventTheme.from(event);
+    final now = DateTime.now();
+
+    // Sort sessions: upcoming/current first, past at bottom.
+    final upcoming = <EventSession>[];
+    final past = <EventSession>[];
+    for (final s in _sessions) {
+      if (s.endAt != null && s.endAt!.isBefore(now)) {
+        past.add(s);
+      } else {
+        upcoming.add(s);
+      }
+    }
+    final sortedSessions = [...upcoming, ...past];
+
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          children: [
-            _EventHeader(
-              event: event,
-              theme: theme,
-              onOpenMaps: () => _openMaps(event.effectiveVenue),
-            ),
-            if (event.shortDescription != null &&
-                event.shortDescription!.isNotEmpty)
-              _ShortDescriptionBlock(
-                text: event.shortDescription!,
-                theme: theme,
-              ),
-            _RegisterButton(
-              event: event,
-              theme: theme,
-              onRegister: () {
-                final uri = Uri(
-                  path: '/events/${event.slug}/rsvp',
-                  queryParameters: widget.queryParams.isNotEmpty
-                      ? widget.queryParams
-                      : null,
-                );
-                context.push(uri.toString());
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: TextButton.icon(
-                onPressed: () =>
-                    context.push('/events/${event.slug}/rsvp-dashboard'),
-                icon: Icon(
-                  Icons.bar_chart_rounded,
-                  size: 18,
-                  color: theme.accent,
-                ),
-                label: Text(
-                  'View RSVP Dashboard',
-                  style: TextStyle(
-                    color: theme.accent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+        child: CustomScrollView(
+          slivers: [
+            // ── Full-screen hero section ──
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.85,
+                child: _HeroSection(
+                  event: event,
+                  theme: theme,
+                  onOpenMaps: () => _openMaps(event.effectiveVenue),
+                  onRegister: () {
+                    final uri = Uri(
+                      path: '/events/${event.slug}/rsvp',
+                      queryParameters: widget.queryParams.isNotEmpty
+                          ? widget.queryParams
+                          : null,
+                    );
+                    context.push(uri.toString());
+                  },
+                  onViewAgenda: () {
+                    // Scroll down to schedule
+                    Scrollable.ensureVisible(
+                      _scheduleKey.currentContext ?? context,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  onSpeakers: () =>
+                      context.push('/events/${event.slug}/rsvp-dashboard'),
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            _TabsHeader(tab: _tab, updatedAt: _scheduleUpdatedAt, theme: theme),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: max(
-                MediaQuery.of(context).size.height * 0.90,
-                _sessions.length * 140.0 + 300,
+
+            // ── Schedule section ──
+            SliverToBoxAdapter(
+              key: _scheduleKey,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    _TabsHeader(
+                      tab: _tab,
+                      updatedAt: _scheduleUpdatedAt,
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
-              child: TabBarView(
-                controller: _tab,
-                children: [
-                  _ScheduleTab(
-                    event: event,
-                    sessions: _sessions,
-                    theme: theme,
-                    onCheckIn: () =>
-                        context.push('/events/${event.slug}/checkin'),
+            ),
+
+            // ── Tab content ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  height: max(
+                    MediaQuery.of(context).size.height * 0.90,
+                    sortedSessions.length * 140.0 + 300,
                   ),
-                  const _AnnouncementsEmpty(),
-                ],
+                  child: TabBarView(
+                    controller: _tab,
+                    children: [
+                      _ScheduleTab(
+                        event: event,
+                        sessions: sortedSessions,
+                        pastSessionIds:
+                            past.map((s) => s.id).toSet(),
+                        theme: theme,
+                        onCheckIn: () =>
+                            context.push('/events/${event.slug}/checkin'),
+                      ),
+                      const _AnnouncementsEmpty(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -300,6 +302,8 @@ class _EventLandingPageState extends State<EventLandingPage>
       ),
     );
   }
+
+  final _scheduleKey = GlobalKey();
 }
 
 // ─── Design tokens (dark theme matching mockup) ─────────────────────────────
@@ -310,7 +314,6 @@ const _kRail = Color(0x33FFFFFF);
 const _kGreenAccent = Color(0xFF7AE3A5);
 
 /// Lightweight branding token holder derived from [EventModel].
-/// Falls back to the dark-theme defaults when event branding is absent.
 class _EventTheme {
   const _EventTheme({
     required this.primary,
@@ -332,18 +335,24 @@ class _EventTheme {
   );
 }
 
-// ─── Event Header (logo + title, date, venue, Get Directions) ─────────────────
+// ─── Full-screen Hero Section ─────────────────────────────────────────────────
 
-class _EventHeader extends StatelessWidget {
-  const _EventHeader({
+class _HeroSection extends StatelessWidget {
+  const _HeroSection({
     required this.event,
     required this.theme,
     required this.onOpenMaps,
+    required this.onRegister,
+    required this.onViewAgenda,
+    required this.onSpeakers,
   });
 
   final EventModel event;
   final _EventTheme theme;
   final VoidCallback onOpenMaps;
+  final VoidCallback onRegister;
+  final VoidCallback onViewAgenda;
+  final VoidCallback onSpeakers;
 
   @override
   Widget build(BuildContext context) {
@@ -351,119 +360,335 @@ class _EventHeader extends StatelessWidget {
     final logoUrl = event.effectiveLogoUrl;
     final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.cardBackgroundColor.withOpacity(0.68),
-            theme.cardBackgroundColor.withOpacity(0.62),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    // Time range from metadata
+    final rallyTime = event.rallyTimeText;
+    final dinnerTime = event.dinnerTimeText;
+    String timeRange = '';
+    if (rallyTime != null) {
+      final startPart = rallyTime.split('–').first.split('-').first.trim();
+      if (dinnerTime != null) {
+        final endPart = dinnerTime.split('–').last.split('-').last.trim();
+        timeRange = '$startPart – $endPart';
+      } else {
+        timeRange = rallyTime;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const Spacer(flex: 2),
+
+          // Logo
           if (hasLogo) ...[
-            _EventHeaderLogo(logoUrl: logoUrl),
-            const SizedBox(width: 16),
+            _EventHeaderLogo(logoUrl: logoUrl, size: 100),
+            const SizedBox(height: 16),
           ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.name,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.92),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    height: 1.3,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  event.displayDate,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.92),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (venue.name.isNotEmpty)
-                  Text(
-                    venue.name,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.92),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                if (venue.street.isNotEmpty)
-                  Text(
-                    venue.street,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.70),
-                      fontSize: 14,
-                    ),
-                  ),
-                if (venue.city.isNotEmpty ||
-                    venue.state.isNotEmpty ||
-                    venue.zip.isNotEmpty)
-                  Text(
-                    [
-                      venue.city,
-                      venue.state,
-                      venue.zip,
-                    ].where((s) => s.isNotEmpty).join(' '),
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.70),
-                      fontSize: 14,
-                    ),
-                  ),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: (venue.fullAddress.isNotEmpty || venue.name.isNotEmpty)
-                      ? onOpenMaps
-                      : null,
-                  child: Text(
-                    'Get Directions',
-                    style: TextStyle(
-                      color: theme.primary,
-                      fontWeight: FontWeight.w700,
-                      decoration: TextDecoration.underline,
-                      decorationColor: theme.primary,
-                    ),
-                  ),
-                ),
-              ],
+
+          // Event name
+          Text(
+            event.name,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.95),
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              letterSpacing: -0.3,
             ),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
           ),
+
+          const SizedBox(height: 14),
+
+          // Date, time, location row
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 6,
+            children: [
+              _InfoChip(
+                icon: Icons.calendar_today_rounded,
+                label: DateFormat('MMMM d, yyyy').format(event.startDate),
+              ),
+              if (timeRange.isNotEmpty)
+                _InfoChip(
+                  icon: Icons.access_time_rounded,
+                  label: timeRange,
+                ),
+              if (venue.name.isNotEmpty)
+                _InfoChip(
+                  icon: Icons.location_on_outlined,
+                  label: venue.city.isNotEmpty
+                      ? '${venue.name}, ${venue.city}'
+                      : venue.name,
+                  onTap: onOpenMaps,
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _ActionButton(
+                label: 'Register Now',
+                onTap: onRegister,
+                textColor: theme.accent,
+                borderColor: theme.accent.withOpacity(0.4),
+              ),
+              const SizedBox(width: 10),
+              _ActionButton(
+                label: 'View Agenda',
+                onTap: onViewAgenda,
+                filled: true,
+                fillColor: theme.primary,
+                textColor: Colors.white,
+                borderColor: theme.primary,
+              ),
+              const SizedBox(width: 10),
+              _ActionButton(
+                label: 'Speakers',
+                onTap: onSpeakers,
+                textColor: Colors.white.withOpacity(0.85),
+                borderColor: Colors.white.withOpacity(0.2),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // Countdown timer
+          _CountdownTimer(eventDate: event.startDate, theme: theme),
+
+          const Spacer(flex: 3),
+
+          // Scroll hint
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Colors.white.withOpacity(0.4),
+            size: 32,
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 }
 
-/// Logo in header: CachedNetworkImage for URLs, Image.asset for assets.
+// ─── Info chip (date, time, location) ─────────────────────────────────────────
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.white.withOpacity(0.6)),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.85),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: child);
+    }
+    return child;
+  }
+}
+
+// ─── Action Button ────────────────────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.onTap,
+    required this.textColor,
+    required this.borderColor,
+    this.filled = false,
+    this.fillColor,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final Color textColor;
+  final Color borderColor;
+  final bool filled;
+  final Color? fillColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: filled ? fillColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor, width: 1.2),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Countdown Timer ──────────────────────────────────────────────────────────
+
+class _CountdownTimer extends StatelessWidget {
+  const _CountdownTimer({required this.eventDate, required this.theme});
+
+  final DateTime eventDate;
+  final _EventTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final target = DateTime(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day,
+    );
+    final diff = target.difference(now);
+
+    // If event is today or past, show "Event is live!" or "Event has ended"
+    if (diff.isNegative && diff.inDays < -1) {
+      return _buildLabel('Event has ended');
+    }
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+
+    if (days <= 0 && hours <= 0 && minutes <= 0) {
+      return _buildLabel('Event is live!');
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141420).withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CountdownUnit(value: days, label: 'DAYS'),
+          _countdownSeparator(),
+          _CountdownUnit(value: hours, label: 'HOURS'),
+          _countdownSeparator(),
+          _CountdownUnit(value: minutes, label: 'MIN'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141420).withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: theme.accent,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _countdownSeparator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Text(
+        ':',
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.5),
+          fontSize: 28,
+          fontWeight: FontWeight.w300,
+        ),
+      ),
+    );
+  }
+}
+
+class _CountdownUnit extends StatelessWidget {
+  const _CountdownUnit({required this.value, required this.label});
+
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$value',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Event Header Logo ────────────────────────────────────────────────────────
+
 class _EventHeaderLogo extends StatelessWidget {
-  const _EventHeaderLogo({required this.logoUrl});
+  const _EventHeaderLogo({required this.logoUrl, this.size = 72});
 
   final String logoUrl;
+  final double size;
 
   static bool _isAssetPath(String path) => path.startsWith('assets/');
 
@@ -471,113 +696,23 @@ class _EventHeaderLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     if (_isAssetPath(logoUrl)) {
       return SizedBox(
-        height: 72,
-        width: 120,
+        height: size,
+        width: size * 1.5,
         child: Image.asset(
           logoUrl,
           fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => const SizedBox(height: 72, width: 120),
+          errorBuilder: (_, _, _) => SizedBox(height: size, width: size * 1.5),
         ),
       );
     }
     return SizedBox(
-      height: 72,
-      width: 120,
+      height: size,
+      width: size * 1.5,
       child: CachedNetworkImage(
         imageUrl: logoUrl,
         fit: BoxFit.contain,
         fadeInDuration: const Duration(milliseconds: 300),
         errorWidget: (_, _, _) => const SizedBox.shrink(),
-      ),
-    );
-  }
-}
-
-// ─── Short event description (below header, above register button) ─────────────
-
-class _ShortDescriptionBlock extends StatelessWidget {
-  const _ShortDescriptionBlock({required this.text, required this.theme});
-
-  final String text;
-  final _EventTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12, bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.cardBackgroundColor.withOpacity(0.68),
-            theme.cardBackgroundColor.withOpacity(0.62),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 15,
-          height: 1.4,
-          color: Colors.white.withOpacity(0.92),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Register to Event (secondary button) ─────────────────────────────────────
-
-class _RegisterButton extends StatelessWidget {
-  const _RegisterButton({
-    required this.event,
-    required this.theme,
-    required this.onRegister,
-  });
-
-  final EventModel event;
-  final _EventTheme theme;
-  final VoidCallback onRegister;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRegistered = event.isRegistered == true;
-    final isPending = event.registrationStatus?.toLowerCase() == 'pending';
-
-    String label;
-    if (isRegistered) {
-      label = 'Registered ✓';
-    } else if (isPending) {
-      label = 'Pending Approval';
-    } else {
-      label = 'Register to Event';
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 0),
-      child: SizedBox(
-        height: 48,
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: isRegistered ? null : onRegister,
-          style: OutlinedButton.styleFrom(
-            backgroundColor: theme.accent.withValues(alpha: 0.18),
-            foregroundColor: theme.accent,
-            side: BorderSide(color: theme.accent.withValues(alpha: 0.35)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            elevation: 0,
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-        ),
       ),
     );
   }
@@ -747,12 +882,14 @@ class _ScheduleTab extends StatelessWidget {
   const _ScheduleTab({
     required this.event,
     required this.sessions,
+    required this.pastSessionIds,
     required this.theme,
     required this.onCheckIn,
   });
 
   final EventModel event;
   final List<EventSession> sessions;
+  final Set<String> pastSessionIds;
   final _EventTheme theme;
   final VoidCallback onCheckIn;
 
@@ -768,19 +905,65 @@ class _ScheduleTab extends StatelessWidget {
       );
     }
 
+    // Find separator index between upcoming and past
+    final firstPastIndex = sessions.indexWhere(
+      (s) => pastSessionIds.contains(s.id),
+    );
+
     return ListView.separated(
       padding: const EdgeInsets.only(top: 6, bottom: 120),
-      itemCount: sessions.length + 1, // +1 for ANCOP campaign card
+      itemCount: sessions.length +
+          1 + // ANCOP campaign card
+          (firstPastIndex > 0 ? 1 : 0), // past divider
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
-        if (i < sessions.length) {
-          final s = sessions[i];
-          return _SessionTimelineCard(
-            session: s,
-            eventSlug: event.slug,
-            showCheckIn: event.allowCheckin,
-            theme: theme,
-            onCheckIn: onCheckIn,
+        // Insert "Past Sessions" divider
+        if (firstPastIndex > 0 && i == firstPastIndex) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(height: 1, color: Colors.white.withOpacity(0.08)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'PAST',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.35),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Container(height: 1, color: Colors.white.withOpacity(0.08)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Adjust index for past divider
+        final sessionIndex = firstPastIndex > 0 && i > firstPastIndex
+            ? i - 1
+            : i;
+
+        if (sessionIndex < sessions.length) {
+          final s = sessions[sessionIndex];
+          final isPast = pastSessionIds.contains(s.id);
+          return Opacity(
+            opacity: isPast ? 0.5 : 1.0,
+            child: _SessionTimelineCard(
+              session: s,
+              eventSlug: event.slug,
+              showCheckIn: event.allowCheckin,
+              theme: theme,
+              onCheckIn: onCheckIn,
+              isPast: isPast,
+            ),
           );
         }
         // ANCOP Campaign card at the end
@@ -799,20 +982,28 @@ class _SessionTimelineCard extends StatelessWidget {
     required this.showCheckIn,
     required this.theme,
     required this.onCheckIn,
+    this.isPast = false,
   });
 
   final EventSession session;
-
-  /// Event slug forwarded to [_SpeakerRow] so it can pass [eventSlug] to
-  /// [SpeakerDetailsPage] for branding and speaker sub-collection lookup.
   final String eventSlug;
   final bool showCheckIn;
   final _EventTheme theme;
   final VoidCallback onCheckIn;
+  final bool isPast;
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '';
     return DateFormat.jm().format(dt);
+  }
+
+  /// Check if this session is currently happening.
+  bool get _isLive {
+    final now = DateTime.now();
+    return session.startAt != null &&
+        session.endAt != null &&
+        now.isAfter(session.startAt!) &&
+        now.isBefore(session.endAt!);
   }
 
   @override
@@ -822,6 +1013,7 @@ class _SessionTimelineCard extends StatelessWidget {
         session.materials.isNotEmpty ||
         (session.description != null && session.description!.isNotEmpty);
     final isMainCheckIn = session.id == 'main-checkin';
+    final isLive = _isLive;
 
     return Container(
       decoration: BoxDecoration(
@@ -844,10 +1036,12 @@ class _SessionTimelineCard extends StatelessWidget {
               ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isMainCheckIn
-              ? theme.checkInButtonColor.withOpacity(0.25)
-              : Colors.white.withOpacity(0.05),
-          width: 1,
+          color: isLive
+              ? _kGreenAccent.withOpacity(0.4)
+              : isMainCheckIn
+                  ? theme.checkInButtonColor.withOpacity(0.25)
+                  : Colors.white.withOpacity(0.05),
+          width: isLive ? 1.5 : 1,
         ),
         boxShadow: const [
           BoxShadow(
@@ -864,13 +1058,39 @@ class _SessionTimelineCard extends StatelessWidget {
           // Time label
           SizedBox(
             width: 76,
-            child: Text(
-              _formatTime(session.startAt),
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.92),
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _formatTime(session.startAt),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.92),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (isLive)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kGreenAccent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'LIVE',
+                      style: TextStyle(
+                        color: _kGreenAccent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
@@ -883,7 +1103,9 @@ class _SessionTimelineCard extends StatelessWidget {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: theme.primary.withValues(alpha: 0.9),
+                  color: isLive
+                      ? _kGreenAccent
+                      : theme.primary.withValues(alpha: 0.9),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -893,12 +1115,11 @@ class _SessionTimelineCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Content: left-flow vertical structure
+          // Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title row
                 Text(
                   session.displayName,
                   style: TextStyle(
@@ -979,7 +1200,7 @@ class _SessionTimelineCard extends StatelessWidget {
   }
 }
 
-// ─── Session check-in button (left-aligned; main check-in full width) ─────────
+// ─── Session check-in button ──────────────────────────────────────────────────
 
 class _SessionCheckInButton extends StatelessWidget {
   const _SessionCheckInButton({
@@ -1064,15 +1285,12 @@ class _SpeakerRow extends StatelessWidget {
   });
 
   final SessionSpeaker speaker;
-
-  /// Event slug passed to [SpeakerDetailsPage] for branding + sub-collection lookup.
   final String eventSlug;
   final _EventTheme theme;
 
   void _navigate(BuildContext context) {
     final speakerId = speaker.speakerId;
     if (speakerId != null && speakerId.isNotEmpty) {
-      // Full profile: fetch speaker document from Firestore.
       context.push(
         Uri(
           path: '/speaker/$speakerId',
@@ -1080,8 +1298,6 @@ class _SpeakerRow extends StatelessWidget {
         ).toString(),
       );
     } else {
-      // Fallback: speaker came from denormalized API strings — no document ID.
-      // Show the lightweight preview we already have.
       showModalBottomSheet<void>(
         context: context,
         backgroundColor: Colors.transparent,
@@ -1138,7 +1354,6 @@ class _SpeakerRow extends StatelessWidget {
               ],
             ),
           ),
-          // Chevron only when a full profile is navigable (speakerId known).
           if (speaker.speakerId != null)
             const Icon(
               Icons.chevron_right_rounded,
@@ -1151,10 +1366,7 @@ class _SpeakerRow extends StatelessWidget {
   }
 }
 
-/// Returns the correct image widget for a [SessionSpeaker] photo:
-/// - asset path  → Image.asset  (bundled, works offline)
-/// - network URL → Image.network (Firebase Storage download URL)
-/// - absent      → initials avatar fallback
+/// Speaker photo helper.
 Widget _speakerPhoto(SessionSpeaker speaker, {double size = 38}) {
   final url = speaker.imageUrl;
   if (url == null || url.isEmpty) return _SpeakerInitialsAvatar(speaker.name);
@@ -1178,23 +1390,19 @@ Widget _speakerPhoto(SessionSpeaker speaker, {double size = 38}) {
   );
 }
 
-/// Polished initials avatar — derives background color from the speaker's name
-/// so each person gets a consistent, distinct color.
 class _SpeakerInitialsAvatar extends StatelessWidget {
   const _SpeakerInitialsAvatar(this.name);
   final String name;
 
-  /// Deterministic color from name string — cycles through a palette of
-  /// pleasant accent colors that look good on dark backgrounds.
   static const _palette = [
-    Color(0xFF6D4CFF), // purple
-    Color(0xFF3E7D4C), // green
-    Color(0xFFE0B646), // gold
-    Color(0xFF4C7FE0), // blue
-    Color(0xFFE0614C), // coral
-    Color(0xFF4CE0C6), // teal
-    Color(0xFFB44CE0), // violet
-    Color(0xFFE04CAA), // pink
+    Color(0xFF6D4CFF),
+    Color(0xFF3E7D4C),
+    Color(0xFFE0B646),
+    Color(0xFF4C7FE0),
+    Color(0xFFE0614C),
+    Color(0xFF4CE0C6),
+    Color(0xFFB44CE0),
+    Color(0xFFE04CAA),
   ];
 
   Color _colorFor(String name) {
@@ -1254,7 +1462,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
             Container(
               width: 40,
               height: 4,
@@ -1264,8 +1471,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
-            // Large avatar
             Container(
               width: 80,
               height: 80,
@@ -1280,8 +1485,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
               child: _speakerPhoto(speaker, size: 80),
             ),
             const SizedBox(height: 14),
-
-            // Name
             Text(
               speaker.name,
               style: const TextStyle(
@@ -1291,8 +1494,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-
-            // Title
             if (speaker.title != null && speaker.title!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -1305,8 +1506,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-
-            // Bio
             if (speaker.bio != null && speaker.bio!.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
@@ -1328,7 +1527,6 @@ class _SpeakerBottomSheet extends StatelessWidget {
                 ),
               ),
             ],
-
             const SizedBox(height: 28),
           ],
         ),
@@ -1375,7 +1573,6 @@ class _MaterialRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
-              // Download icon box
               Container(
                 width: 34,
                 height: 34,
@@ -1503,7 +1700,6 @@ class _AncopCampaignCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Art Barlaan photo
                     Container(
                       width: 64,
                       height: 64,
@@ -1522,7 +1718,6 @@ class _AncopCampaignCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Text
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

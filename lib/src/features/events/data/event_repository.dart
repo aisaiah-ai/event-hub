@@ -34,6 +34,24 @@ class EventRepository {
     if (fs == null) {
       return slug == 'march-cluster-2026' ? _marchCluster2026Fallback : null;
     }
+
+    // For known slugs, skip the .where() query (avoids permission/index issues
+    // with the Firestore web SDK) and go directly to doc-by-ID lookup.
+    if (slug == 'march-cluster-2026') {
+      try {
+        final byId = await getEventById('march-assembly');
+        if (byId != null) return _patchEvent(byId);
+      } catch (_) {}
+      return _marchCluster2026Fallback;
+    }
+    if (slug == 'nlc' || slug == 'nlc-2026') {
+      try {
+        final byId = await getEventById('nlc-2026');
+        if (byId != null) return byId;
+      } catch (_) {}
+      return _nlcFallback;
+    }
+
     try {
       final snapshot = await fs
           .collection(_eventsCollection)
@@ -44,25 +62,10 @@ class EventRepository {
       if (snapshot.docs.isNotEmpty) {
         return _patchEvent(EventModel.fromFirestore(snapshot.docs.first));
       }
-      // NLC: event doc is at events/nlc-2026; slug query may miss if slug field differs
-      if (slug == 'nlc-2026') {
-        final byId = await getEventById('nlc-2026');
-        if (byId != null) return byId;
-        return _nlcFallback;
-      }
-      // March Assembly: seeded as events/march-assembly with slug march-cluster-2026
-      if (slug == 'march-cluster-2026') {
-        final byId = await getEventById('march-assembly');
-        if (byId != null) return _patchEvent(byId);
-      }
     } catch (e) {
-      if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
-      if (slug == 'nlc' || slug == 'nlc-2026') return _nlcFallback;
       rethrow;
     }
 
-    if (slug == 'march-cluster-2026') return _marchCluster2026Fallback;
-    if (slug == 'nlc' || slug == 'nlc-2026') return _nlcFallback;
     return null;
   }
 
@@ -111,6 +114,53 @@ class EventRepository {
         'The rally runs 3:00–6:00 PM; dinner and celebration 7:00–9:00 PM. '
         'RSVP by March 14.',
   );
+
+  static final EventModel _twrSoutheastRetreatFallback = EventModel(
+    id: 'twr-southeast-b-2026',
+    slug: 'twr-southeast-b-2026',
+    name: 'TWR Southeast – B: Theme Weekend Retreat',
+    startDate: DateTime(2026, 6, 6),
+    endDate: DateTime(2026, 6, 7),
+    locationName: 'Florida',
+    address: 'Florida',
+    isActive: true,
+    allowRsvp: true,
+    allowCheckin: false,
+    metadata: {},
+    organizationName: 'Couples for Christ',
+    shortDescription:
+        'In the One, we are one. Join us for a powerful weekend of faith, unity, and spiritual renewal.',
+    tag: 'Regional Event',
+  );
+
+  /// List upcoming events (current + future). Used by EventsIndexPage.
+  Future<List<EventModel>> listUpcomingEvents() async {
+    final events = <EventModel>[
+      _marchCluster2026Fallback,
+      _twrSoutheastRetreatFallback,
+    ];
+
+    // Try to load events from Firestore too
+    final fs = _firestore;
+    if (fs != null) {
+      try {
+        final snap = await fs
+            .collection(_eventsCollection)
+            .where('isActive', isEqualTo: true)
+            .get();
+        for (final doc in snap.docs) {
+          final event = EventModel.fromFirestore(doc);
+          // Don't duplicate fallback events
+          if (!events.any((e) => e.id == event.id || e.slug == event.slug)) {
+            events.add(event);
+          }
+        }
+      } catch (_) {}
+    }
+
+    events.sort((a, b) => a.startDate.compareTo(b.startDate));
+    return events;
+  }
 
   /// Get the currently active event (for events.aisaiah.org root redirect).
   /// In debug mode, falls back to march-cluster-2026 if no active event or on error.
@@ -335,6 +385,7 @@ class EventRepository {
       shortDescription: e.shortDescription,
       cardBackgroundColorHex: e.cardBackgroundColorHex,
       checkInButtonColorHex: e.checkInButtonColorHex,
+      tag: e.tag,
     );
   }
 
@@ -594,11 +645,13 @@ class EventRepository {
 
     Future<void> fetchFrom(FirebaseFirestore db, String docId) async {
       try {
+        print('[listRegistrants] fetching events/$docId/registrants');
         final snap = await db
             .collection(_eventsCollection)
             .doc(docId)
             .collection('registrants')
             .get();
+        print('[listRegistrants] got ${snap.docs.length} from $docId');
         for (final d in snap.docs) {
           if (!seen.add(d.id)) continue;
           final data = d.data();
@@ -629,7 +682,9 @@ class EventRepository {
             'checkedIn': data['eventAttendance'] != null,
           });
         }
-      } catch (_) {}
+      } catch (e) {
+        print('[listRegistrants] ERROR for $docId: $e');
+      }
     }
 
     await fetchFrom(fs, eventId);

@@ -1,36 +1,49 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../config/firestore_config.dart';
 import '../data/event_model.dart';
 import '../data/event_repository.dart';
-import '../data/event_rsvp.dart';
 import '../widgets/event_page_scaffold.dart';
 
-/// RSVP Snapshot Dashboard — dark-themed summary of RSVP data for an event.
+/// Check-In Dashboard — live-updating summary of event check-ins.
 ///
-/// Route: /events/:eventSlug/rsvp-dashboard
-class RsvpDashboardPage extends StatefulWidget {
-  const RsvpDashboardPage({super.key, required this.eventSlug});
+/// Route: /events/:eventSlug/checkin-dashboard
+class CheckinDashboardPage extends StatefulWidget {
+  const CheckinDashboardPage({super.key, required this.eventSlug});
 
   final String eventSlug;
 
   @override
-  State<RsvpDashboardPage> createState() => _RsvpDashboardPageState();
+  State<CheckinDashboardPage> createState() => _CheckinDashboardPageState();
 }
 
-class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
+class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
   final _repo = EventRepository();
   EventModel? _event;
-  List<EventRsvp> _rsvps = [];
-  List<Map<String, dynamic>> _registrants = [];
   bool _loading = true;
   String? _error;
+
+  // Live data
+  List<Map<String, dynamic>> _registrants = [];
+  StreamSubscription? _registrantsSub;
+  StreamSubscription? _registrantsProdSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _registrantsSub?.cancel();
+    _registrantsProdSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -41,24 +54,105 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     try {
       final event = await _repo.getEventBySlug(widget.eventSlug);
       if (event == null) throw StateError('Event not found');
-      print('[RsvpDashboard] event.id=${event.id}');
-      final results = await Future.wait([
-        _repo.listRsvps(event.id),
-        _repo.listRegistrants(event.id),
-      ]);
-      final rsvps = results[0] as List<EventRsvp>;
-      final regs = results[1] as List<Map<String, dynamic>>;
-      print('[RsvpDashboard] rsvps=${rsvps.length} registrants=${regs.length}');
       setState(() {
         _event = event;
-        _rsvps = rsvps;
-        _registrants = regs;
         _loading = false;
       });
+      _startLiveUpdates(event.id);
     } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;
+      });
+    }
+  }
+
+  void _startLiveUpdates(String eventId) {
+    _registrantsSub?.cancel();
+    _registrantsProdSub?.cancel();
+
+    final fs = FirestoreConfig.instanceOrNull;
+    if (fs == null) return;
+
+    // Listen to default database
+    _registrantsSub = fs
+        .collection('events')
+        .doc(eventId)
+        .collection('registrants')
+        .snapshots()
+        .listen((snap) {
+      _mergeRegistrants(snap.docs, 'default');
+    });
+
+    // Listen to prod database
+    try {
+      final prodDb = FirebaseFirestore.instanceFor(
+        app: fs.app,
+        databaseId: 'event-hub-prod',
+      );
+      final prodDocId =
+          eventId == 'march-assembly' ? 'march-cluster-2026' : eventId;
+      _registrantsProdSub = prodDb
+          .collection('events')
+          .doc(prodDocId)
+          .collection('registrants')
+          .snapshots()
+          .listen((snap) {
+        _mergeRegistrants(snap.docs, 'prod');
+      });
+    } catch (_) {}
+  }
+
+  final Map<String, Map<String, dynamic>> _registrantMap = {};
+  final Set<String> _seenDefault = {};
+  final Set<String> _seenProd = {};
+
+  void _mergeRegistrants(List<QueryDocumentSnapshot> docs, String source) {
+    final seenSet = source == 'default' ? _seenDefault : _seenProd;
+    seenSet.clear();
+
+    for (final d in docs) {
+      seenSet.add(d.id);
+      if (_registrantMap.containsKey(d.id)) continue;
+      final data = d.data() as Map<String, dynamic>;
+      final profile = data['profile'] as Map<String, dynamic>? ?? {};
+      final name =
+          profile['name'] as String? ??
+          '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+      final additional = (data['additionalGuests'] as num?)?.toInt() ?? 0;
+      final createdAt = data['createdAt'];
+      DateTime created;
+      if (createdAt is Timestamp) {
+        created = createdAt.toDate();
+      } else {
+        created = DateTime.now();
+      }
+      final hasAttendance = data['eventAttendance'] != null;
+      _registrantMap[d.id] = {
+        'id': d.id,
+        'name': name,
+        'source': data['source'] as String? ?? 'app',
+        'service': profile['service'] as String? ?? '',
+        'chapter': profile['chapter'] as String? ?? '',
+        'additionalGuests': additional,
+        'createdAt': created,
+        'checkedIn': hasAttendance,
+      };
+    }
+
+    // Rebuild list
+    final allIds = {..._seenDefault, ..._seenProd};
+    _registrantMap.removeWhere((k, _) => !allIds.contains(k));
+
+    final list = _registrantMap.values.toList()
+      ..sort(
+        (a, b) =>
+            (b['createdAt'] as DateTime).compareTo(a['createdAt'] as DateTime),
+      );
+
+    if (mounted) {
+      setState(() {
+        _registrants = list;
       });
     }
   }
@@ -74,19 +168,19 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _gold))
           : _error != null
-          ? _buildError()
-          : RefreshIndicator(
-              onRefresh: _load,
-              color: _gold,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
+              ? _buildError()
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: _gold,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
+                    child: _buildDashboard(),
+                  ),
                 ),
-                child: _buildDashboard(),
-              ),
-            ),
     );
   }
 
@@ -122,48 +216,67 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     );
   }
 
-  // ── Dashboard Layout ────────────────────────────────────────────────
-
   Widget _buildDashboard() {
-    final stats = _RsvpStats.compute(_rsvps, _registrants);
+    final stats = _CheckinStats.compute(_registrants);
     final event = _event;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildHeader(event),
-        const SizedBox(height: 32),
+        const SizedBox(height: 12),
+        // Live indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: _liveGreen,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'LIVE',
+              style: GoogleFonts.inter(
+                color: _liveGreen,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
         _buildSectionLabel('OVERVIEW'),
         const SizedBox(height: 12),
         _buildOverviewCards(stats),
         const SizedBox(height: 28),
-        _buildSectionLabel('ATTENDANCE BREAKDOWN'),
+        _buildSectionLabel('CHECK-IN PROGRESS'),
         const SizedBox(height: 12),
-        _buildAttendanceBreakdown(stats),
+        _buildProgressCard(stats),
         const SizedBox(height: 28),
-        _buildSectionLabel('BY AREA'),
+        _buildSectionLabel('BY SOURCE'),
         const SizedBox(height: 12),
-        _buildAreaCards(stats),
-        if (stats.kidsCount > 0) ...[
+        _buildSourceBreakdown(stats),
+        if (stats.byChapter.isNotEmpty) ...[
           const SizedBox(height: 28),
-          _buildSectionLabel('KIDS'),
+          _buildSectionLabel('BY CHAPTER'),
           const SizedBox(height: 12),
-          _buildKidsCard(stats),
+          _buildChapterCards(stats),
         ],
         const SizedBox(height: 28),
-        _buildSectionLabel('RECENT RSVPs'),
+        _buildSectionLabel('RECENT CHECK-INS'),
         const SizedBox(height: 12),
-        _buildRecentRsvps(),
+        _buildRecentCheckins(),
         const SizedBox(height: 32),
-        _buildHashtags(),
-        const SizedBox(height: 20),
         _buildFooter(),
         const SizedBox(height: 32),
       ],
     );
   }
-
-  // ── Header ──────────────────────────────────────────────────────────
 
   Widget _buildHeader(EventModel? event) {
     return Column(
@@ -200,10 +313,10 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
                   ),
                   ShaderMask(
                     shaderCallback: (bounds) => const LinearGradient(
-                      colors: [_gold, Color(0xFFE87D2E)],
+                      colors: [_liveGreen, Color(0xFF2ECC71)],
                     ).createShader(bounds),
                     child: Text(
-                      'RSVP Snapshot',
+                      'Check-In Dashboard',
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 22,
@@ -218,13 +331,6 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           ],
         ),
         const SizedBox(height: 10),
-        if (event?.shortDescription != null)
-          Text(
-            event!.shortDescription!,
-            style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
@@ -254,37 +360,36 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     );
   }
 
-  // ── Overview Cards ──────────────────────────────────────────────────
-
-  Widget _buildOverviewCards(_RsvpStats stats) {
+  Widget _buildOverviewCards(_CheckinStats stats) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 500;
         final cards = [
           _OverviewTile(
-            icon: Icons.groups_rounded,
-            iconColor: _gold,
-            value: stats.totalAttendees + stats.registrantCount,
-            label: 'TOTAL RSVPs',
+            icon: Icons.people_alt_rounded,
+            iconColor: _liveGreen,
+            value: stats.totalRegistrants,
+            label: 'TOTAL REGISTERED',
             highlighted: true,
+            highlightColor: _liveGreen,
           ),
           _OverviewTile(
-            icon: Icons.mic_rounded,
+            icon: Icons.check_circle_rounded,
+            iconColor: _gold,
+            value: stats.checkedInCount,
+            label: 'CHECKED IN',
+          ),
+          _OverviewTile(
+            icon: Icons.hourglass_bottom_rounded,
             iconColor: const Color(0xFFB0B0B0),
-            value: stats.rallyCount,
-            label: 'RALLY',
+            value: stats.totalRegistrants - stats.checkedInCount,
+            label: 'PENDING',
           ),
           _OverviewTile(
-            icon: Icons.restaurant_rounded,
-            iconColor: const Color(0xFFB0B0B0),
-            value: stats.dinnerCount,
-            label: 'DINNER',
-          ),
-          _OverviewTile(
-            icon: Icons.celebration_rounded,
-            iconColor: const Color(0xFFE87D2E),
-            value: stats.celebrationCount,
-            label: 'CELEBRATIONS',
+            icon: Icons.group_add_rounded,
+            iconColor: const Color(0xFF4C7FE0),
+            value: stats.additionalGuests,
+            label: 'EXTRA GUESTS',
           ),
         ];
 
@@ -316,76 +421,122 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     );
   }
 
-  // ── Attendance Breakdown Bars ───────────────────────────────────────
-
-  Widget _buildAttendanceBreakdown(_RsvpStats stats) {
-    final maxVal = [
-      stats.rallyCount,
-      stats.dinnerCount,
-      stats.celebrationCount,
-    ].reduce((a, b) => a > b ? a : b).clamp(1, double.maxFinite.toInt());
+  Widget _buildProgressCard(_CheckinStats stats) {
+    final fraction = stats.totalRegistrants > 0
+        ? stats.checkedInCount / stats.totalRegistrants
+        : 0.0;
+    final pct = (fraction * 100).toStringAsFixed(1);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          _BarRow(
-            label: 'Rally',
-            time: _event?.rallyTimeText,
-            value: stats.rallyCount,
-            maxValue: maxVal,
-            color: _gold,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$pct%',
+                      style: GoogleFonts.inter(
+                        color: _liveGreen,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      '${stats.checkedInCount} of ${stats.totalRegistrants} checked in',
+                      style: GoogleFonts.inter(
+                        color: _textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: fraction,
+                      strokeWidth: 8,
+                      backgroundColor: _cardBorder,
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(_liveGreen),
+                    ),
+                    Center(
+                      child: Icon(
+                        Icons.how_to_reg_rounded,
+                        color: _liveGreen,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          _BarRow(
-            label: 'Dinner',
-            time: _event?.dinnerTimeText,
-            value: stats.dinnerCount,
-            maxValue: maxVal,
-            color: const Color(0xFF4C7FE0),
-          ),
-          const SizedBox(height: 14),
-          _BarRow(
-            label: 'Celebrations',
-            value: stats.celebrationCount,
-            maxValue: maxVal,
-            color: const Color(0xFFE87D2E),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 8,
+              backgroundColor: _cardBorder,
+              valueColor: const AlwaysStoppedAnimation<Color>(_liveGreen),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── Area Cards ──────────────────────────────────────────────────────
+  Widget _buildSourceBreakdown(_CheckinStats stats) {
+    final maxVal = stats.bySource.values
+        .fold<int>(0, (a, b) => a > b ? a : b)
+        .clamp(1, double.maxFinite.toInt());
 
-  Widget _buildAreaCards(_RsvpStats stats) {
-    final areas = stats.byArea.entries.toList()
-      ..sort((a, b) => b.value.people.compareTo(a.value.people));
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Column(
+        children: stats.bySource.entries.map((e) {
+          final label = _sourceLabel(e.key);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: _BarRow(
+              label: label,
+              value: e.value,
+              maxValue: maxVal,
+              color: _sourceColor(e.key),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
-    if (areas.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: _cardDecoration(),
-        child: Text(
-          'No area data yet',
-          style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
+  Widget _buildChapterCards(_CheckinStats stats) {
+    final chapters = stats.byChapter.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 500;
         if (isWide) {
           return Row(
-            children: areas
+            children: chapters
                 .map(
                   (e) => Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: _AreaCard(name: e.key, data: e.value),
+                      child: _ChapterCard(name: e.key, count: e.value),
                     ),
                   ),
                 )
@@ -395,13 +546,13 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         return Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: areas
+          children: chapters
               .map(
                 (e) => SizedBox(
-                  width: areas.length <= 2
+                  width: chapters.length <= 2
                       ? (constraints.maxWidth - 8) / 2
                       : (constraints.maxWidth - 16) / 3,
-                  child: _AreaCard(name: e.key, data: e.value),
+                  child: _ChapterCard(name: e.key, count: e.value),
                 ),
               )
               .toList(),
@@ -410,66 +561,14 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
     );
   }
 
-  // ── Kids Card ───────────────────────────────────────────────────────
-
-  Widget _buildKidsCard(_RsvpStats stats) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CE0C6).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.child_care_rounded,
-              color: Color(0xFF4CE0C6),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${stats.kidsCount}',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  stats.kidsCount == 1 ? 'CHILD REGISTERED' : 'KIDS REGISTERED',
-                  style: GoogleFonts.inter(
-                    color: _textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Recent RSVPs ────────────────────────────────────────────────────
-
-  Widget _buildRecentRsvps() {
-    final recent = _rsvps.take(8).toList();
+  Widget _buildRecentCheckins() {
+    final recent = _registrants.take(10).toList();
     if (recent.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: _cardDecoration(),
         child: Text(
-          'No RSVPs yet',
+          'No registrants yet',
           style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
           textAlign: TextAlign.center,
         ),
@@ -482,52 +581,19 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
       child: Column(
         children: [
           for (var i = 0; i < recent.length; i++) ...[
-            _RecentRsvpRow(rsvp: recent[i]),
+            _RecentCheckinRow(data: recent[i]),
             if (i < recent.length - 1)
-              Divider(color: _cardBorder, height: 1, indent: 16, endIndent: 16),
+              Divider(
+                color: _cardBorder,
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+              ),
           ],
         ],
       ),
     );
   }
-
-  // ── Hashtags ────────────────────────────────────────────────────────
-
-  Widget _buildHashtags() {
-    final tags = [
-      '#MarchAssembly',
-      '#CouplesForChrist',
-      '#CentralBCluster',
-      '#CFC',
-      '#March142026',
-    ];
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: tags
-          .map(
-            (tag) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _cardBorder),
-              ),
-              child: Text(
-                tag,
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  // ── Footer ──────────────────────────────────────────────────────────
 
   Widget _buildFooter() {
     return Column(
@@ -551,7 +617,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length + _registrants.length} RSVPs on record',
+          'Live dashboard \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_registrants.length} registrants',
           style: GoogleFonts.inter(
             color: _textMuted.withValues(alpha: 0.5),
             fontSize: 11,
@@ -561,8 +627,6 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
       ],
     );
   }
-
-  // ── Helpers ─────────────────────────────────────────────────────────
 
   Widget _buildSectionLabel(String text) {
     return Text(
@@ -577,92 +641,95 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   }
 
   static BoxDecoration _cardDecoration() => BoxDecoration(
-    color: _cardBg,
-    borderRadius: BorderRadius.circular(14),
-    border: Border.all(color: _cardBorder),
-  );
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _cardBorder),
+      );
 
-  // ── Color Tokens ────────────────────────────────────────────────────
+  String _sourceLabel(String source) {
+    switch (source.toLowerCase()) {
+      case 'app':
+        return 'App Registration';
+      case 'manual':
+        return 'Manual Entry';
+      case 'qr':
+        return 'QR Code';
+      case 'web':
+        return 'Web Form';
+      default:
+        return source;
+    }
+  }
+
+  Color _sourceColor(String source) {
+    switch (source.toLowerCase()) {
+      case 'app':
+        return _gold;
+      case 'manual':
+        return const Color(0xFF4C7FE0);
+      case 'qr':
+        return _liveGreen;
+      case 'web':
+        return const Color(0xFFE87D2E);
+      default:
+        return _textMuted;
+    }
+  }
 
   static const Color _gold = Color(0xFFF4A340);
+  static const Color _liveGreen = Color(0xFF7AE3A5);
   static const Color _cardBg = Color(0xFF1A1A2A);
   static const Color _cardBorder = Color(0xFF2A2A3A);
   static const Color _textMuted = Color(0xFF8888A0);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// Data model
+// Stats
 // ══════════════════════════════════════════════════════════════════════════
 
-class _AreaData {
-  int people = 0;
-  final Set<String> households = {};
-}
+class _CheckinStats {
+  final int totalRegistrants;
+  final int checkedInCount;
+  final int additionalGuests;
+  final Map<String, int> bySource;
+  final Map<String, int> byChapter;
 
-class _RsvpStats {
-  final int totalAttendees;
-  final int rallyCount;
-  final int dinnerCount;
-  final int celebrationCount;
-  final int kidsCount;
-  final int registrantCount;
-  final int registrantCheckedIn;
-  final Map<String, _AreaData> byArea;
-
-  const _RsvpStats({
-    required this.totalAttendees,
-    required this.rallyCount,
-    required this.dinnerCount,
-    required this.celebrationCount,
-    required this.kidsCount,
-    required this.registrantCount,
-    required this.registrantCheckedIn,
-    required this.byArea,
+  const _CheckinStats({
+    required this.totalRegistrants,
+    required this.checkedInCount,
+    required this.additionalGuests,
+    required this.bySource,
+    required this.byChapter,
   });
 
-  factory _RsvpStats.compute(
-    List<EventRsvp> rsvps,
-    List<Map<String, dynamic>> registrants,
-  ) {
-    var totalAttendees = 0;
-    var rallyCount = 0;
-    var dinnerCount = 0;
-    var celebrationCount = 0;
-    var kidsCount = 0;
-    final byArea = <String, _AreaData>{};
+  factory _CheckinStats.compute(List<Map<String, dynamic>> registrants) {
+    var total = registrants.length;
+    var checkedIn = 0;
+    var additional = 0;
+    final bySource = <String, int>{};
+    final byChapter = <String, int>{};
 
-    for (final r in rsvps) {
-      totalAttendees += r.attendeesCount;
-      if (r.attendingRally) rallyCount += r.attendeesCount;
-      if (r.attendingDinner) dinnerCount += r.attendeesCount;
-      if (r.celebrationType != null && r.celebrationType!.isNotEmpty) {
-        celebrationCount++;
-      }
-      kidsCount += r.kids.length;
-
-      final area = r.area ?? 'Others';
-      final areaData = byArea.putIfAbsent(area, () => _AreaData());
-      areaData.people += r.attendeesCount;
-      if (r.household.isNotEmpty) areaData.households.add(r.household);
-    }
-
-    // Count registrants and their additional guests.
-    var regCount = registrants.length;
-    var regCheckedIn = 0;
     for (final r in registrants) {
-      regCount += (r['additionalGuests'] as int? ?? 0);
-      if (r['checkedIn'] == true) regCheckedIn++;
+      additional += (r['additionalGuests'] as int? ?? 0);
+      if (r['checkedIn'] == true) checkedIn++;
+
+      final source = (r['source'] as String?) ?? 'app';
+      bySource[source] = (bySource[source] ?? 0) + 1;
+
+      final chapter = (r['chapter'] as String?) ?? '';
+      if (chapter.isNotEmpty) {
+        byChapter[chapter] = (byChapter[chapter] ?? 0) + 1;
+      }
     }
 
-    return _RsvpStats(
-      totalAttendees: totalAttendees,
-      rallyCount: rallyCount,
-      dinnerCount: dinnerCount,
-      celebrationCount: celebrationCount,
-      kidsCount: kidsCount,
-      registrantCount: regCount,
-      registrantCheckedIn: regCheckedIn,
-      byArea: byArea,
+    total += additional;
+
+    return _CheckinStats(
+      totalRegistrants: total,
+      checkedInCount: checkedIn,
+      additionalGuests: additional,
+      bySource: bySource,
+      byChapter: byChapter,
     );
   }
 }
@@ -678,6 +745,7 @@ class _OverviewTile extends StatelessWidget {
     required this.value,
     required this.label,
     this.highlighted = false,
+    this.highlightColor,
   });
 
   final IconData icon;
@@ -685,9 +753,11 @@ class _OverviewTile extends StatelessWidget {
   final int value;
   final String label;
   final bool highlighted;
+  final Color? highlightColor;
 
   @override
   Widget build(BuildContext context) {
+    final accent = highlightColor ?? const Color(0xFFF4A340);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
       decoration: BoxDecoration(
@@ -695,7 +765,7 @@ class _OverviewTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: highlighted
-              ? const Color(0xFFF4A340).withValues(alpha: 0.5)
+              ? accent.withValues(alpha: 0.5)
               : const Color(0xFF2A2A3A),
           width: highlighted ? 1.5 : 1,
         ),
@@ -707,7 +777,7 @@ class _OverviewTile extends StatelessWidget {
           Text(
             '$value',
             style: GoogleFonts.inter(
-              color: highlighted ? const Color(0xFFF4A340) : Colors.white,
+              color: highlighted ? accent : Colors.white,
               fontSize: 32,
               fontWeight: FontWeight.w800,
             ),
@@ -732,14 +802,12 @@ class _OverviewTile extends StatelessWidget {
 class _BarRow extends StatelessWidget {
   const _BarRow({
     required this.label,
-    this.time,
     required this.value,
     required this.maxValue,
     required this.color,
   });
 
   final String label;
-  final String? time;
   final int value;
   final int maxValue;
   final Color color;
@@ -750,19 +818,14 @@ class _BarRow extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                time != null ? '$label ($time)' : label,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          width: 130,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -795,11 +858,11 @@ class _BarRow extends StatelessWidget {
   }
 }
 
-class _AreaCard extends StatelessWidget {
-  const _AreaCard({required this.name, required this.data});
+class _ChapterCard extends StatelessWidget {
+  const _ChapterCard({required this.name, required this.count});
 
   final String name;
-  final _AreaData data;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
@@ -832,9 +895,9 @@ class _AreaCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${data.people}',
+            '$count',
             style: GoogleFonts.inter(
-              color: const Color(0xFFF4A340),
+              color: const Color(0xFF7AE3A5),
               fontSize: 32,
               fontWeight: FontWeight.w800,
             ),
@@ -848,46 +911,25 @@ class _AreaCard extends StatelessWidget {
               letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A3A),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '${data.households.length} household${data.households.length == 1 ? '' : 's'}',
-              style: GoogleFonts.inter(
-                color: const Color(0xFF8888A0),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _RecentRsvpRow extends StatelessWidget {
-  const _RecentRsvpRow({required this.rsvp});
+class _RecentCheckinRow extends StatelessWidget {
+  const _RecentCheckinRow({required this.data});
 
-  final EventRsvp rsvp;
+  final Map<String, dynamic> data;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _getInitials(rsvp.name);
-    final badges = <Widget>[];
-    if (rsvp.attendingRally) {
-      badges.add(_badge('Rally', const Color(0xFFF4A340)));
-    }
-    if (rsvp.attendingDinner) {
-      badges.add(_badge('Dinner', const Color(0xFF4C7FE0)));
-    }
-    if (rsvp.celebrationType != null && rsvp.celebrationType!.isNotEmpty) {
-      badges.add(_badge(rsvp.celebrationType!, const Color(0xFFE87D2E)));
-    }
+    final name = data['name'] as String? ?? 'Unknown';
+    final initials = _getInitials(name);
+    final checkedIn = data['checkedIn'] as bool? ?? false;
+    final source = data['source'] as String? ?? '';
+    final createdAt = data['createdAt'] as DateTime?;
+    final timeAgo = createdAt != null ? _timeAgo(createdAt) : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -895,7 +937,7 @@ class _RecentRsvpRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: _colorFor(rsvp.name),
+            backgroundColor: _colorFor(name),
             child: Text(
               initials,
               style: GoogleFonts.inter(
@@ -911,7 +953,7 @@ class _RecentRsvpRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  rsvp.name,
+                  name,
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 14,
@@ -920,51 +962,91 @@ class _RecentRsvpRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                Wrap(spacing: 6, runSpacing: 4, children: badges),
+                Row(
+                  children: [
+                    if (checkedIn)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7AE3A5).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Checked In',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF7AE3A5),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4A340).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Registered',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFFF4A340),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    if (source.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF4C7FE0).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          source,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF4C7FE0),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${rsvp.attendeesCount}',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                rsvp.area ?? '',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF8888A0),
-                  fontSize: 11,
-                ),
-              ),
-            ],
+          Text(
+            timeAgo,
+            style: GoogleFonts.inter(
+              color: const Color(0xFF8888A0),
+              fontSize: 11,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _badge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   static String _getInitials(String name) {

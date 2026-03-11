@@ -651,18 +651,7 @@ export const e = functions.runWith({ invoker: "public" }).https.onRequest(async 
     // Continue with rawId as eventId
   }
 
-  // Detect platform: mobile browser gets "download app" page, desktop gets Flutter web app
-  const ua = (req.get("user-agent") || "").toLowerCase();
-  const isApp = ua.includes("spiritual") || ua.includes("events-hub");
-  const isMobile = /iphone|ipad|ipod|android|mobile/i.test(ua);
-
-  // App or desktop browser → redirect to Flutter web app
-  if (isApp || !isMobile) {
-    res.redirect(302, `https://events.aisaiah.org/events/${eventId}`);
-    return;
-  }
-
-  // Mobile browser → show "download app" landing page with event details
+  // Show event landing page for all visitors (NFC/QR entry point)
   let title = "CFC Event";
   let venue = "";
   let dateStr = "";

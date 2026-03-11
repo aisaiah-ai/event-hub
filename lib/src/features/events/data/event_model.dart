@@ -33,6 +33,7 @@ class EventModel {
     this.shortDescription,
     this.cardBackgroundColorHex,
     this.checkInButtonColorHex,
+    this.tag,
   });
 
   final String id;
@@ -103,6 +104,9 @@ class EventModel {
 
   /// Check-in button background color hex (e.g. "3E7D4C").
   final String? checkInButtonColorHex;
+
+  /// Event tag for categorization (e.g. "Regional Event", "National Conference").
+  final String? tag;
 
   /// Resolved primary color.
   Color get primaryColor =>
@@ -224,6 +228,7 @@ class EventModel {
           branding['checkInButtonColor'] as String? ??
           branding['checkInButtonColorHex'] as String? ??
           data['checkInButtonColorHex'] as String?,
+      tag: data['tag'] as String?,
     );
   }
 

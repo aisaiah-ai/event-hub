@@ -21,7 +21,10 @@ import 'features/events/presentation/event_landing_page.dart';
 import 'features/events/presentation/event_rsvp_page.dart';
 import 'features/events/presentation/image_admin_dashboard_page.dart';
 import 'features/events/presentation/photo_wall_page.dart';
+import 'features/events/presentation/checkin_dashboard_page.dart';
+import 'features/events/presentation/event_dashboard_page.dart';
 import 'features/events/presentation/rsvp_dashboard_page.dart';
+import 'features/events/presentation/smart_event_landing_page.dart';
 import 'features/events/presentation/events_index_page.dart';
 import 'features/speakers/presentation/speaker_details_page.dart';
 import 'screens/admin/import_registrants_screen.dart';
@@ -52,7 +55,7 @@ String get _initialLocation {
   final host = Uri.base.host;
   if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
   if (host == 'localhost' || host == '127.0.0.1') {
-    return '/events/$_defaultRsvpEventSlug';
+    return '/s/mca';
   }
   if (host == 'rsvp.aisaiah.org') return '/';
   return '/admin/dashboard';
@@ -108,21 +111,25 @@ GoRouter createAppRouter() {
           if (host == 'rsvp.aisaiah.org') return null;
           if (host == 'nlc.aisaiah.org') return '/events/nlc/main-checkin';
           if (host == 'localhost' || host == '127.0.0.1') {
-            return '/events/$_defaultRsvpEventSlug';
+            return '/s/mca';
           }
           return '/admin/dashboard';
         },
         builder: (context, state) =>
             EventRsvpPage(eventSlug: _defaultRsvpEventSlug),
       ),
-      // Short URL: /s/mca → /events/march-cluster-2026
+      // Short URL: /s/mca → SmartEventLandingPage
       GoRoute(
         path: '/s/:shortCode',
-        redirect: (context, state) {
-          const shortcuts = {'mca': 'march-cluster-2026', 'nlc': 'nlc-2026'};
+        builder: (context, state) {
+          const shortcuts = {
+            'mca': 'march-cluster-2026',
+            'nlc': 'nlc-2026',
+            'twr': 'twr-southeast-b-2026',
+          };
           final code = state.pathParameters['shortCode'] ?? '';
           final slug = shortcuts[code] ?? code;
-          return '/events/$slug';
+          return SmartEventLandingPage(eventSlug: slug);
         },
       ),
       // Full event URL: /e/march-assembly → /events/march-assembly
@@ -167,6 +174,20 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
           return RsvpDashboardPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/checkin-dashboard',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return CheckinDashboardPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/dashboard',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return EventDashboardPage(eventSlug: slug);
         },
       ),
       GoRoute(

@@ -76,6 +76,31 @@ class SpeakerRepository {
           email: 'mike.suela@example.com',
           phone: '+1 (941) 555-0102',
         );
+      case 'eric-zalamea':
+        return const Speaker(
+          id: 'eric-zalamea',
+          fullName: 'Eric Zalamea',
+          displayName: 'Bro. Eric Zalamea',
+          title: 'Chapter Leader, CFC BBS',
+          cluster: 'TWR Southeast B',
+          bio:
+              'Together with his wife Cecille, Brother Eric has been serving the Lord in Couples for Christ for more than 28 years, '
+              'since joining the community in 1997. Even before CFC, Eric was already active in Catholic renewal through the singles '
+              'ministry of Ligaya ng Panginoon. Over the years, the Lord has led Eric and Cecille to help build and serve communities '
+              'across the Philippines, Germany, Switzerland, and the United States. Today they continue their mission as Chapter Leaders '
+              'in CFC BBS \u2014 Brandon, Bradenton, and Sarasota, Florida, faithfully serving families and helping bring more people '
+              'closer to Christ.',
+          yearsInCfc: 28,
+          location: 'Brandon, Bradenton & Sarasota, FL',
+          topics: [
+            'Evangelization',
+            'Community Building',
+            'Faith & Unity',
+            'Spiritual Renewal',
+          ],
+          quote:
+              'In the One, we are one.',
+        );
       default:
         return null;
     }

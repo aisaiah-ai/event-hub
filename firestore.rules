@@ -49,9 +49,11 @@ service cloud.firestore {
       }
 
       match /registrants/{registrantId} {
-        // Public read for nlc-2026 (check-in search). Staff: full access.
+        // Public read for nlc-2026 and march-assembly (dashboard). Staff: full access.
         // selfCheckinEnabled: public read when event allows self-check-in.
         allow read: if eventId == 'nlc-2026'
+          || eventId == 'march-assembly'
+          || eventId == 'march-cluster-2026'
           || isStaff(eventId)
           || selfCheckinEnabled(eventId);
         // Update: staff OR unauthenticated self-check-in (eventAttendance only)
