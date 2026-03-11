@@ -191,9 +191,7 @@ class EventRepository {
     final now = DateTime.now();
     final upcoming = events.where((e) => !e.endDate.isBefore(now)).toList()
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
-    final past = events.where((e) => e.endDate.isBefore(now)).toList()
-      ..sort((a, b) => b.startDate.compareTo(a.startDate));
-    return [...upcoming, ...past];
+    return upcoming;
   }
 
   /// Get the currently active event (for events.aisaiah.org root redirect).
