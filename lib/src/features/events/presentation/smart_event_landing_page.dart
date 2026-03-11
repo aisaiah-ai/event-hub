@@ -34,37 +34,25 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
     Future.delayed(const Duration(milliseconds: 300), _autoAttemptOpen);
   }
 
-  /// Auto-attempt deep link open on page load.
+  /// Auto-attempt: on web, skip the deep link attempt (it opens a blank tab).
+  /// Universal links (AASA/assetlinks) handle app opening at the OS level
+  /// when the user scans the QR code — no need to launch a custom scheme.
   Future<void> _autoAttemptOpen() async {
     if (_didAutoAttempt || !mounted) return;
     _didAutoAttempt = true;
-    setState(() => _status = _AppOpenStatus.attempting);
-
-    await _attemptOpenInApp();
-
-    // After ~1.8s, if we're still here the app didn't open — show fallback
-    await Future.delayed(const Duration(milliseconds: 1800));
-    if (mounted && _status == _AppOpenStatus.attempting) {
-      setState(() => _status = _AppOpenStatus.fallback);
-    }
+    // Go straight to fallback — show the landing page with install prompts
+    setState(() => _status = _AppOpenStatus.fallback);
   }
 
-  /// Attempt to open the AIsaiah app via deep link.
+  /// Manual tap on "Open in App" — use universal link so the OS can
+  /// intercept and open the app if installed, without blank tabs.
   Future<void> _attemptOpenInApp() async {
-    // TODO: Replace with your actual deep link scheme and universal link
-    // The deep link scheme from Cloud Functions is: aisaiah://event/{eventId}
-    final deepLink = Uri.parse('aisaiah://event/${widget.eventSlug}');
-
+    final universalLink =
+        Uri.parse('https://events.aisaiah.org/e/${widget.eventSlug}');
     try {
-      final launched = await launchUrl(
-        deepLink,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        debugPrint('[SmartLanding] Deep link not launched: $deepLink');
-      }
+      await launchUrl(universalLink, mode: LaunchMode.externalApplication);
     } catch (e) {
-      debugPrint('[SmartLanding] Deep link error: $e');
+      debugPrint('[SmartLanding] Universal link error: $e');
     }
   }
 
