@@ -46,14 +46,6 @@
     ],
     "rewrites": [
       {
-        "source": "/e/**",
-        "function": "e"
-      },
-      {
-        "source": "/s/**",
-        "function": "e"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
