@@ -1,10 +1,2 @@
-# Short URLs — redirect to Flutter web app routes
-/s/mca    /events/march-cluster-2026   302
-/s/nlc    /events/nlc-2026             302
-
-# Full event URLs — pass through to Flutter router
-/e/*      /events/:splat               302
-
-# SPA fallback
-# Cloudflare Pages serves static files before applying _redirects rules
+# SPA fallback — all routes handled by Flutter GoRouter
 /*    /index.html   200
