@@ -852,7 +852,7 @@ class _FeatureSection extends StatelessWidget {
         iconSize: 30),
     _FeatureData(Icons.camera_alt_outlined, 'Upload Photos',
         'Share moments with the community',
-        iconSize: 29),
+        iconSize: 29, yOffset: 1),
     _FeatureData(Icons.notifications_none, 'Event Updates',
         'Receive updates during the event',
         iconSize: 30),
