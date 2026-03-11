@@ -50,7 +50,7 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
     final universalLink =
         Uri.parse('https://events.aisaiah.org/e/${widget.eventSlug}');
     try {
-      await launchUrl(universalLink, mode: LaunchMode.externalApplication);
+      await launchUrl(universalLink);
     } catch (e) {
       debugPrint('[SmartLanding] Universal link error: $e');
     }
@@ -71,7 +71,6 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
   void _openAppStore() {
     launchUrl(
       Uri.parse('https://apps.apple.com/us/app/aisaiah/id6751301980'),
-      mode: LaunchMode.externalApplication,
     );
   }
 
@@ -80,7 +79,6 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
       Uri.parse(
         'https://play.google.com/store/apps/details?id=org.aisaiah.spiritualfitness&pcampaignid=web_share',
       ),
-      mode: LaunchMode.externalApplication,
     );
   }
 
