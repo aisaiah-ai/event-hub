@@ -92,11 +92,9 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
   }
 
   Widget _buildEventsList() {
-    // Find the first upcoming event index
     final now = DateTime.now();
-    final firstUpcomingIdx = _events.indexWhere(
-      (e) => !e.endDate.isBefore(now),
-    );
+    final upcoming = _events.where((e) => !e.endDate.isBefore(now)).toList();
+    final past = _events.where((e) => e.endDate.isBefore(now)).toList();
 
     return Center(
       child: ConstrainedBox(
@@ -127,16 +125,39 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
               ),
               const SizedBox(height: 24),
 
-              // Event cards
-              for (var i = 0; i < _events.length; i++)
+              // Upcoming event cards
+              for (var i = 0; i < upcoming.length; i++)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _EventCard(
-                    event: _events[i],
-                    isNextUpcoming: i == firstUpcomingIdx,
-                    onTap: () => context.go('/events/${_events[i].slug}'),
+                    event: upcoming[i],
+                    isNextUpcoming: i == 0,
+                    onTap: () => context.go('/events/${upcoming[i].slug}'),
                   ),
                 ),
+
+              // Past events section
+              if (past.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'PAST EVENTS',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF8888A0),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                for (final event in past)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _EventCard(
+                      event: event,
+                      onTap: () => context.go('/events/${event.slug}'),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
