@@ -73,8 +73,8 @@ class EventRepository {
     id: 'nlc-2026',
     slug: 'nlc',
     name: 'National Leaders Conference',
-    startDate: DateTime(2026, 1, 1),
-    endDate: DateTime(2026, 1, 1),
+    startDate: DateTime(2026, 2, 20),
+    endDate: DateTime(2026, 2, 22),
     locationName: 'Hyatt Regency Valencia | Grand Ballroom',
     address: '24500 Town Center Dr., Valencia, CA 91355',
     isActive: true,
@@ -136,6 +136,7 @@ class EventRepository {
   /// List upcoming events (current + future). Used by EventsIndexPage.
   Future<List<EventModel>> listUpcomingEvents() async {
     final events = <EventModel>[
+      _nlcFallback,
       _marchCluster2026Fallback,
       _twrSoutheastRetreatFallback,
     ];
@@ -158,8 +159,12 @@ class EventRepository {
       } catch (_) {}
     }
 
-    events.sort((a, b) => a.startDate.compareTo(b.startDate));
-    return events;
+    final now = DateTime.now();
+    final upcoming = events.where((e) => !e.endDate.isBefore(now)).toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+    final past = events.where((e) => e.endDate.isBefore(now)).toList()
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
+    return [...upcoming, ...past];
   }
 
   /// Get the currently active event (for events.aisaiah.org root redirect).
