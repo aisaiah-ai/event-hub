@@ -71,8 +71,8 @@ class EventRepository {
 
   static final EventModel _nlcFallback = EventModel(
     id: 'nlc-2026',
-    slug: 'nlc',
-    name: 'National Leaders Conference',
+    slug: 'nlc-2026',
+    name: 'National Leaders Conference 2026',
     startDate: DateTime(2026, 2, 20),
     endDate: DateTime(2026, 2, 22),
     locationName: 'Hyatt Regency Valencia | Grand Ballroom',
@@ -85,6 +85,7 @@ class EventRepository {
     backgroundImageUrl: 'assets/images/nlc_background.png',
     backgroundPatternUrl: 'assets/checkin/mossaic.svg',
     organizationName: 'Couples for Christ',
+    tag: 'National Conference',
   );
 
   static final EventModel _marchCluster2026Fallback = EventModel(
@@ -141,7 +142,11 @@ class EventRepository {
       _twrSoutheastRetreatFallback,
     ];
 
-    // Try to load events from Firestore too
+    // Known fallback IDs/slugs — these always use hardcoded data
+    final fallbackIds = events.map((e) => e.id).toSet();
+    final fallbackSlugs = events.map((e) => e.slug).toSet();
+
+    // Try to load additional events from Firestore
     final fs = _firestore;
     if (fs != null) {
       try {
@@ -151,10 +156,14 @@ class EventRepository {
             .get();
         for (final doc in snap.docs) {
           final event = EventModel.fromFirestore(doc);
-          // Don't duplicate fallback events
-          if (!events.any((e) => e.id == event.id || e.slug == event.slug)) {
-            events.add(event);
+          // Skip any Firestore event that matches a fallback by ID or slug
+          if (fallbackIds.contains(event.id) ||
+              fallbackSlugs.contains(event.slug) ||
+              fallbackIds.contains(event.slug) ||
+              fallbackSlugs.contains(event.id)) {
+            continue;
           }
+          events.add(event);
         }
       } catch (_) {}
     }
