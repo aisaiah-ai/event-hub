@@ -285,8 +285,7 @@ class _EventLandingPageState extends State<EventLandingPage>
                       _ScheduleTab(
                         event: event,
                         sessions: sortedSessions,
-                        pastSessionIds:
-                            past.map((s) => s.id).toSet(),
+                        pastSessionIds: past.map((s) => s.id).toSet(),
                         theme: theme,
                         onCheckIn: () =>
                             context.push('/events/${event.slug}/checkin'),
@@ -416,10 +415,7 @@ class _HeroSection extends StatelessWidget {
                 label: DateFormat('MMMM d, yyyy').format(event.startDate),
               ),
               if (timeRange.isNotEmpty)
-                _InfoChip(
-                  icon: Icons.access_time_rounded,
-                  label: timeRange,
-                ),
+                _InfoChip(icon: Icons.access_time_rounded, label: timeRange),
               if (venue.name.isNotEmpty)
                 _InfoChip(
                   icon: Icons.location_on_outlined,
@@ -485,11 +481,7 @@ class _HeroSection extends StatelessWidget {
 // ─── Info chip (date, time, location) ─────────────────────────────────────────
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _InfoChip({required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;
@@ -573,11 +565,7 @@ class _CountdownTimer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final target = DateTime(
-      eventDate.year,
-      eventDate.month,
-      eventDate.day,
-    );
+    final target = DateTime(eventDate.year, eventDate.month, eventDate.day);
     final diff = target.difference(now);
 
     // If event is today or past, show "Event is live!" or "Event has ended"
@@ -912,7 +900,8 @@ class _ScheduleTab extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.only(top: 6, bottom: 120),
-      itemCount: sessions.length +
+      itemCount:
+          sessions.length +
           1 + // ANCOP campaign card
           (firstPastIndex > 0 ? 1 : 0), // past divider
       separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -924,7 +913,10 @@ class _ScheduleTab extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(height: 1, color: Colors.white.withOpacity(0.08)),
+                  child: Container(
+                    height: 1,
+                    color: Colors.white.withOpacity(0.08),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -939,7 +931,10 @@ class _ScheduleTab extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: Container(height: 1, color: Colors.white.withOpacity(0.08)),
+                  child: Container(
+                    height: 1,
+                    color: Colors.white.withOpacity(0.08),
+                  ),
                 ),
               ],
             ),
@@ -1039,8 +1034,8 @@ class _SessionTimelineCard extends StatelessWidget {
           color: isLive
               ? _kGreenAccent.withOpacity(0.4)
               : isMainCheckIn
-                  ? theme.checkInButtonColor.withOpacity(0.25)
-                  : Colors.white.withOpacity(0.05),
+              ? theme.checkInButtonColor.withOpacity(0.25)
+              : Colors.white.withOpacity(0.05),
           width: isLive ? 1.5 : 1,
         ),
         boxShadow: const [

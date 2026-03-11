@@ -13,10 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// 2. If app doesn't open, shows install prompts + browser fallback
 /// 3. Encourages app installation while never blocking browser access
 class SmartEventLandingPage extends StatefulWidget {
-  const SmartEventLandingPage({
-    super.key,
-    required this.eventSlug,
-  });
+  const SmartEventLandingPage({super.key, required this.eventSlug});
 
   final String eventSlug;
 
@@ -357,9 +354,7 @@ class _EventHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _liveGreen.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _liveGreen.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: _liveGreen.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -406,9 +401,10 @@ class _PulsingDotState extends State<_PulsingDot>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    _scale = Tween(begin: 0.8, end: 1.2).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scale = Tween(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -508,10 +504,7 @@ class _AppOpenStatusText extends StatelessWidget {
 
 /// Premium CTA button with pulsing glow, shimmer, hover scale, and press feedback.
 class _PrimaryCTA extends StatefulWidget {
-  const _PrimaryCTA({
-    required this.isAttempting,
-    required this.onTap,
-  });
+  const _PrimaryCTA({required this.isAttempting, required this.onTap});
 
   final bool isAttempting;
   final VoidCallback onTap;
@@ -729,7 +722,9 @@ class _SocialProofRow extends StatelessWidget {
         _proofPill(Icons.people_outline_rounded, '$checkedInCount checked in'),
         const SizedBox(width: 12),
         _proofPill(
-            Icons.camera_alt_outlined, '$photosSharedCount photos shared'),
+          Icons.camera_alt_outlined,
+          '$photosSharedCount photos shared',
+        ),
       ],
     );
   }
@@ -844,18 +839,31 @@ class _FeatureSection extends StatelessWidget {
   const _FeatureSection();
 
   static const _features = [
-    _FeatureData(Icons.calendar_today_rounded, 'Live Schedule',
-        "See what's happening now and what's next",
-        iconSize: 28),
-    _FeatureData(Icons.check_circle_outline, 'Fast Check-In',
-        'Get checked in quickly at the event',
-        iconSize: 30),
-    _FeatureData(Icons.camera_alt_outlined, 'Upload Photos',
-        'Share moments with the community',
-        iconSize: 29, yOffset: 1),
-    _FeatureData(Icons.notifications_none, 'Event Updates',
-        'Receive updates during the event',
-        iconSize: 30),
+    _FeatureData(
+      Icons.calendar_today_rounded,
+      'Live Schedule',
+      "See what's happening now and what's next",
+      iconSize: 28,
+    ),
+    _FeatureData(
+      Icons.check_circle_outline,
+      'Fast Check-In',
+      'Get checked in quickly at the event',
+      iconSize: 30,
+    ),
+    _FeatureData(
+      Icons.camera_alt_outlined,
+      'Upload Photos',
+      'Share moments with the community',
+      iconSize: 29,
+      yOffset: 1,
+    ),
+    _FeatureData(
+      Icons.notifications_none,
+      'Event Updates',
+      'Receive updates during the event',
+      iconSize: 30,
+    ),
   ];
 
   @override
@@ -877,19 +885,20 @@ class _FeatureSection extends StatelessWidget {
             if (isWide) {
               return Row(
                 children: _features
-                    .map((f) => Expanded(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 6),
-                            child: _FeatureCard(
-                              icon: f.icon,
-                              title: f.title,
-                              description: f.description,
-                              iconSize: f.iconSize,
-                              yOffset: f.yOffset,
-                            ),
+                    .map(
+                      (f) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: _FeatureCard(
+                            icon: f.icon,
+                            title: f.title,
+                            description: f.description,
+                            iconSize: f.iconSize,
+                            yOffset: f.yOffset,
                           ),
-                        ))
+                        ),
+                      ),
+                    )
                     .toList(),
               );
             }
@@ -899,16 +908,18 @@ class _FeatureSection extends StatelessWidget {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: _features
-                  .map((f) => SizedBox(
-                        width: (constraints.maxWidth - 12) / 2,
-                        child: _FeatureCard(
-                          icon: f.icon,
-                          title: f.title,
-                          description: f.description,
-                          iconSize: f.iconSize,
-                          yOffset: f.yOffset,
-                        ),
-                      ))
+                  .map(
+                    (f) => SizedBox(
+                      width: (constraints.maxWidth - 12) / 2,
+                      child: _FeatureCard(
+                        icon: f.icon,
+                        title: f.title,
+                        description: f.description,
+                        iconSize: f.iconSize,
+                        yOffset: f.yOffset,
+                      ),
+                    ),
+                  )
                   .toList(),
             );
           },
@@ -919,8 +930,13 @@ class _FeatureSection extends StatelessWidget {
 }
 
 class _FeatureData {
-  const _FeatureData(this.icon, this.title, this.description,
-      {this.iconSize = 28, this.yOffset = 0});
+  const _FeatureData(
+    this.icon,
+    this.title,
+    this.description, {
+    this.iconSize = 28,
+    this.yOffset = 0,
+  });
   final IconData icon;
   final String title;
   final String description;
@@ -948,17 +964,11 @@ class _FeatureIconContainer extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: const Color(0xFF2A1E14).withValues(alpha: 0.35),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Transform.translate(
         offset: Offset(0, yOffset),
-        child: Icon(
-          icon,
-          size: iconSize,
-          color: const Color(0xFFFFB84D),
-        ),
+        child: Icon(icon, size: iconSize, color: const Color(0xFFFFB84D)),
       ),
     );
   }
@@ -1012,10 +1022,7 @@ class _FeatureCardState extends State<_FeatureCard> {
               offset: Offset(0, _hovered ? 8 : 4),
             ),
             if (_hovered)
-              BoxShadow(
-                color: _gold.withValues(alpha: 0.06),
-                blurRadius: 16,
-              ),
+              BoxShadow(color: _gold.withValues(alpha: 0.06), blurRadius: 16),
           ],
         ),
         child: Column(
@@ -1085,11 +1092,7 @@ class _CampaignHighlightCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.favorite,
-                  color: Color(0xFFE04C6D),
-                  size: 12,
-                ),
+                const Icon(Icons.favorite, color: Color(0xFFE04C6D), size: 12),
                 const SizedBox(width: 5),
                 Text(
                   'COMMUNITY CAMPAIGN',
@@ -1245,10 +1248,7 @@ class _CampaignHighlightCard extends StatelessWidget {
 // ─── Section 5: App Store Buttons ────────────────────────────────────────────
 
 class _AppStoreSection extends StatelessWidget {
-  const _AppStoreSection({
-    required this.onAppStore,
-    required this.onPlayStore,
-  });
+  const _AppStoreSection({required this.onAppStore, required this.onPlayStore});
 
   final VoidCallback onAppStore;
   final VoidCallback onPlayStore;
@@ -1272,19 +1272,11 @@ class _AppStoreSection extends StatelessWidget {
         if (isWide) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              badges[0],
-              const SizedBox(width: 16),
-              badges[1],
-            ],
+            children: [badges[0], const SizedBox(width: 16), badges[1]],
           );
         }
         return Column(
-          children: [
-            badges[0],
-            const SizedBox(height: 12),
-            badges[1],
-          ],
+          children: [badges[0], const SizedBox(height: 12), badges[1]],
         );
       },
     );
@@ -1292,10 +1284,7 @@ class _AppStoreSection extends StatelessWidget {
 }
 
 class _StoreBadge extends StatefulWidget {
-  const _StoreBadge({
-    required this.assetPath,
-    required this.onTap,
-  });
+  const _StoreBadge({required this.assetPath, required this.onTap});
 
   final String assetPath;
   final VoidCallback onTap;
@@ -1324,10 +1313,8 @@ class _StoreBadgeState extends State<_StoreBadge> {
               widget.assetPath,
               height: 54,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox(
-                height: 54,
-                width: 180,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  const SizedBox(height: 54, width: 180),
             ),
           ),
         ),
@@ -1343,8 +1330,7 @@ class _ContinueInBrowserLink extends StatefulWidget {
   final VoidCallback onTap;
 
   @override
-  State<_ContinueInBrowserLink> createState() =>
-      _ContinueInBrowserLinkState();
+  State<_ContinueInBrowserLink> createState() => _ContinueInBrowserLinkState();
 }
 
 class _ContinueInBrowserLinkState extends State<_ContinueInBrowserLink> {
@@ -1410,10 +1396,7 @@ class _GoldDivider extends StatelessWidget {
           height: 1,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                _goldDim.withValues(alpha: 0.5),
-              ],
+              colors: [Colors.transparent, _goldDim.withValues(alpha: 0.5)],
             ),
           ),
         ),
@@ -1430,10 +1413,7 @@ class _GoldDivider extends StatelessWidget {
           height: 1,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                _goldDim.withValues(alpha: 0.5),
-                Colors.transparent,
-              ],
+              colors: [_goldDim.withValues(alpha: 0.5), Colors.transparent],
             ),
           ),
         ),
@@ -1465,12 +1445,8 @@ class _MosaicCorner extends StatelessWidget {
         child: Container(
           width: 200,
           height: 200,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: CustomPaint(
-            painter: _MosaicPainter(),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+          child: CustomPaint(painter: _MosaicPainter()),
         ),
       ),
     );

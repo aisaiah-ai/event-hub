@@ -53,8 +53,8 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
                 child: CircularProgressIndicator(color: Color(0xFFF4A340)),
               )
             : _events.isEmpty
-                ? _buildEmpty()
-                : _buildEventsList(),
+            ? _buildEmpty()
+            : _buildEventsList(),
       ),
     );
   }
@@ -64,7 +64,11 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.event_busy, color: Colors.white.withValues(alpha: 0.4), size: 48),
+          Icon(
+            Icons.event_busy,
+            color: Colors.white.withValues(alpha: 0.4),
+            size: 48,
+          ),
           const SizedBox(height: 16),
           Text(
             'No upcoming events',
@@ -118,13 +122,15 @@ class _EventsIndexPageState extends State<EventsIndexPage> {
               const SizedBox(height: 24),
 
               // Event cards
-              ..._events.map((event) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _EventCard(
-                      event: event,
-                      onTap: () => context.go('/events/${event.slug}'),
-                    ),
-                  )),
+              ..._events.map(
+                (event) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _EventCard(
+                    event: event,
+                    onTap: () => context.go('/events/${event.slug}'),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -149,7 +155,8 @@ class _EventCardState extends State<_EventCard> {
   Widget build(BuildContext context) {
     final event = widget.event;
     final isPast = event.endDate.isBefore(DateTime.now());
-    final isMultiDay = event.startDate != event.endDate &&
+    final isMultiDay =
+        event.startDate != event.endDate &&
         event.endDate.difference(event.startDate).inDays >= 1;
 
     String dateText;
@@ -170,9 +177,7 @@ class _EventCardState extends State<_EventCard> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: _hovered
-                ? const Color(0xFF1A1A2E)
-                : const Color(0xFF12121E),
+            color: _hovered ? const Color(0xFF1A1A2E) : const Color(0xFF12121E),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _hovered
@@ -233,8 +238,8 @@ class _EventCardState extends State<_EventCard> {
                             color: const Color(0xFF8888A0),
                           )
                         else if (event.startDate
-                            .difference(DateTime.now())
-                            .inDays <=
+                                .difference(DateTime.now())
+                                .inDays <=
                             7)
                           _TagChip(
                             label: 'UPCOMING',
@@ -335,10 +340,7 @@ class _EventCardState extends State<_EventCard> {
 }
 
 class _TagChip extends StatelessWidget {
-  const _TagChip({
-    required this.label,
-    this.color = const Color(0xFFF4A340),
-  });
+  const _TagChip({required this.label, this.color = const Color(0xFFF4A340)});
 
   final String label;
   final Color color;

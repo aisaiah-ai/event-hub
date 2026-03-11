@@ -98,8 +98,7 @@ class SpeakerRepository {
             'Faith & Unity',
             'Spiritual Renewal',
           ],
-          quote:
-              'In the One, we are one.',
+          quote: 'In the One, we are one.',
         );
       default:
         return null;

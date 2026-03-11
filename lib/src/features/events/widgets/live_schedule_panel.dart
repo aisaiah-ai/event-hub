@@ -89,39 +89,45 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
         .orderBy('order')
         .snapshots()
         .listen(
-      (snap) {
-        // ignore: avoid_print
-        print('[LiveSchedule] Firestore returned ${snap.docs.length} docs');
-        final sessions = snap.docs
-            .map((d) {
+          (snap) {
+            // ignore: avoid_print
+            print('[LiveSchedule] Firestore returned ${snap.docs.length} docs');
+            final sessions = snap.docs
+                .map((d) {
+                  // ignore: avoid_print
+                  print(
+                    '[LiveSchedule] doc ${d.id}: ${d.data().keys.toList()}',
+                  );
+                  return EventSession.fromFirestore(d.id, d.data());
+                })
+                .where((s) => s.id != 'main' && s.id != 'main-checkin')
+                .toList();
+            // ignore: avoid_print
+            print('[LiveSchedule] After filter: ${sessions.length} sessions');
+            if (sessions.isEmpty) {
               // ignore: avoid_print
-              print('[LiveSchedule] doc ${d.id}: ${d.data().keys.toList()}');
-              return EventSession.fromFirestore(d.id, d.data());
-            })
-            .where((s) => s.id != 'main' && s.id != 'main-checkin')
-            .toList();
-        // ignore: avoid_print
-        print('[LiveSchedule] After filter: ${sessions.length} sessions');
-        if (sessions.isEmpty) {
-          // ignore: avoid_print
-          print('[LiveSchedule] No sessions from Firestore → loading fallback');
-          _loadFallback();
-          return;
-        }
-        // Enrich sessions with speaker photos from speakers collection
-        _enrichAndSet(sessions);
-      },
-      onError: (e) {
-        // ignore: avoid_print
-        print('[LiveSchedule] Stream error: $e');
-        _loadFallback();
-      },
-    );
+              print(
+                '[LiveSchedule] No sessions from Firestore → loading fallback',
+              );
+              _loadFallback();
+              return;
+            }
+            // Enrich sessions with speaker photos from speakers collection
+            _enrichAndSet(sessions);
+          },
+          onError: (e) {
+            // ignore: avoid_print
+            print('[LiveSchedule] Stream error: $e');
+            _loadFallback();
+          },
+        );
   }
 
   Future<void> _loadFallback() async {
     // ignore: avoid_print
-    print('[LiveSchedule] _loadFallback called for event.id=${widget.event.id} slug=${widget.event.slug}');
+    print(
+      '[LiveSchedule] _loadFallback called for event.id=${widget.event.id} slug=${widget.event.slug}',
+    );
     try {
       final repo = EventRepository();
       final sessions = await repo.getSessions(
@@ -129,7 +135,9 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
         slug: widget.event.slug,
       );
       // ignore: avoid_print
-      print('[LiveSchedule] fallback repo returned ${sessions.length} sessions');
+      print(
+        '[LiveSchedule] fallback repo returned ${sessions.length} sessions',
+      );
       if (mounted) {
         setState(() {
           _sessions = sessions
@@ -139,7 +147,9 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
           _lastUpdated = DateTime.now();
         });
         // ignore: avoid_print
-        print('[LiveSchedule] After filter: ${_sessions.length} sessions displayed');
+        print(
+          '[LiveSchedule] After filter: ${_sessions.length} sessions displayed',
+        );
         _autoScrollToCurrent();
       }
     } catch (e) {
@@ -178,9 +188,7 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
             match = byName[s.speaker!.name.toLowerCase()];
           }
           if (match != null) {
-            sessions[i] = s.withSpeaker(
-              SessionSpeaker.fromEventSpeaker(match),
-            );
+            sessions[i] = s.withSpeaker(SessionSpeaker.fromEventSpeaker(match));
           }
         }
       }
@@ -339,16 +347,16 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
                       child: CircularProgressIndicator(color: _liveGreen),
                     )
                   : _sessions.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No sessions yet',
-                            style: GoogleFonts.inter(
-                              color: _textMuted,
-                              fontSize: 14,
-                            ),
-                          ),
-                        )
-                      : _buildSessionList(k, activeIndex, nextIndex),
+                  ? Center(
+                      child: Text(
+                        'No sessions yet',
+                        style: GoogleFonts.inter(
+                          color: _textMuted,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : _buildSessionList(k, activeIndex, nextIndex),
             ),
           ],
         ),
@@ -379,56 +387,68 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
 
     for (final idx in upcoming) {
       final isActive = idx == activeIndex;
-      items.add(_ScheduleItemCard(
-        session: _sessions[idx],
-        isKiosk: k,
-        isActive: isActive,
-        debugNow: widget.debugNow,
-      ));
+      items.add(
+        _ScheduleItemCard(
+          session: _sessions[idx],
+          isKiosk: k,
+          isActive: isActive,
+          debugNow: widget.debugNow,
+        ),
+      );
       // Insert Next Session card after active session
       if (isActive && nextIndex >= 0) {
-        items.add(_NextSessionCard(
-          session: _sessions[nextIndex],
-          isKiosk: k,
-          debugNow: widget.debugNow,
-        ));
+        items.add(
+          _NextSessionCard(
+            session: _sessions[nextIndex],
+            isKiosk: k,
+            debugNow: widget.debugNow,
+          ),
+        );
       }
     }
 
     if (past.isNotEmpty) {
       // "PAST" divider
-      items.add(Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: k ? 20 : 14,
-          vertical: k ? 10 : 8,
-        ),
-        child: Row(
-          children: [
-            Expanded(child: Divider(color: _textMuted.withValues(alpha: 0.2))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'PAST',
-                style: GoogleFonts.inter(
-                  color: _textMuted.withValues(alpha: 0.4),
-                  fontSize: k ? 11 : 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+      items.add(
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: k ? 20 : 14,
+            vertical: k ? 10 : 8,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Divider(color: _textMuted.withValues(alpha: 0.2)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'PAST',
+                  style: GoogleFonts.inter(
+                    color: _textMuted.withValues(alpha: 0.4),
+                    fontSize: k ? 11 : 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
-            ),
-            Expanded(child: Divider(color: _textMuted.withValues(alpha: 0.2))),
-          ],
+              Expanded(
+                child: Divider(color: _textMuted.withValues(alpha: 0.2)),
+              ),
+            ],
+          ),
         ),
-      ));
+      );
 
       for (final idx in past) {
-        items.add(_ScheduleItemCard(
-          session: _sessions[idx],
-          isKiosk: k,
-          isActive: false,
-          debugNow: widget.debugNow,
-        ));
+        items.add(
+          _ScheduleItemCard(
+            session: _sessions[idx],
+            isKiosk: k,
+            isActive: false,
+            debugNow: widget.debugNow,
+          ),
+        );
       }
     }
 
@@ -529,9 +549,7 @@ class _ScheduleItemCard extends StatelessWidget {
             : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: isActive
-            ? Border.all(
-                color: const Color(0xFF7AE3A5).withValues(alpha: 0.35),
-              )
+            ? Border.all(color: const Color(0xFF7AE3A5).withValues(alpha: 0.35))
             : null,
         boxShadow: isActive
             ? [
@@ -575,12 +593,10 @@ class _ScheduleItemCard extends StatelessWidget {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF7AE3A5)
-                            .withValues(alpha: 0.15),
+                        color: const Color(0xFF7AE3A5).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: const Color(0xFF7AE3A5)
-                              .withValues(alpha: 0.3),
+                          color: const Color(0xFF7AE3A5).withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -622,14 +638,15 @@ class _ScheduleItemCard extends StatelessWidget {
                   color: isActive
                       ? const Color(0xFF7AE3A5)
                       : past
-                          ? const Color(0xFF8888A0).withValues(alpha: 0.3)
-                          : const Color(0xFF0E3A5D),
+                      ? const Color(0xFF8888A0).withValues(alpha: 0.3)
+                      : const Color(0xFF0E3A5D),
                   shape: BoxShape.circle,
                   boxShadow: isActive
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF7AE3A5)
-                                .withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFF7AE3A5,
+                            ).withValues(alpha: 0.5),
                             blurRadius: 8,
                           ),
                         ]
@@ -843,18 +860,18 @@ class _SpeakerAvatar extends StatelessWidget {
         height: size,
         child: hasImage
             ? (url.startsWith('assets/')
-                ? Image.asset(
-                    url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _buildInitials(),
-                  )
-                : CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.cover,
-                    fadeInDuration: const Duration(milliseconds: 200),
-                    placeholder: (_, _) => _buildInitials(),
-                    errorWidget: (_, _, _) => _buildInitials(),
-                  ))
+                  ? Image.asset(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _buildInitials(),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      placeholder: (_, _) => _buildInitials(),
+                      errorWidget: (_, _, _) => _buildInitials(),
+                    ))
             : _buildInitials(),
       ),
     );

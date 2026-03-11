@@ -76,8 +76,8 @@ class _EventDashboardPageState extends State<EventDashboardPage> {
               child: CircularProgressIndicator(color: Color(0xFFF4A340)),
             )
           : _error != null
-              ? _buildError()
-              : _buildDashboard(),
+          ? _buildError()
+          : _buildDashboard(),
     );
   }
 
@@ -145,9 +145,7 @@ class _EventDashboardPageState extends State<EventDashboardPage> {
               // ── Side-by-side panels ──
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isKiosk ? 20 : 14,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: isKiosk ? 20 : 14),
                   child: isWide
                       ? Row(
                           children: [
@@ -194,9 +192,7 @@ class _EventDashboardPageState extends State<EventDashboardPage> {
 
               // ── Live Photos strip ──
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isKiosk ? 20 : 14,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: isKiosk ? 20 : 14),
                 child: LivePhotosPanel(
                   event: event,
                   isKiosk: isKiosk,
@@ -206,9 +202,7 @@ class _EventDashboardPageState extends State<EventDashboardPage> {
 
               // ── Footer ──
               Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: isKiosk ? 12 : 8,
-                ),
+                padding: EdgeInsets.symmetric(vertical: isKiosk ? 12 : 8),
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
@@ -258,17 +252,50 @@ class _TimeSimulator extends StatelessWidget {
     final presets = <_TimePreset>[
       // Use UTC to match fallback session times (DateTime.utc in event_repository)
       _TimePreset('REAL', null),
-      _TimePreset('5:00 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 0)),
-      _TimePreset('5:30 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 30)),
-      _TimePreset('5:50 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 50)),
-      _TimePreset('6:00 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 18, 0)),
-      _TimePreset('6:30 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 18, 30)),
-      _TimePreset('7:00 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 19, 0)),
-      _TimePreset('7:30 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 19, 30)),
-      _TimePreset('8:00 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 20, 0)),
-      _TimePreset('8:30 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 20, 30)),
-      _TimePreset('9:00 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 21, 0)),
-      _TimePreset('9:30 PM', DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 21, 30)),
+      _TimePreset(
+        '5:00 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 0),
+      ),
+      _TimePreset(
+        '5:30 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 30),
+      ),
+      _TimePreset(
+        '5:50 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 17, 50),
+      ),
+      _TimePreset(
+        '6:00 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 18, 0),
+      ),
+      _TimePreset(
+        '6:30 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 18, 30),
+      ),
+      _TimePreset(
+        '7:00 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 19, 0),
+      ),
+      _TimePreset(
+        '7:30 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 19, 30),
+      ),
+      _TimePreset(
+        '8:00 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 20, 0),
+      ),
+      _TimePreset(
+        '8:30 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 20, 30),
+      ),
+      _TimePreset(
+        '9:00 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 21, 0),
+      ),
+      _TimePreset(
+        '9:30 PM',
+        DateTime.utc(eventDay.year, eventDay.month, eventDay.day, 21, 30),
+      ),
     ];
 
     return Container(
@@ -277,7 +304,9 @@ class _TimeSimulator extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF2A1A3A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF6D4CFF).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFF6D4CFF).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -301,8 +330,10 @@ class _TimeSimulator extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: presets.map((p) {
-                  final isSelected = (p.time == null && debugNow == null) ||
-                      (p.time != null && debugNow != null &&
+                  final isSelected =
+                      (p.time == null && debugNow == null) ||
+                      (p.time != null &&
+                          debugNow != null &&
                           p.time!.isAtSameMomentAs(debugNow!));
                   return Padding(
                     padding: const EdgeInsets.only(right: 4),

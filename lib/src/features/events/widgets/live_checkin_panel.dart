@@ -74,28 +74,29 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
         .collection('registrants')
         .snapshots()
         .listen(
-      (snap) => _merge(snap.docs, 'default'),
-      // ignore: avoid_print
-      onError: (e) => print('[LiveCheckin] default stream error: $e'),
-    );
+          (snap) => _merge(snap.docs, 'default'),
+          // ignore: avoid_print
+          onError: (e) => print('[LiveCheckin] default stream error: $e'),
+        );
 
     try {
       final prodDb = FirebaseFirestore.instanceFor(
         app: fs.app,
         databaseId: 'event-hub-prod',
       );
-      final prodDocId =
-          (defaultDocId == 'march-assembly') ? 'march-cluster-2026' : eventId;
+      final prodDocId = (defaultDocId == 'march-assembly')
+          ? 'march-cluster-2026'
+          : eventId;
       _prodSub = prodDb
           .collection('events')
           .doc(prodDocId)
           .collection('registrants')
           .snapshots()
           .listen(
-        (snap) => _merge(snap.docs, 'prod'),
-        // ignore: avoid_print
-        onError: (e) => print('[LiveCheckin] prod stream error: $e'),
-      );
+            (snap) => _merge(snap.docs, 'prod'),
+            // ignore: avoid_print
+            onError: (e) => print('[LiveCheckin] prod stream error: $e'),
+          );
     } catch (_) {}
   }
 
@@ -201,11 +202,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.how_to_reg_rounded,
-                  color: _gold,
-                  size: k ? 24 : 20,
-                ),
+                Icon(Icons.how_to_reg_rounded, color: _gold, size: k ? 24 : 20),
                 SizedBox(width: k ? 10 : 8),
                 Text(
                   'Live Check-Ins',
@@ -376,18 +373,18 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                 SizedBox(height: k ? 10 : 6),
 
                 // Animated list
-                ...(_registrants.take(k ? 10 : 8).toList().asMap().entries.map(
-                  (entry) {
-                    final r = entry.value;
-                    final isNew = _newIds.contains(r.id);
-                    return _AnimatedCheckinRow(
-                      key: ValueKey(r.id),
-                      entry: r,
-                      isNew: isNew,
-                      isKiosk: k,
-                    );
-                  },
-                )),
+                ...(_registrants.take(k ? 10 : 8).toList().asMap().entries.map((
+                  entry,
+                ) {
+                  final r = entry.value;
+                  final isNew = _newIds.contains(r.id);
+                  return _AnimatedCheckinRow(
+                    key: ValueKey(r.id),
+                    entry: r,
+                    isNew: isNew,
+                    isKiosk: k,
+                  );
+                })),
 
                 SizedBox(height: k ? 20 : 14),
 

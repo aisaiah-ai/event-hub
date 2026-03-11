@@ -81,8 +81,8 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
         .collection('registrants')
         .snapshots()
         .listen((snap) {
-      _mergeRegistrants(snap.docs, 'default');
-    });
+          _mergeRegistrants(snap.docs, 'default');
+        });
 
     // Listen to prod database
     try {
@@ -90,16 +90,17 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
         app: fs.app,
         databaseId: 'event-hub-prod',
       );
-      final prodDocId =
-          eventId == 'march-assembly' ? 'march-cluster-2026' : eventId;
+      final prodDocId = eventId == 'march-assembly'
+          ? 'march-cluster-2026'
+          : eventId;
       _registrantsProdSub = prodDb
           .collection('events')
           .doc(prodDocId)
           .collection('registrants')
           .snapshots()
           .listen((snap) {
-        _mergeRegistrants(snap.docs, 'prod');
-      });
+            _mergeRegistrants(snap.docs, 'prod');
+          });
     } catch (_) {}
   }
 
@@ -168,19 +169,19 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: _gold))
           : _error != null
-              ? _buildError()
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  color: _gold,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 24,
-                    ),
-                    child: _buildDashboard(),
-                  ),
+          ? _buildError()
+          : RefreshIndicator(
+              onRefresh: _load,
+              color: _gold,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
                 ),
+                child: _buildDashboard(),
+              ),
+            ),
     );
   }
 
@@ -467,8 +468,9 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
                       value: fraction,
                       strokeWidth: 8,
                       backgroundColor: _cardBorder,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(_liveGreen),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        _liveGreen,
+                      ),
                     ),
                     Center(
                       child: Icon(
@@ -583,12 +585,7 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
           for (var i = 0; i < recent.length; i++) ...[
             _RecentCheckinRow(data: recent[i]),
             if (i < recent.length - 1)
-              Divider(
-                color: _cardBorder,
-                height: 1,
-                indent: 16,
-                endIndent: 16,
-              ),
+              Divider(color: _cardBorder, height: 1, indent: 16, endIndent: 16),
           ],
         ],
       ),
@@ -641,10 +638,10 @@ class _CheckinDashboardPageState extends State<CheckinDashboardPage> {
   }
 
   static BoxDecoration _cardDecoration() => BoxDecoration(
-        color: _cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _cardBorder),
-      );
+    color: _cardBg,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: _cardBorder),
+  );
 
   String _sourceLabel(String source) {
     switch (source.toLowerCase()) {
@@ -971,7 +968,9 @@ class _RecentCheckinRow extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7AE3A5).withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFF7AE3A5,
+                          ).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -990,7 +989,9 @@ class _RecentCheckinRow extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF4A340).withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFFF4A340,
+                          ).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -1010,8 +1011,9 @@ class _RecentCheckinRow extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF4C7FE0).withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFF4C7FE0,
+                          ).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

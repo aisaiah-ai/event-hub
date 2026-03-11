@@ -71,8 +71,9 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
     }
 
     // Use canonical doc ID
-    final docId =
-        widget.event.id == 'march-cluster-2026' ? 'march-assembly' : widget.event.id;
+    final docId = widget.event.id == 'march-cluster-2026'
+        ? 'march-assembly'
+        : widget.event.id;
 
     _sub = fs
         .collection('events')
@@ -80,34 +81,35 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
         .collection('images')
         .snapshots()
         .listen(
-      (snap) {
-        final approved = snap.docs
-            .where((d) => (d.data())['status'] == 'approved')
-            .map((d) {
-          final data = d.data();
-          return _Photo(
-            id: d.id,
-            url: data['url'] as String? ?? '',
-            thumbnailUrl: data['thumbnailUrl'] as String?,
-            uploaderName: data['uploaderName'] as String?,
-          );
-        }).toList();
+          (snap) {
+            final approved = snap.docs
+                .where((d) => (d.data())['status'] == 'approved')
+                .map((d) {
+                  final data = d.data();
+                  return _Photo(
+                    id: d.id,
+                    url: data['url'] as String? ?? '',
+                    thumbnailUrl: data['thumbnailUrl'] as String?,
+                    uploaderName: data['uploaderName'] as String?,
+                  );
+                })
+                .toList();
 
-        if (!mounted) return;
-        final wasEmpty = _photos.isEmpty;
-        setState(() {
-          _photos = approved;
-          _loading = false;
-          _refreshGridOrder();
-        });
-        if (wasEmpty && approved.isNotEmpty) {
-          _startTimers();
-        }
-      },
-      onError: (_) {
-        if (mounted) setState(() => _loading = false);
-      },
-    );
+            if (!mounted) return;
+            final wasEmpty = _photos.isEmpty;
+            setState(() {
+              _photos = approved;
+              _loading = false;
+              _refreshGridOrder();
+            });
+            if (wasEmpty && approved.isNotEmpty) {
+              _startTimers();
+            }
+          },
+          onError: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        );
   }
 
   void _refreshGridOrder() {
@@ -209,27 +211,27 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
                     ),
                   )
                 : _photos.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.camera_alt_outlined,
-                              color: _textMuted.withValues(alpha: 0.5),
-                              size: k ? 36 : 28,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'No photos yet',
-                              style: GoogleFonts.inter(
-                                color: _textMuted,
-                                fontSize: k ? 14 : 12,
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.camera_alt_outlined,
+                          color: _textMuted.withValues(alpha: 0.5),
+                          size: k ? 36 : 28,
                         ),
-                      )
-                    : _buildPhotoContent(k),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No photos yet',
+                          style: GoogleFonts.inter(
+                            color: _textMuted,
+                            fontSize: k ? 14 : 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : _buildPhotoContent(k),
           ),
         ],
       ),
@@ -247,16 +249,10 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
       child: Row(
         children: [
           // Spotlight photo (left side, larger)
-          Expanded(
-            flex: 3,
-            child: _buildSpotlight(k),
-          ),
+          Expanded(flex: 3, child: _buildSpotlight(k)),
           SizedBox(width: k ? 10 : 8),
           // Grid thumbnails (right side)
-          Expanded(
-            flex: 2,
-            child: _buildGrid(k),
-          ),
+          Expanded(flex: 2, child: _buildGrid(k)),
         ],
       ),
     );
@@ -284,8 +280,7 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
               ),
             ),
             // Gradient overlay at bottom for name
-            if (photo.uploaderName != null &&
-                photo.uploaderName!.isNotEmpty)
+            if (photo.uploaderName != null && photo.uploaderName!.isNotEmpty)
               Positioned(
                 left: 0,
                 right: 0,
