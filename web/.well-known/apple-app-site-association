@@ -4,7 +4,7 @@
     "details": [
       {
         "appID": "2DS988A724.org.aisaiah.aisaiahai",
-        "paths": ["/e/*"]
+        "paths": ["/e/*", "/s/*", "/events/*"]
       }
     ]
   }
