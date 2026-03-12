@@ -647,8 +647,12 @@ class EventRepository {
       } catch (_) {}
     }
 
-    // 1. Default database (events/march-assembly/rsvps).
-    await fetchFrom(fs, eventId);
+    // 1. Default database — RSVPs live under march-assembly.
+    final defaultDocId = eventId == 'march-cluster-2026'
+        ? 'march-assembly'
+        : eventId;
+    await fetchFrom(fs, defaultDocId);
+    if (defaultDocId != eventId) await fetchFrom(fs, eventId);
 
     // 2. event-hub-prod named database (events/march-cluster-2026/rsvps).
     try {
@@ -656,8 +660,8 @@ class EventRepository {
         app: fs.app,
         databaseId: 'event-hub-prod',
       );
-      // The prod database uses march-cluster-2026 as the event doc ID.
-      final prodDocId = eventId == 'march-assembly'
+      final prodDocId =
+          (eventId == 'march-assembly' || eventId == 'march-cluster-2026')
           ? 'march-cluster-2026'
           : eventId;
       await fetchFrom(prodDb, prodDocId);
@@ -736,7 +740,13 @@ class EventRepository {
       }
     }
 
-    await fetchFrom(fs, eventId);
+    // Registrants live under march-assembly in default DB.
+    final defaultDocId = eventId == 'march-cluster-2026'
+        ? 'march-assembly'
+        : eventId;
+    await fetchFrom(fs, defaultDocId);
+    // Also fetch under the original eventId if different.
+    if (defaultDocId != eventId) await fetchFrom(fs, eventId);
 
     // Also check event-hub-prod named database.
     try {
@@ -744,7 +754,8 @@ class EventRepository {
         app: fs.app,
         databaseId: 'event-hub-prod',
       );
-      final prodDocId = eventId == 'march-assembly'
+      final prodDocId =
+          (eventId == 'march-assembly' || eventId == 'march-cluster-2026')
           ? 'march-cluster-2026'
           : eventId;
       await fetchFrom(prodDb, prodDocId);
