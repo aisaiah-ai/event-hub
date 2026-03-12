@@ -704,6 +704,7 @@ class EventRepository {
           } else {
             created = DateTime.now();
           }
+          final rsvpImport = data['rsvpImport'] as Map<String, dynamic>? ?? {};
           list.add({
             'id': d.id,
             'name': name,
@@ -714,6 +715,20 @@ class EventRepository {
             'additionalRegistrants': additionalRegs.length,
             'createdAt': created,
             'checkedIn': data['eventAttendance'] != null,
+            'area':
+                rsvpImport['area'] as String? ??
+                profile['area'] as String? ??
+                '',
+            'household': rsvpImport['household'] as String? ?? '',
+            'attendingRally': rsvpImport['attendingRally'] as bool? ?? false,
+            'attendingDinner': rsvpImport['attendingDinner'] as bool? ?? false,
+            'attendeesCount':
+                (rsvpImport['attendeesCount'] as num?)?.toInt() ?? 1,
+            'celebrationType':
+                rsvpImport['celebrationType'] as String? ??
+                rsvpImport['birthday'] as String? ??
+                '',
+            'kids': rsvpImport['kids'] as List<dynamic>? ?? [],
           });
         }
       } catch (e) {

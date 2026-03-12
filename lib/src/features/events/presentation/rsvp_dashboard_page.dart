@@ -264,7 +264,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
           _OverviewTile(
             icon: Icons.groups_rounded,
             iconColor: _gold,
-            value: stats.totalAttendees + stats.registrantCount,
+            value: stats.totalAttendees,
             label: 'TOTAL RSVPs',
             highlighted: true,
           ),
@@ -463,7 +463,8 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
   // ── Recent RSVPs ────────────────────────────────────────────────────
 
   Widget _buildRecentRsvps() {
-    final recent = _rsvps.take(8).toList();
+    // Show registrants (which now include rsvp-import data) sorted by createdAt.
+    final recent = _registrants.take(8).toList();
     if (recent.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -482,7 +483,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
       child: Column(
         children: [
           for (var i = 0; i < recent.length; i++) ...[
-            _RecentRsvpRow(rsvp: recent[i]),
+            _RecentRegistrantRow(registrant: recent[i]),
             if (i < recent.length - 1)
               Divider(color: _cardBorder, height: 1, indent: 16, endIndent: 16),
           ],
@@ -551,7 +552,7 @@ class _RsvpDashboardPageState extends State<RsvpDashboardPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_rsvps.length + _registrants.length} RSVPs on record',
+          'Report generated \u00B7 ${DateFormat('MMMM yyyy').format(DateTime.now())} \u00B7 ${_registrants.length} registrants on record',
           style: GoogleFonts.inter(
             color: _textMuted.withValues(alpha: 0.5),
             fontSize: 11,
@@ -631,6 +632,7 @@ class _RsvpStats {
     var kidsCount = 0;
     final byArea = <String, _AreaData>{};
 
+    // Stats from legacy RSVPs (if any remain).
     for (final r in rsvps) {
       totalAttendees += r.attendeesCount;
       if (r.attendingRally) rallyCount += r.attendeesCount;
@@ -646,16 +648,36 @@ class _RsvpStats {
       if (r.household.isNotEmpty) areaData.households.add(r.household);
     }
 
-    // Count registrants and their additional guests.
-    var regCount = registrants.length;
+    // Stats from registrants (includes rsvp-import data).
+    var regCount = 0;
     var regCheckedIn = 0;
     for (final r in registrants) {
+      regCount++;
       regCount += (r['additionalGuests'] as int? ?? 0);
       if (r['checkedIn'] == true) regCheckedIn++;
+
+      final attendingRally = r['attendingRally'] as bool? ?? false;
+      final attendingDinner = r['attendingDinner'] as bool? ?? false;
+      if (attendingRally) rallyCount++;
+      if (attendingDinner) dinnerCount++;
+
+      final celebration = r['celebrationType'] as String? ?? '';
+      if (celebration.isNotEmpty) celebrationCount++;
+
+      final kids = r['kids'] as List<dynamic>? ?? [];
+      kidsCount += kids.length;
+
+      final area = r['area'] as String? ?? '';
+      if (area.isNotEmpty) {
+        final areaData = byArea.putIfAbsent(area, () => _AreaData());
+        areaData.people++;
+        final household = r['household'] as String? ?? '';
+        if (household.isNotEmpty) areaData.households.add(household);
+      }
     }
 
     return _RsvpStats(
-      totalAttendees: totalAttendees,
+      totalAttendees: totalAttendees + regCount,
       rallyCount: rallyCount,
       dinnerCount: dinnerCount,
       celebrationCount: celebrationCount,
@@ -870,24 +892,32 @@ class _AreaCard extends StatelessWidget {
   }
 }
 
-class _RecentRsvpRow extends StatelessWidget {
-  const _RecentRsvpRow({required this.rsvp});
+class _RecentRegistrantRow extends StatelessWidget {
+  const _RecentRegistrantRow({required this.registrant});
 
-  final EventRsvp rsvp;
+  final Map<String, dynamic> registrant;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _getInitials(rsvp.name);
+    final name = registrant['name'] as String? ?? '';
+    final initials = _getInitials(name);
     final badges = <Widget>[];
-    if (rsvp.attendingRally) {
+    if (registrant['attendingRally'] == true) {
       badges.add(_badge('Rally', const Color(0xFFF4A340)));
     }
-    if (rsvp.attendingDinner) {
+    if (registrant['attendingDinner'] == true) {
       badges.add(_badge('Dinner', const Color(0xFF4C7FE0)));
     }
-    if (rsvp.celebrationType != null && rsvp.celebrationType!.isNotEmpty) {
-      badges.add(_badge(rsvp.celebrationType!, const Color(0xFFE87D2E)));
+    final celebration = registrant['celebrationType'] as String? ?? '';
+    if (celebration.isNotEmpty) {
+      badges.add(_badge(celebration, const Color(0xFFE87D2E)));
     }
+    final source = registrant['source'] as String? ?? '';
+    if (source == 'app') {
+      badges.add(_badge('Registered', const Color(0xFF4CE0C6)));
+    }
+
+    final area = registrant['area'] as String? ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -895,7 +925,7 @@ class _RecentRsvpRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: _colorFor(rsvp.name),
+            backgroundColor: _colorFor(name),
             child: Text(
               initials,
               style: GoogleFonts.inter(
@@ -911,7 +941,7 @@ class _RecentRsvpRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  rsvp.name,
+                  name,
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 14,
@@ -928,20 +958,21 @@ class _RecentRsvpRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${rsvp.attendeesCount}',
+                '${registrant['attendeesCount'] ?? 1}',
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Text(
-                rsvp.area ?? '',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF8888A0),
-                  fontSize: 11,
+              if (area.isNotEmpty)
+                Text(
+                  area,
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF8888A0),
+                    fontSize: 11,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
