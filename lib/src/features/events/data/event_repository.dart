@@ -398,7 +398,7 @@ class EventRepository {
       address: e.address,
       isActive: e.isActive,
       allowRsvp: e.allowRsvp,
-      allowCheckin: true, // enable check-in for event detail UI
+      allowCheckin: e.allowCheckin,
       metadata: e.metadata,
       venue: e.venue,
       isRegistered: e.isRegistered,
