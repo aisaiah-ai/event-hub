@@ -159,7 +159,8 @@ class _CheckinSearchPageState extends State<CheckinSearchPage> {
         'registrantName': _displayName(r),
         'source': 'search',
         'isMainCheckIn':
-            widget.mode.sessionId == NlcSessions.mainCheckInSessionId,
+            widget.mode.sessionId == NlcSessions.mainCheckInSessionId ||
+            widget.mode.sessionId == 'main',
       },
     );
   }

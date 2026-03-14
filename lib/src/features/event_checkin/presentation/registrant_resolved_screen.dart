@@ -64,7 +64,46 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
   @override
   void initState() {
     super.initState();
-    _loadRegistrationState();
+    if (widget.isMainCheckIn) {
+      _skipToMainCheckin();
+    } else {
+      _loadRegistrationState();
+    }
+  }
+
+  Future<void> _skipToMainCheckin() async {
+    final orch = widget.orchestrator ?? CheckinOrchestratorService();
+    setState(() => _actionLoading = true);
+    try {
+      final outcome = await orch.checkInToTargetSession(
+        eventId: widget.eventId,
+        targetSessionId: 'main',
+        registrantId: widget.registrantId,
+        source: widget.source,
+      );
+      if (!mounted) return;
+      context.pushReplacement(
+        '/events/${widget.eventSlug}/checkin/confirmation',
+        extra: {
+          'event': widget.event,
+          'eventId': widget.eventId,
+          'eventSlug': widget.eventSlug,
+          'registrantId': widget.registrantId,
+          'registrantName': widget.registrantName,
+          'source': widget.source.name,
+          'session': outcome.session,
+          'isMainCheckIn': true,
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _error = e.toString();
+          _mode = _RegistrationMode.none;
+        });
+      }
+    }
   }
 
   Future<void> _loadRegistrationState() async {
