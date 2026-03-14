@@ -47,8 +47,9 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
   /// Manual tap on "Open in App" — use universal link so the OS can
   /// intercept and open the app if installed, without blank tabs.
   Future<void> _attemptOpenInApp() async {
-    final universalLink =
-        Uri.parse('https://events.aisaiah.org/e/${widget.eventSlug}');
+    final universalLink = Uri.parse(
+      'https://events.aisaiah.org/e/${widget.eventSlug}',
+    );
     try {
       await launchUrl(universalLink);
     } catch (e) {
@@ -69,9 +70,7 @@ class _SmartEventLandingPageState extends State<SmartEventLandingPage> {
   }
 
   void _openAppStore() {
-    launchUrl(
-      Uri.parse('https://apps.apple.com/us/app/aisaiah/id6751301980'),
-    );
+    launchUrl(Uri.parse('https://apps.apple.com/us/app/aisaiah/id6751301980'));
   }
 
   void _openPlayStore() {

@@ -10,12 +10,39 @@ import '../data/event_model.dart';
 
 /// Live photos panel that streams approved images from Firestore.
 /// Shows a rotating photo grid with auto-slideshow and photo count.
+/// Optional color overrides for theming (light/dark).
+class PhotosPanelColors {
+  const PhotosPanelColors({
+    this.cardBg = const Color(0xFF1A1A2A),
+    this.cardBorder = const Color(0xFF2A2A3A),
+    this.accent = const Color(0xFFB44CE0),
+    this.textPrimary = Colors.white,
+    this.textMuted = const Color(0xFF8888A0),
+  });
+
+  final Color cardBg;
+  final Color cardBorder;
+  final Color accent;
+  final Color textPrimary;
+  final Color textMuted;
+
+  static const dark = PhotosPanelColors();
+  static const light = PhotosPanelColors(
+    cardBg: Colors.white,
+    cardBorder: Color(0xFFE0E0D8),
+    accent: Color(0xFF9040B0),
+    textPrimary: Color(0xFF1A1A1A),
+    textMuted: Color(0xFF888880),
+  );
+}
+
 class LivePhotosPanel extends StatefulWidget {
   const LivePhotosPanel({
     super.key,
     required this.event,
     this.isKiosk = false,
     this.maxHeight = 280,
+    this.colors = PhotosPanelColors.dark,
   });
 
   final EventModel event;
@@ -23,6 +50,7 @@ class LivePhotosPanel extends StatefulWidget {
 
   /// Max height for the panel (used in bottom strip layout).
   final double maxHeight;
+  final PhotosPanelColors colors;
 
   @override
   State<LivePhotosPanel> createState() => _LivePhotosPanelState();
@@ -142,13 +170,14 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
   @override
   Widget build(BuildContext context) {
     final k = widget.isKiosk;
+    final c = widget.colors;
 
     return Container(
       constraints: BoxConstraints(maxHeight: widget.maxHeight),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: c.cardBg,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _cardBorder),
+        border: Border.all(color: c.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -165,14 +194,14 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
               children: [
                 Icon(
                   Icons.photo_library_rounded,
-                  color: _accentPurple,
+                  color: c.accent,
                   size: k ? 22 : 18,
                 ),
                 SizedBox(width: k ? 10 : 8),
                 Text(
                   'Live Photos',
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: c.textPrimary,
                     fontSize: k ? 18 : 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -185,13 +214,13 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: _accentPurple.withValues(alpha: 0.12),
+                      color: c.accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${_photos.length} photos',
                       style: GoogleFonts.inter(
-                        color: _accentPurple,
+                        color: c.accent,
                         fontSize: k ? 12 : 10,
                         fontWeight: FontWeight.w700,
                       ),
@@ -204,9 +233,9 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
           // Content
           Expanded(
             child: _loading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(
-                      color: _accentPurple,
+                      color: c.accent,
                       strokeWidth: 2,
                     ),
                   )
@@ -217,14 +246,14 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
                       children: [
                         Icon(
                           Icons.camera_alt_outlined,
-                          color: _textMuted.withValues(alpha: 0.5),
+                          color: c.textMuted.withValues(alpha: 0.5),
                           size: k ? 36 : 28,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'No photos yet',
                           style: GoogleFonts.inter(
-                            color: _textMuted,
+                            color: c.textMuted,
                             fontSize: k ? 14 : 12,
                           ),
                         ),
@@ -261,6 +290,7 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
   Widget _buildSpotlight(bool k) {
     if (_photos.isEmpty) return const SizedBox.shrink();
     final photo = _photos[_spotlightIndex.clamp(0, _photos.length - 1)];
+    final c = widget.colors;
 
     return FadeTransition(
       opacity: _fadeController,
@@ -273,13 +303,12 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
               imageUrl: photo.url,
               fit: BoxFit.cover,
               fadeInDuration: const Duration(milliseconds: 300),
-              placeholder: (_, _) => Container(color: _cardBorder),
+              placeholder: (_, _) => Container(color: c.cardBorder),
               errorWidget: (_, _, _) => Container(
-                color: _cardBorder,
-                child: const Icon(Icons.broken_image, color: _textMuted),
+                color: c.cardBorder,
+                child: Icon(Icons.broken_image, color: c.textMuted),
               ),
             ),
-            // Gradient overlay at bottom for name
             if (photo.uploaderName != null && photo.uploaderName!.isNotEmpty)
               Positioned(
                 left: 0,
@@ -323,6 +352,7 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
         .where((i) => i != _spotlightIndex && i < _photos.length)
         .take(4)
         .toList();
+    final c = widget.colors;
 
     if (gridPhotos.isEmpty) return const SizedBox.shrink();
 
@@ -340,12 +370,12 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
             imageUrl: photo.thumbnailUrl ?? photo.url,
             fit: BoxFit.cover,
             fadeInDuration: const Duration(milliseconds: 300),
-            placeholder: (_, _) => Container(color: _cardBorder),
+            placeholder: (_, _) => Container(color: c.cardBorder),
             errorWidget: (_, _, _) => Container(
-              color: _cardBorder,
+              color: c.cardBorder,
               child: Icon(
                 Icons.broken_image,
-                color: _textMuted,
+                color: c.textMuted,
                 size: k ? 18 : 14,
               ),
             ),
@@ -354,11 +384,6 @@ class _LivePhotosPanelState extends State<LivePhotosPanel>
       }).toList(),
     );
   }
-
-  static const _cardBg = Color(0xFF1A1A2A);
-  static const _cardBorder = Color(0xFF2A2A3A);
-  static const _accentPurple = Color(0xFFB44CE0);
-  static const _textMuted = Color(0xFF8888A0);
 }
 
 class _Photo {

@@ -10,6 +10,38 @@ import '../data/event_model.dart';
 import '../data/event_schedule_model.dart';
 import '../data/event_repository.dart';
 
+/// Optional color overrides for theming (light/dark).
+class SchedulePanelColors {
+  const SchedulePanelColors({
+    this.cardBg = const Color(0xFF1A1A2A),
+    this.cardBorder = const Color(0xFF2A2A3A),
+    this.primary = const Color(0xFF0E3A5D),
+    this.liveGreen = const Color(0xFF7AE3A5),
+    this.textPrimary = Colors.white,
+    this.textMuted = const Color(0xFF8888A0),
+    this.gold = const Color(0xFFF4A340),
+  });
+
+  final Color cardBg;
+  final Color cardBorder;
+  final Color primary;
+  final Color liveGreen;
+  final Color textPrimary;
+  final Color textMuted;
+  final Color gold;
+
+  static const dark = SchedulePanelColors();
+  static const light = SchedulePanelColors(
+    cardBg: Colors.white,
+    cardBorder: Color(0xFFE0E0D8),
+    primary: Color(0xFF0E3A5D),
+    liveGreen: Color(0xFF2B9E7A),
+    textPrimary: Color(0xFF1A1A1A),
+    textMuted: Color(0xFF888880),
+    gold: Color(0xFFD48A20),
+  );
+}
+
 /// Live schedule panel that streams sessions from Firestore,
 /// highlights the current session, shows next session, and auto-scrolls.
 /// Designed for kiosk / projector display.
@@ -19,13 +51,13 @@ class LiveSchedulePanel extends StatefulWidget {
     required this.event,
     this.isKiosk = false,
     this.debugNow,
+    this.colors = SchedulePanelColors.dark,
   });
 
   final EventModel event;
   final bool isKiosk;
-
-  /// Debug time override. When set, used instead of DateTime.now().
   final DateTime? debugNow;
+  final SchedulePanelColors colors;
 
   @override
   State<LiveSchedulePanel> createState() => _LiveSchedulePanelState();
@@ -45,14 +77,12 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
   void initState() {
     super.initState();
     _startStream();
-    // Tick every 15s to update LIVE highlight + "Updated" label.
     _ticker = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) {
         setState(() {});
         if (!_hovered) _autoScrollToCurrent();
       }
     });
-    // Auto scroll every 15s for projector visibility.
     _autoScrollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!_hovered && mounted) _slowScroll();
     });
@@ -74,7 +104,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
       return;
     }
 
-    // Use canonical doc ID (sessions are stored under march-assembly)
     final docId = widget.event.id == 'march-cluster-2026'
         ? 'march-assembly'
         : widget.event.id;
@@ -112,7 +141,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
               _loadFallback();
               return;
             }
-            // Enrich sessions with speaker photos from speakers collection
             _enrichAndSet(sessions);
           },
           onError: (e) {
@@ -159,8 +187,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
     }
   }
 
-  /// Enrich sessions with speaker photo URLs from speakers collection,
-  /// then update state.
   Future<void> _enrichAndSet(List<EventSession> sessions) async {
     try {
       final repo = EventRepository();
@@ -169,7 +195,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
         slug: widget.event.slug,
       );
       if (speakers.isNotEmpty) {
-        // Build lookup maps
         final bySessionId = <String, EventSpeaker>{};
         final byName = <String, EventSpeaker>{};
         for (final sp in speakers) {
@@ -182,7 +207,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
 
         for (var i = 0; i < sessions.length; i++) {
           final s = sessions[i];
-          // Try sessionId match first, then name match
           EventSpeaker? match = bySessionId[s.id];
           if (match == null && s.speaker != null) {
             match = byName[s.speaker!.name.toLowerCase()];
@@ -239,7 +263,7 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
     if (targetIndex < 0) targetIndex = _findNextIndex();
     if (targetIndex < 0) return;
 
-    final itemHeight = widget.isKiosk ? 110.0 : 88.0;
+    final itemHeight = widget.isKiosk ? 130.0 : 94.0;
     final offset = (targetIndex * itemHeight).clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -256,7 +280,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
     final current = _scrollController.offset;
     final max = _scrollController.position.maxScrollExtent;
     if (current >= max) {
-      // Wrap back to current session
       _autoScrollToCurrent();
     } else {
       final target = (current + 80).clamp(0.0, max);
@@ -278,6 +301,7 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
   @override
   Widget build(BuildContext context) {
     final k = widget.isKiosk;
+    final c = widget.colors;
     final activeIndex = _findActiveIndex();
     final nextIndex = _findNextIndex();
 
@@ -286,9 +310,9 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
       onExit: (_) => _hovered = false,
       child: Container(
         decoration: BoxDecoration(
-          color: _cardBg,
+          color: c.cardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _cardBorder),
+          border: Border.all(color: c.cardBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -308,29 +332,28 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
                     children: [
                       Icon(
                         Icons.schedule_rounded,
-                        color: _primary,
-                        size: k ? 24 : 20,
+                        color: c.primary,
+                        size: k ? 26 : 20,
                       ),
                       SizedBox(width: k ? 10 : 8),
                       Text(
                         'Live Schedule',
                         style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: k ? 22 : 18,
+                          color: c.textPrimary,
+                          fontSize: k ? 24 : 18,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       const Spacer(),
-                      _LiveBadge(isKiosk: k),
+                      _PulsingLiveBadge(isKiosk: k, color: c.liveGreen),
                     ],
                   ),
                   SizedBox(height: k ? 6 : 4),
-                  // "Updated just now" label
                   Text(
                     _updatedLabel(),
                     style: GoogleFonts.inter(
-                      color: _liveGreen.withValues(alpha: 0.7),
-                      fontSize: k ? 12 : 10,
+                      color: c.liveGreen.withValues(alpha: 0.7),
+                      fontSize: k ? 13 : 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -338,21 +361,19 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
                 ],
               ),
             ),
-            Divider(color: _cardBorder, height: 1),
+            Divider(color: c.cardBorder, height: 1),
 
             // ── Sessions list ──
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: _liveGreen),
-                    )
+                  ? Center(child: CircularProgressIndicator(color: c.liveGreen))
                   : _sessions.isEmpty
                   ? Center(
                       child: Text(
                         'No sessions yet',
                         style: GoogleFonts.inter(
-                          color: _textMuted,
-                          fontSize: 14,
+                          color: c.textMuted,
+                          fontSize: k ? 16 : 14,
                         ),
                       ),
                     )
@@ -364,12 +385,10 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
     );
   }
 
-  /// Builds the session list with past sessions pushed to the bottom,
-  /// separated by a "PAST" divider.
   Widget _buildSessionList(bool k, int activeIndex, int nextIndex) {
     final now = _now;
+    final c = widget.colors;
 
-    // Split into upcoming (active + future) and past
     final upcoming = <int>[];
     final past = <int>[];
     for (var i = 0; i < _sessions.length; i++) {
@@ -382,7 +401,6 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
       }
     }
 
-    // Build items: upcoming first, then "PAST" divider, then past
     final items = <Widget>[];
 
     for (final idx in upcoming) {
@@ -393,39 +411,39 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
           isKiosk: k,
           isActive: isActive,
           debugNow: widget.debugNow,
+          colors: c,
         ),
       );
-      // Insert Next Session card after active session
       if (isActive && nextIndex >= 0) {
         items.add(
           _NextSessionCard(
             session: _sessions[nextIndex],
             isKiosk: k,
             debugNow: widget.debugNow,
+            colors: c,
           ),
         );
       }
     }
 
     if (past.isNotEmpty) {
-      // "PAST" divider
       items.add(
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: k ? 20 : 14,
-            vertical: k ? 10 : 8,
+            vertical: k ? 12 : 8,
           ),
           child: Row(
             children: [
               Expanded(
-                child: Divider(color: _textMuted.withValues(alpha: 0.2)),
+                child: Divider(color: c.textMuted.withValues(alpha: 0.2)),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  'PAST',
+                  'COMPLETED',
                   style: GoogleFonts.inter(
-                    color: _textMuted.withValues(alpha: 0.4),
+                    color: c.textMuted.withValues(alpha: 0.4),
                     fontSize: k ? 11 : 9,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
@@ -433,7 +451,7 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
                 ),
               ),
               Expanded(
-                child: Divider(color: _textMuted.withValues(alpha: 0.2)),
+                child: Divider(color: c.textMuted.withValues(alpha: 0.2)),
               ),
             ],
           ),
@@ -447,6 +465,7 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
             isKiosk: k,
             isActive: false,
             debugNow: widget.debugNow,
+            colors: c,
           ),
         );
       }
@@ -454,50 +473,89 @@ class _LiveSchedulePanelState extends State<LiveSchedulePanel> {
 
     return ListView(
       controller: _scrollController,
-      padding: EdgeInsets.symmetric(vertical: k ? 10 : 6),
+      padding: EdgeInsets.symmetric(vertical: k ? 12 : 6),
       children: items,
     );
   }
-
-  static const _cardBg = Color(0xFF1A1A2A);
-  static const _cardBorder = Color(0xFF2A2A3A);
-  static const _primary = Color(0xFF0E3A5D);
-  static const _liveGreen = Color(0xFF7AE3A5);
-  static const _textMuted = Color(0xFF8888A0);
 }
 
-// ─── Live Badge ───────────────────────────────────────────────────────────────
+// ─── Pulsing Live Badge ──────────────────────────────────────────────────────
 
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge({this.isKiosk = false});
+class _PulsingLiveBadge extends StatefulWidget {
+  const _PulsingLiveBadge({
+    this.isKiosk = false,
+    this.color = const Color(0xFF7AE3A5),
+  });
   final bool isKiosk;
+  final Color color;
+
+  @override
+  State<_PulsingLiveBadge> createState() => _PulsingLiveBadgeState();
+}
+
+class _PulsingLiveBadgeState extends State<_PulsingLiveBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final k = widget.isKiosk;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: k ? 14 : 10,
+        vertical: k ? 6 : 4,
+      ),
       decoration: BoxDecoration(
-        color: const Color(0xFF7AE3A5).withValues(alpha: 0.12),
+        color: widget.color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              color: Color(0xFF7AE3A5),
-              shape: BoxShape.circle,
-            ),
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (context, child) {
+              return Container(
+                width: k ? 9 : 7,
+                height: k ? 9 : 7,
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(
+                    alpha: 0.4 + 0.6 * _ctrl.value,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withValues(alpha: 0.3 * _ctrl.value),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: k ? 7 : 5),
           Text(
             'LIVE',
             style: GoogleFonts.inter(
-              color: const Color(0xFF7AE3A5),
-              fontSize: isKiosk ? 12 : 10,
-              fontWeight: FontWeight.w700,
+              color: widget.color,
+              fontSize: k ? 13 : 10,
+              fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
             ),
           ),
@@ -507,7 +565,7 @@ class _LiveBadge extends StatelessWidget {
   }
 }
 
-// ─── Schedule Item Card (enhanced) ────────────────────────────────────────────
+// ─── Schedule Item Card ──────────────────────────────────────────────────────
 
 class _ScheduleItemCard extends StatelessWidget {
   const _ScheduleItemCard({
@@ -515,12 +573,14 @@ class _ScheduleItemCard extends StatelessWidget {
     this.isKiosk = false,
     this.isActive = false,
     this.debugNow,
+    this.colors = SchedulePanelColors.dark,
   });
 
   final EventSession session;
   final bool isKiosk;
   final bool isActive;
   final DateTime? debugNow;
+  final SchedulePanelColors colors;
 
   bool get _isPast {
     final now = debugNow ?? DateTime.now();
@@ -531,185 +591,201 @@ class _ScheduleItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final past = _isPast;
     final k = isKiosk;
+    final c = colors;
 
     return Container(
       margin: EdgeInsets.symmetric(
         horizontal: k ? 16 : 12,
-        vertical: k ? 4 : 3,
-      ),
-      padding: EdgeInsets.fromLTRB(
-        k ? 18.0 : 14.0,
-        k ? 14.0 : 10.0,
-        k ? 18.0 : 14.0,
-        k ? 14.0 : 10.0,
+        vertical: k ? 5 : 3,
       ),
       decoration: BoxDecoration(
         color: isActive
-            ? const Color(0xFF7AE3A5).withValues(alpha: 0.08)
+            ? c.liveGreen.withValues(alpha: 0.10)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: isActive
-            ? Border.all(color: const Color(0xFF7AE3A5).withValues(alpha: 0.35))
+            ? Border.all(color: c.liveGreen.withValues(alpha: 0.35))
             : null,
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: const Color(0xFF7AE3A5).withValues(alpha: 0.08),
-                  blurRadius: 16,
+                  color: c.liveGreen.withValues(alpha: 0.10),
+                  blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
               ]
             : null,
       ),
-      child: Opacity(
-        opacity: past ? 0.35 : 1.0,
+      child: IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Time column
-            SizedBox(
-              width: k ? 90 : 72,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.startAt != null
-                        ? DateFormat.jm().format(session.startAt!)
-                        : '',
-                    style: GoogleFonts.inter(
-                      color: isActive
-                          ? const Color(0xFF7AE3A5)
-                          : Colors.white.withValues(alpha: 0.7),
-                      fontSize: k ? 20 : 16,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                    ),
-                  ),
-                  if (isActive) ...[
-                    const SizedBox(height: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7AE3A5).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: const Color(0xFF7AE3A5).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 5,
-                            height: 5,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF7AE3A5),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'LIVE',
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFF7AE3A5),
-                              fontSize: k ? 10 : 8,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Accent dot
-            Padding(
-              padding: EdgeInsets.only(top: k ? 6 : 4, right: k ? 14 : 10),
-              child: Container(
-                width: k ? 10 : 8,
-                height: k ? 10 : 8,
+            // Left accent bar for active session
+            if (isActive)
+              Container(
+                width: 4,
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFF7AE3A5)
-                      : past
-                      ? const Color(0xFF8888A0).withValues(alpha: 0.3)
-                      : const Color(0xFF0E3A5D),
-                  shape: BoxShape.circle,
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF7AE3A5,
-                            ).withValues(alpha: 0.5),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
+                  color: c.liveGreen,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    bottomLeft: Radius.circular(14),
+                  ),
                 ),
               ),
-            ),
 
             // Content
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.displayName,
-                    style: GoogleFonts.inter(
-                      color: isActive
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.9),
-                      fontSize: k ? 22 : 17,
-                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
-                    ),
-                  ),
-                  if (session.speaker != null) ...[
-                    SizedBox(height: k ? 6 : 4),
-                    Row(
-                      children: [
-                        _SpeakerAvatar(
-                          speaker: session.speaker!,
-                          size: k ? 28 : 22,
-                        ),
-                        SizedBox(width: k ? 8 : 6),
-                        Expanded(
-                          child: Text(
-                            session.speaker!.name,
-                            style: GoogleFonts.inter(
-                              color: isActive
-                                  ? Colors.white.withValues(alpha: 0.7)
-                                  : const Color(0xFF8888A0),
-                              fontSize: k ? 16 : 13,
-                              fontWeight: FontWeight.w500,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isActive ? (k ? 14.0 : 10.0) : (k ? 18.0 : 14.0),
+                  k ? 16.0 : 12.0,
+                  k ? 18.0 : 14.0,
+                  k ? 16.0 : 12.0,
+                ),
+                child: Opacity(
+                  opacity: past ? 0.35 : 1.0,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Time column
+                      SizedBox(
+                        width: k ? 96 : 74,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.startAt != null
+                                  ? DateFormat.jm().format(session.startAt!)
+                                  : '',
+                              style: GoogleFonts.inter(
+                                color: isActive
+                                    ? c.liveGreen
+                                    : c.textPrimary.withValues(alpha: 0.7),
+                                fontSize: k ? 22 : 16,
+                                fontWeight: FontWeight.w700,
+                                height: 1.2,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
+                            if (isActive) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: k ? 10 : 8,
+                                  vertical: k ? 4 : 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: c.liveGreen.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: c.liveGreen.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  'LIVE NOW',
+                                  style: GoogleFonts.inter(
+                                    color: c.liveGreen,
+                                    fontSize: k ? 11 : 8,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      // Accent dot
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: k ? 6 : 4,
+                          right: k ? 14 : 10,
+                        ),
+                        child: Container(
+                          width: k ? 10 : 8,
+                          height: k ? 10 : 8,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? c.liveGreen
+                                : past
+                                ? c.textMuted.withValues(alpha: 0.3)
+                                : c.primary,
+                            shape: BoxShape.circle,
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color: c.liveGreen.withValues(alpha: 0.5),
+                                      blurRadius: 10,
+                                    ),
+                                  ]
+                                : null,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                  if (session.description != null &&
-                      session.description!.isNotEmpty &&
-                      isActive) ...[
-                    SizedBox(height: k ? 6 : 4),
-                    Text(
-                      session.description!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: k ? 14 : 12,
                       ),
-                    ),
-                  ],
-                ],
+
+                      // Session info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.displayName,
+                              style: GoogleFonts.inter(
+                                color: isActive
+                                    ? c.textPrimary
+                                    : c.textPrimary.withValues(alpha: 0.9),
+                                fontSize: k ? 24 : 17,
+                                fontWeight: isActive
+                                    ? FontWeight.w800
+                                    : FontWeight.w700,
+                              ),
+                            ),
+                            if (session.speaker != null) ...[
+                              SizedBox(height: k ? 8 : 5),
+                              Row(
+                                children: [
+                                  _SpeakerAvatar(
+                                    speaker: session.speaker!,
+                                    size: k ? 32 : 22,
+                                  ),
+                                  SizedBox(width: k ? 10 : 6),
+                                  Expanded(
+                                    child: Text(
+                                      session.speaker!.name,
+                                      style: GoogleFonts.inter(
+                                        color: isActive
+                                            ? c.textPrimary.withValues(
+                                                alpha: 0.7,
+                                              )
+                                            : c.textMuted,
+                                        fontSize: k ? 17 : 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (session.description != null &&
+                                session.description!.isNotEmpty &&
+                                isActive) ...[
+                              SizedBox(height: k ? 8 : 5),
+                              Text(
+                                session.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  color: c.textPrimary.withValues(alpha: 0.45),
+                                  fontSize: k ? 15 : 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -719,18 +795,20 @@ class _ScheduleItemCard extends StatelessWidget {
   }
 }
 
-// ─── Next Session Card ────────────────────────────────────────────────────────
+// ─── Next Session Card ───────────────────────────────────────────────────────
 
 class _NextSessionCard extends StatelessWidget {
   const _NextSessionCard({
     required this.session,
     this.isKiosk = false,
     this.debugNow,
+    this.colors = SchedulePanelColors.dark,
   });
 
   final EventSession session;
   final bool isKiosk;
   final DateTime? debugNow;
+  final SchedulePanelColors colors;
 
   String _startsIn() {
     if (session.startAt == null) return '';
@@ -745,45 +823,41 @@ class _NextSessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final k = isKiosk;
+    final c = colors;
     return Container(
       margin: EdgeInsets.symmetric(
         horizontal: k ? 16 : 12,
         vertical: k ? 6 : 4,
       ),
-      padding: EdgeInsets.all(k ? 14 : 10),
+      padding: EdgeInsets.all(k ? 16 : 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4A340).withValues(alpha: 0.06),
+        color: c.gold.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFF4A340).withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: c.gold.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.skip_next_rounded,
-            color: const Color(0xFFF4A340),
-            size: k ? 22 : 18,
-          ),
-          SizedBox(width: k ? 10 : 8),
+          Icon(Icons.skip_next_rounded, color: c.gold, size: k ? 24 : 18),
+          SizedBox(width: k ? 12 : 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'NEXT',
+                  'UP NEXT',
                   style: GoogleFonts.inter(
-                    color: const Color(0xFFF4A340),
-                    fontSize: k ? 10 : 8,
+                    color: c.gold,
+                    fontSize: k ? 11 : 8,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.5,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   session.displayName,
                   style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: k ? 16 : 14,
+                    color: c.textPrimary.withValues(alpha: 0.9),
+                    fontSize: k ? 18 : 14,
                     fontWeight: FontWeight.w700,
                   ),
                   maxLines: 1,
@@ -793,19 +867,29 @@ class _NextSessionCard extends StatelessWidget {
                   Text(
                     session.speaker!.name,
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF8888A0),
-                      fontSize: k ? 13 : 11,
+                      color: c.textMuted,
+                      fontSize: k ? 14 : 11,
                     ),
                   ),
               ],
             ),
           ),
-          Text(
-            _startsIn(),
-            style: GoogleFonts.inter(
-              color: const Color(0xFFF4A340).withValues(alpha: 0.8),
-              fontSize: k ? 13 : 11,
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: k ? 12 : 8,
+              vertical: k ? 6 : 4,
+            ),
+            decoration: BoxDecoration(
+              color: c.gold.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _startsIn(),
+              style: GoogleFonts.inter(
+                color: c.gold,
+                fontSize: k ? 13 : 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

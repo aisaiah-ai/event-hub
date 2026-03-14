@@ -21,9 +21,12 @@ import 'features/events/presentation/event_landing_page.dart';
 import 'features/events/presentation/event_rsvp_page.dart';
 import 'features/events/presentation/image_admin_dashboard_page.dart';
 import 'features/events/presentation/photo_wall_page.dart';
+import 'features/events/presentation/photo_wall_light_page.dart';
 import 'features/events/presentation/checkin_dashboard_page.dart';
 import 'features/events/presentation/event_dashboard_page.dart';
 import 'features/events/presentation/rsvp_dashboard_page.dart';
+import 'features/events/presentation/rsvp_dashboard_light_page.dart';
+import 'features/events/presentation/event_dashboard_light_page.dart';
 import 'features/events/presentation/smart_event_landing_page.dart';
 import 'features/events/presentation/events_index_page.dart';
 import 'features/speakers/presentation/speaker_details_page.dart';
@@ -176,6 +179,13 @@ GoRouter createAppRouter() {
         },
       ),
       GoRoute(
+        path: '/events/:eventSlug/rsvp-dashboard-light',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return RsvpDashboardLightPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
         path: '/events/:eventSlug/checkin-dashboard',
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
@@ -190,6 +200,13 @@ GoRouter createAppRouter() {
         },
       ),
       GoRoute(
+        path: '/events/:eventSlug/dashboard-light',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return EventDashboardLightPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
         path: '/events/:eventSlug/images/admin',
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
@@ -201,6 +218,13 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
           return PhotoWallPage(eventSlug: slug);
+        },
+      ),
+      GoRoute(
+        path: '/events/:eventSlug/photo-wall-light',
+        builder: (context, state) {
+          final slug = state.pathParameters['eventSlug'] ?? '';
+          return PhotoWallLightPage(eventSlug: slug);
         },
       ),
       GoRoute(

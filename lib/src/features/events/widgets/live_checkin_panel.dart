@@ -9,15 +9,49 @@ import '../data/event_model.dart';
 
 /// Live check-in panel that streams registrant data from Firestore.
 /// Shows large counter, progress bar, check-in rate, and animated recent list.
+/// Optional color overrides for theming (light/dark).
+class CheckinPanelColors {
+  const CheckinPanelColors({
+    this.cardBg = const Color(0xFF1A1A2A),
+    this.cardBorder = const Color(0xFF2A2A3A),
+    this.innerCardBg = const Color(0xFF222236),
+    this.gold = const Color(0xFFF4A340),
+    this.liveGreen = const Color(0xFF7AE3A5),
+    this.textPrimary = Colors.white,
+    this.textMuted = const Color(0xFF8888A0),
+  });
+
+  final Color cardBg;
+  final Color cardBorder;
+  final Color innerCardBg;
+  final Color gold;
+  final Color liveGreen;
+  final Color textPrimary;
+  final Color textMuted;
+
+  static const dark = CheckinPanelColors();
+  static const light = CheckinPanelColors(
+    cardBg: Colors.white,
+    cardBorder: Color(0xFFE0E0D8),
+    innerCardBg: Color(0xFFF5F5F0),
+    gold: Color(0xFFD48A20),
+    liveGreen: Color(0xFF2B9E7A),
+    textPrimary: Color(0xFF1A1A1A),
+    textMuted: Color(0xFF888880),
+  );
+}
+
 class LiveCheckinPanel extends StatefulWidget {
   const LiveCheckinPanel({
     super.key,
     required this.event,
     this.isKiosk = false,
+    this.colors = CheckinPanelColors.dark,
   });
 
   final EventModel event;
   final bool isKiosk;
+  final CheckinPanelColors colors;
 
   @override
   State<LiveCheckinPanel> createState() => _LiveCheckinPanelState();
@@ -174,9 +208,40 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
 
   int get _checkedInCount => _registrants.where((r) => r.checkedIn).length;
 
+  Map<String, int> get _sourceBreakdown {
+    final map = <String, int>{};
+    for (final r in _registrants.where((r) => r.checkedIn)) {
+      final src = _normalizeSource(r.source);
+      map[src] = (map[src] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  static String _normalizeSource(String source) {
+    switch (source.toLowerCase()) {
+      case 'qr':
+      case 'qr_scan':
+        return 'QR';
+      case 'nfc':
+        return 'NFC';
+      case 'manual':
+        return 'Manual';
+      case 'app':
+      case 'mobile':
+        return 'App';
+      case 'web':
+        return 'Web';
+      default:
+        return source.isNotEmpty
+            ? source[0].toUpperCase() + source.substring(1)
+            : 'Other';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final k = widget.isKiosk;
+    final c = widget.colors;
     final total = _totalRegistered;
     final checkedIn = _checkedInCount;
     final pending = total - checkedIn;
@@ -185,9 +250,9 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: c.cardBg,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _cardBorder),
+        border: Border.all(color: c.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -202,12 +267,16 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
             ),
             child: Row(
               children: [
-                Icon(Icons.how_to_reg_rounded, color: _gold, size: k ? 24 : 20),
+                Icon(
+                  Icons.how_to_reg_rounded,
+                  color: c.gold,
+                  size: k ? 24 : 20,
+                ),
                 SizedBox(width: k ? 10 : 8),
                 Text(
                   'Live Check-Ins',
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: c.textPrimary,
                     fontSize: k ? 22 : 18,
                     fontWeight: FontWeight.w800,
                   ),
@@ -219,7 +288,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _liveGreen.withValues(alpha: 0.12),
+                    color: c.liveGreen.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -228,8 +297,8 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                       Container(
                         width: 7,
                         height: 7,
-                        decoration: const BoxDecoration(
-                          color: _liveGreen,
+                        decoration: BoxDecoration(
+                          color: c.liveGreen,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -237,7 +306,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                       Text(
                         'LIVE',
                         style: GoogleFonts.inter(
-                          color: _liveGreen,
+                          color: c.liveGreen,
                           fontSize: k ? 12 : 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
@@ -249,7 +318,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
               ],
             ),
           ),
-          Divider(color: _cardBorder, height: 1),
+          Divider(color: c.cardBorder, height: 1),
 
           Expanded(
             child: ListView(
@@ -258,19 +327,18 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                 // ── Large attendance counter ──
                 Container(
                   padding: EdgeInsets.symmetric(
-                    vertical: k ? 20 : 14,
-                    horizontal: k ? 20 : 14,
+                    vertical: k ? 24 : 16,
+                    horizontal: k ? 24 : 16,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF222236),
+                    color: c.innerCardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _liveGreen.withValues(alpha: 0.2),
+                      color: c.liveGreen.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(
                     children: [
-                      // Big numbers
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -279,8 +347,8 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                           Text(
                             '$checkedIn',
                             style: GoogleFonts.inter(
-                              color: _liveGreen,
-                              fontSize: k ? 56 : 42,
+                              color: c.liveGreen,
+                              fontSize: k ? 72 : 48,
                               fontWeight: FontWeight.w900,
                               height: 1,
                             ),
@@ -288,43 +356,33 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                           Text(
                             ' / $total',
                             style: GoogleFonts.inter(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: k ? 28 : 20,
+                              color: c.textPrimary.withValues(alpha: 0.5),
+                              fontSize: k ? 32 : 22,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: k ? 6 : 4),
+                      SizedBox(height: k ? 4 : 2),
                       Text(
-                        'Checked In',
+                        '$pct% Checked In',
                         style: GoogleFonts.inter(
-                          color: _textMuted,
-                          fontSize: k ? 14 : 12,
-                          fontWeight: FontWeight.w600,
+                          color: c.liveGreen,
+                          fontSize: k ? 16 : 13,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      SizedBox(height: k ? 14 : 10),
-                      // Progress bar
+                      SizedBox(height: k ? 16 : 12),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
                           value: fraction.clamp(0.0, 1.0),
-                          minHeight: k ? 12 : 8,
-                          backgroundColor: const Color(0xFF2A2A3A),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            _liveGreen,
+                          minHeight: k ? 16 : 10,
+                          backgroundColor: c.cardBorder,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            c.liveGreen,
                           ),
-                        ),
-                      ),
-                      SizedBox(height: k ? 8 : 6),
-                      Text(
-                        '$pct%',
-                        style: GoogleFonts.inter(
-                          color: _liveGreen,
-                          fontSize: k ? 16 : 13,
-                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -340,9 +398,10 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                       child: _SmallMetric(
                         label: 'PENDING',
                         value: '$pending',
-                        color: _gold,
+                        color: c.gold,
                         icon: Icons.hourglass_bottom_rounded,
                         isKiosk: k,
+                        colors: c,
                       ),
                     ),
                     SizedBox(width: k ? 10 : 8),
@@ -353,18 +412,28 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                         color: const Color(0xFF4C7FE0),
                         icon: Icons.speed_rounded,
                         isKiosk: k,
+                        colors: c,
                       ),
                     ),
                   ],
                 ),
 
+                // ── Source breakdown ──
+                if (_sourceBreakdown.isNotEmpty) ...[
+                  SizedBox(height: k ? 14 : 10),
+                  _SourceBreakdownCard(
+                    sources: _sourceBreakdown,
+                    isKiosk: k,
+                    colors: c,
+                  ),
+                ],
+
                 SizedBox(height: k ? 20 : 14),
 
-                // ── Recent check-ins ──
                 Text(
                   'RECENT ARRIVALS',
                   style: GoogleFonts.inter(
-                    color: _textMuted,
+                    color: c.textMuted,
                     fontSize: k ? 12 : 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
@@ -372,7 +441,6 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                 ),
                 SizedBox(height: k ? 10 : 6),
 
-                // Animated list
                 ...(_registrants.take(k ? 10 : 8).toList().asMap().entries.map((
                   entry,
                 ) {
@@ -383,24 +451,24 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                     entry: r,
                     isNew: isNew,
                     isKiosk: k,
+                    colors: c,
                   );
                 })),
 
                 SizedBox(height: k ? 20 : 14),
 
-                // ── QR Reminder ──
                 Container(
                   padding: EdgeInsets.all(k ? 14 : 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF222236),
+                    color: c.innerCardBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _cardBorder),
+                    border: Border.all(color: c.cardBorder),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.qr_code_2_rounded,
-                        color: _gold,
+                        color: c.gold,
                         size: k ? 28 : 22,
                       ),
                       SizedBox(width: k ? 12 : 8),
@@ -411,7 +479,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                             Text(
                               'Scan to Check In',
                               style: GoogleFonts.inter(
-                                color: Colors.white,
+                                color: c.textPrimary,
                                 fontSize: k ? 14 : 12,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -419,7 +487,7 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
                             Text(
                               'events.aisaiah.org/s/mca',
                               style: GoogleFonts.inter(
-                                color: _gold,
+                                color: c.gold,
                                 fontSize: k ? 12 : 10,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -437,12 +505,6 @@ class _LiveCheckinPanelState extends State<LiveCheckinPanel> {
       ),
     );
   }
-
-  static const _cardBg = Color(0xFF1A1A2A);
-  static const _cardBorder = Color(0xFF2A2A3A);
-  static const _gold = Color(0xFFF4A340);
-  static const _liveGreen = Color(0xFF7AE3A5);
-  static const _textMuted = Color(0xFF8888A0);
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -476,6 +538,7 @@ class _SmallMetric extends StatelessWidget {
     required this.color,
     required this.icon,
     this.isKiosk = false,
+    this.colors = CheckinPanelColors.dark,
   });
 
   final String label;
@@ -483,6 +546,7 @@ class _SmallMetric extends StatelessWidget {
   final Color color;
   final IconData icon;
   final bool isKiosk;
+  final CheckinPanelColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -492,9 +556,9 @@ class _SmallMetric extends StatelessWidget {
         horizontal: isKiosk ? 14 : 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF222236),
+        color: colors.innerCardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A3A)),
+        border: Border.all(color: colors.cardBorder),
       ),
       child: Row(
         children: [
@@ -507,7 +571,7 @@ class _SmallMetric extends StatelessWidget {
                 Text(
                   value,
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: colors.textPrimary,
                     fontSize: isKiosk ? 20 : 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -515,7 +579,7 @@ class _SmallMetric extends StatelessWidget {
                 Text(
                   label,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFF8888A0),
+                    color: colors.textMuted,
                     fontSize: isKiosk ? 10 : 8,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
@@ -523,6 +587,81 @@ class _SmallMetric extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Source Breakdown Card ────────────────────────────────────────────────────
+
+class _SourceBreakdownCard extends StatelessWidget {
+  const _SourceBreakdownCard({
+    required this.sources,
+    required this.isKiosk,
+    required this.colors,
+  });
+
+  final Map<String, int> sources;
+  final bool isKiosk;
+  final CheckinPanelColors colors;
+
+  static const _sourceIcons = <String, IconData>{
+    'QR': Icons.qr_code_2_rounded,
+    'NFC': Icons.nfc_rounded,
+    'App': Icons.phone_iphone_rounded,
+    'Web': Icons.language_rounded,
+    'Manual': Icons.edit_rounded,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final k = isKiosk;
+    final sorted = sources.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Container(
+      padding: EdgeInsets.all(k ? 14 : 10),
+      decoration: BoxDecoration(
+        color: colors.innerCardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'CHECK-IN SOURCES',
+            style: GoogleFonts.inter(
+              color: colors.textMuted,
+              fontSize: k ? 10 : 8,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          SizedBox(height: k ? 10 : 6),
+          Wrap(
+            spacing: k ? 10 : 8,
+            runSpacing: k ? 6 : 4,
+            children: sorted.map((e) {
+              final icon = _sourceIcons[e.key] ?? Icons.check_circle_outline;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: k ? 16 : 13, color: colors.textMuted),
+                  SizedBox(width: k ? 5 : 4),
+                  Text(
+                    '${e.key}: ${e.value}',
+                    style: GoogleFonts.inter(
+                      color: colors.textPrimary,
+                      fontSize: k ? 13 : 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -538,11 +677,13 @@ class _AnimatedCheckinRow extends StatefulWidget {
     required this.entry,
     this.isNew = false,
     this.isKiosk = false,
+    this.colors = CheckinPanelColors.dark,
   });
 
   final _RegistrantEntry entry;
   final bool isNew;
   final bool isKiosk;
+  final CheckinPanelColors colors;
 
   @override
   State<_AnimatedCheckinRow> createState() => _AnimatedCheckinRowState();
@@ -587,6 +728,7 @@ class _AnimatedCheckinRowState extends State<_AnimatedCheckinRow>
   Widget build(BuildContext context) {
     final r = widget.entry;
     final k = widget.isKiosk;
+    final c = widget.colors;
     final initials = _getInitials(r.name);
 
     return FadeTransition(
@@ -597,18 +739,14 @@ class _AnimatedCheckinRowState extends State<_AnimatedCheckinRow>
           padding: EdgeInsets.symmetric(vertical: k ? 5 : 3),
           child: Row(
             children: [
-              // Status icon
               Icon(
                 r.checkedIn
                     ? Icons.check_circle_rounded
                     : Icons.radio_button_unchecked,
                 size: k ? 18 : 14,
-                color: r.checkedIn
-                    ? const Color(0xFF7AE3A5) // green
-                    : const Color(0xFFF4A340), // yellow/pending
+                color: r.checkedIn ? c.liveGreen : c.gold,
               ),
               SizedBox(width: k ? 10 : 8),
-              // Avatar
               CircleAvatar(
                 radius: k ? 18 : 14,
                 backgroundColor: _colorFor(r.name),
@@ -622,7 +760,6 @@ class _AnimatedCheckinRowState extends State<_AnimatedCheckinRow>
                 ),
               ),
               SizedBox(width: k ? 10 : 8),
-              // Name
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,30 +767,59 @@ class _AnimatedCheckinRowState extends State<_AnimatedCheckinRow>
                     Text(
                       r.name,
                       style: GoogleFonts.inter(
-                        color: Colors.white,
+                        color: c.textPrimary,
                         fontSize: k ? 16 : 14,
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (widget.isNew && r.checkedIn)
-                      Text(
-                        'just checked in',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF7AE3A5).withValues(alpha: 0.7),
-                          fontSize: k ? 11 : 9,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
+                    Row(
+                      children: [
+                        if (widget.isNew && r.checkedIn)
+                          Text(
+                            'just checked in',
+                            style: GoogleFonts.inter(
+                              color: c.liveGreen.withValues(alpha: 0.7),
+                              fontSize: k ? 11 : 9,
+                              fontWeight: FontWeight.w500,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        else if (r.source.isNotEmpty)
+                          Text(
+                            _LiveCheckinPanelState._normalizeSource(r.source),
+                            style: GoogleFonts.inter(
+                              color: c.textMuted,
+                              fontSize: k ? 11 : 9,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        if (r.additionalGuests > 0) ...[
+                          Text(
+                            ' · ',
+                            style: GoogleFonts.inter(
+                              color: c.textMuted.withValues(alpha: 0.5),
+                              fontSize: k ? 11 : 9,
+                            ),
+                          ),
+                          Text(
+                            '+${r.additionalGuests} guest${r.additionalGuests > 1 ? 's' : ''}',
+                            style: GoogleFonts.inter(
+                              color: c.gold,
+                              fontSize: k ? 11 : 9,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
-              // Time
               Text(
                 _timeAgo(r.createdAt),
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF8888A0),
+                  color: c.textMuted,
                   fontSize: k ? 11 : 9,
                 ),
               ),
