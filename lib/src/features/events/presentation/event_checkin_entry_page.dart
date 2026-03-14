@@ -146,10 +146,12 @@ class _EventCheckinEntryPageState extends State<EventCheckinEntryPage> {
       );
     }
 
+    // Default to main check-in for non-NLC events (skip session picker)
     return CheckinLandingPage(
       event: _event!,
       eventSlug: widget.eventSlug,
       mode: CheckInFlowType.event,
+      isMainCheckIn: true,
     );
   }
 }
