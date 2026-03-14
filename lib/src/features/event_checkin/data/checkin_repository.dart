@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../config/firestore_config.dart';
 import '../../../models/checkin_record.dart' show CheckinMethod;
 import '../../../models/registrant.dart';
+import '../../../models/registrant_source.dart';
 import '../../../models/session.dart';
 import '../../../../services/checkin_service.dart';
 import '../../../services/registrant_service.dart';
 import '../../../services/session_service.dart';
+import '../../events/data/event_repository.dart';
 import 'nlc_sessions.dart';
 export '../../../models/checkin_record.dart' show CheckinMethod;
 
@@ -166,7 +168,8 @@ class CheckinRepository {
     return null;
   }
 
-  /// Search registrants. Uses lastNameSearchIndex when available (scalable).
+  /// Search registrants AND RSVPs. Uses lastNameSearchIndex when available (scalable).
+  /// RSVPs are converted to Registrant objects with 'rsvp_' prefixed IDs.
   Future<List<Registrant>> searchRegistrants(
     String eventId,
     String query, {
@@ -175,32 +178,89 @@ class CheckinRepository {
     final q = query.trim().toLowerCase();
     if (q.length < 2) return [];
 
+    // 1. Search registrants first.
+    List<Registrant> registrantResults = [];
     try {
       final indexResults = await _registrantService.searchByLastNameIndex(
         eventId,
         q,
         limit: limit,
       );
-      if (indexResults.isNotEmpty) return indexResults;
+      if (indexResults.isNotEmpty) {
+        registrantResults = indexResults;
+      }
     } catch (_) {}
 
-    final all = await _registrantService.listRegistrants(eventId);
-    final results = <Registrant>[];
-    for (final r in all) {
-      if (results.length >= limit) break;
-      final first =
-          (r.profile['firstName'] ?? r.answers['firstName'])?.toString() ?? '';
-      final last =
-          (r.profile['lastName'] ?? r.answers['lastName'])?.toString() ?? '';
-      final name = (r.profile['name'] ?? r.answers['name'])?.toString() ?? '';
-      final email =
-          (r.profile['email'] ?? r.answers['email'])?.toString() ?? '';
-      final cfcId =
-          (r.profile['cfcId'] ?? r.answers['cfcId'])?.toString() ?? '';
-      final searchable = '$first $last $name $email $cfcId'.toLowerCase();
-      if (searchable.contains(q)) results.add(r);
+    if (registrantResults.isEmpty) {
+      final all = await _registrantService.listRegistrants(eventId);
+      for (final r in all) {
+        if (registrantResults.length >= limit) break;
+        final first =
+            (r.profile['firstName'] ?? r.answers['firstName'])?.toString() ??
+            '';
+        final last =
+            (r.profile['lastName'] ?? r.answers['lastName'])?.toString() ?? '';
+        final name = (r.profile['name'] ?? r.answers['name'])?.toString() ?? '';
+        final email =
+            (r.profile['email'] ?? r.answers['email'])?.toString() ?? '';
+        final cfcId =
+            (r.profile['cfcId'] ?? r.answers['cfcId'])?.toString() ?? '';
+        final searchable = '$first $last $name $email $cfcId'.toLowerCase();
+        if (searchable.contains(q)) registrantResults.add(r);
+      }
     }
-    return results;
+
+    // 2. Also search RSVPs and convert to Registrant objects.
+    try {
+      final rsvps = await EventRepository().listRsvps(eventId);
+      // Collect names already in registrant results to deduplicate.
+      final existingNames = <String>{};
+      for (final r in registrantResults) {
+        final name = (r.profile['name'] ?? r.answers['name'])
+            ?.toString()
+            .toLowerCase();
+        final fullName =
+            '${(r.profile['firstName'] ?? r.answers['firstName'] ?? '')} ${(r.profile['lastName'] ?? r.answers['lastName'] ?? '')}'
+                .trim()
+                .toLowerCase();
+        if (name != null && name.isNotEmpty) existingNames.add(name);
+        if (fullName.isNotEmpty) existingNames.add(fullName);
+      }
+
+      for (final rsvp in rsvps) {
+        if (registrantResults.length >= limit) break;
+        final rsvpName = rsvp.name.toLowerCase();
+        if (rsvpName.isEmpty) continue;
+        // Skip if already in results by name.
+        if (existingNames.contains(rsvpName)) continue;
+        // Check if matches query.
+        final searchable = '${rsvp.name} ${rsvp.household} ${rsvp.area ?? ''}'
+            .toLowerCase();
+        if (!searchable.contains(q)) continue;
+        // Convert RSVP to Registrant.
+        final parts = rsvp.name.split(' ');
+        final firstName = parts.isNotEmpty ? parts.first : '';
+        final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        registrantResults.add(
+          Registrant(
+            id: 'rsvp_${rsvp.name.replaceAll(' ', '_').toLowerCase()}',
+            profile: {
+              'name': rsvp.name,
+              'firstName': firstName,
+              'lastName': lastName,
+              if (rsvp.area != null) 'area': rsvp.area,
+              'household': rsvp.household,
+            },
+            source: RegistrantSource.rsvp,
+          ),
+        );
+        existingNames.add(rsvpName);
+      }
+    } catch (e) {
+      _checkinLog('RSVP search error: $e');
+    }
+
+    return registrantResults;
   }
 
   /// Check in to session. Writes to events/{eventId}/sessions/{sessionId}/attendance/{registrantId}. Idempotent.

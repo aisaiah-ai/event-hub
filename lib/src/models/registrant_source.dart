@@ -1,5 +1,5 @@
 /// Source of registrant record.
-enum RegistrantSource { import, registration, manual }
+enum RegistrantSource { import, registration, manual, rsvp }
 
 extension RegistrantSourceX on RegistrantSource {
   static RegistrantSource fromString(String value) {
@@ -10,6 +10,8 @@ extension RegistrantSourceX on RegistrantSource {
         return RegistrantSource.registration;
       case 'MANUAL':
         return RegistrantSource.manual;
+      case 'RSVP':
+        return RegistrantSource.rsvp;
       default:
         return RegistrantSource.registration;
     }
@@ -23,6 +25,8 @@ extension RegistrantSourceX on RegistrantSource {
         return 'REGISTRATION';
       case RegistrantSource.manual:
         return 'MANUAL';
+      case RegistrantSource.rsvp:
+        return 'RSVP';
     }
   }
 }

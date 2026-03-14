@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../models/registrant.dart';
+import '../../../models/registrant_source.dart';
 import '../../../models/session.dart';
 import '../../../services/checkin_orchestrator_service.dart';
+import '../../../services/registrant_service.dart';
 import '../../../services/session_catalog_service.dart';
 import '../../../services/session_registration_service.dart';
 import '../../../theme/nlc_palette.dart';
@@ -75,10 +78,32 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
     final orch = widget.orchestrator ?? CheckinOrchestratorService();
     setState(() => _actionLoading = true);
     try {
+      // If RSVP-sourced, create a registrant doc first so check-in has a real ID.
+      var registrantId = widget.registrantId;
+      if (registrantId.startsWith('rsvp_')) {
+        final svc = RegistrantService();
+        final parts = widget.registrantName.split(' ');
+        final firstName = parts.isNotEmpty ? parts.first : '';
+        final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        registrantId = await svc.saveRegistrant(
+          widget.eventId,
+          Registrant(
+            id: '',
+            profile: {
+              'name': widget.registrantName,
+              'firstName': firstName,
+              'lastName': lastName,
+            },
+            source: RegistrantSource.rsvp,
+          ),
+          triggerFormation: false,
+        );
+      }
+
       final outcome = await orch.checkInToTargetSession(
         eventId: widget.eventId,
         targetSessionId: 'main',
-        registrantId: widget.registrantId,
+        registrantId: registrantId,
         source: widget.source,
       );
       if (!mounted) return;
@@ -88,7 +113,7 @@ class _RegistrantResolvedScreenState extends State<RegistrantResolvedScreen> {
           'event': widget.event,
           'eventId': widget.eventId,
           'eventSlug': widget.eventSlug,
-          'registrantId': widget.registrantId,
+          'registrantId': registrantId,
           'registrantName': widget.registrantName,
           'source': widget.source.name,
           'session': outcome.session,

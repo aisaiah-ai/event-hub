@@ -97,20 +97,21 @@ export async function generateZzRegistrantId(
   tx: admin.firestore.Transaction
 ): Promise<string> {
   const query = registrantsRef(eventId)
-    .where(admin.firestore.FieldPath.documentId(), ">=", "ZZ9999-")
-    .where(admin.firestore.FieldPath.documentId(), "<", "ZZ9999.\uf8ff")
+    .where(admin.firestore.FieldPath.documentId(), ">=", "ZZ-9999-")
+    .where(admin.firestore.FieldPath.documentId(), "<", "ZZ-9999.\uf8ff")
     .orderBy(admin.firestore.FieldPath.documentId(), "desc")
     .limit(1);
   const snap = await tx.get(query);
   let nextNum = 1;
   if (!snap.empty) {
-    const lastId = snap.docs[0].id; // e.g. "ZZ9999-000042"
-    const numPart = lastId.split("-")[1];
+    const lastId = snap.docs[0].id; // e.g. "ZZ-9999-000042"
+    const parts = lastId.split("-");
+    const numPart = parts[parts.length - 1];
     if (numPart) {
       nextNum = parseInt(numPart, 10) + 1;
     }
   }
-  return `ZZ9999-${String(nextNum).padStart(6, "0")}`;
+  return `ZZ-9999-${String(nextNum).padStart(6, "0")}`;
 }
 
 /** Mirror for fast "my registrations": users/{uid}/registrations/{eventId} */
