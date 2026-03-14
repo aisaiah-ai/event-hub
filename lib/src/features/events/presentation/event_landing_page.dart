@@ -247,6 +247,8 @@ class _EventLandingPageState extends State<EventLandingPage>
                   },
                   onSpeakers: () =>
                       context.push('/events/${event.slug}/dashboard'),
+                  onCheckin: () =>
+                      context.push('/events/${event.slug}/checkin'),
                 ),
               ),
             ),
@@ -344,6 +346,7 @@ class _HeroSection extends StatelessWidget {
     required this.onRegister,
     required this.onViewAgenda,
     required this.onSpeakers,
+    required this.onCheckin,
   });
 
   final EventModel event;
@@ -352,6 +355,7 @@ class _HeroSection extends StatelessWidget {
   final VoidCallback onRegister;
   final VoidCallback onViewAgenda;
   final VoidCallback onSpeakers;
+  final VoidCallback onCheckin;
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +481,16 @@ class _HeroSection extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               _ActionButton(
-                label: 'Speakers',
+                label: 'Check In',
+                onTap: onCheckin,
+                filled: true,
+                fillColor: const Color(0xFF2B9E7A),
+                textColor: Colors.white,
+                borderColor: const Color(0xFF2B9E7A),
+              ),
+              const SizedBox(width: 10),
+              _ActionButton(
+                label: 'Dashboard',
                 onTap: onSpeakers,
                 textColor: Colors.white.withOpacity(0.85),
                 borderColor: Colors.white.withOpacity(0.2),

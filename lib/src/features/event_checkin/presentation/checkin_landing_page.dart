@@ -283,10 +283,13 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                   title: _primaryButtonTitle,
                   subtitle: _primaryButtonSubtitle,
                   onTap: _onScanQr,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [NlcPalette.brandBlue, NlcPalette.brandBlueSoft],
+                    colors: [
+                      widget.event.primaryColor,
+                      widget.event.primaryColor.withValues(alpha: 0.8),
+                    ],
                   ),
                   isPrimary: true,
                 ),
@@ -446,6 +449,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       title: 'Scan CFC ID QR Code',
       subtitle: 'Fastest way to check in.',
       onTap: _onScanQr,
+      primaryColor: widget.event.primaryColor,
     );
   }
 
@@ -475,7 +479,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
           ),
           child: Row(
             children: [
-              Icon(icon, size: 28, color: NlcPalette.brandBlueDark),
+              Icon(icon, size: 28, color: widget.event.primaryColor),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -487,7 +491,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: NlcPalette.brandBlueDark,
+                        color: widget.event.primaryColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -503,7 +507,7 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: NlcPalette.brandBlueDark,
+                color: widget.event.primaryColor,
                 size: 24,
               ),
             ],
@@ -1007,11 +1011,13 @@ class _ImmersivePrimaryQrCard extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.primaryColor,
   });
 
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Color? primaryColor;
 
   @override
   State<_ImmersivePrimaryQrCard> createState() =>
@@ -1058,8 +1064,12 @@ class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  NlcPalette.brandBlueSoft.withValues(alpha: 0.7),
-                  NlcPalette.brandBlueDark.withValues(alpha: 0.8),
+                  (widget.primaryColor ?? NlcPalette.brandBlueSoft).withValues(
+                    alpha: 0.7,
+                  ),
+                  (widget.primaryColor ?? NlcPalette.brandBlueDark).withValues(
+                    alpha: 0.9,
+                  ),
                 ],
               ),
             ),
@@ -1081,9 +1091,9 @@ class _ImmersivePrimaryQrCardState extends State<_ImmersivePrimaryQrCard> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: NlcPalette.brandBlueDark.withValues(
-                            alpha: 0.6,
-                          ),
+                          color:
+                              (widget.primaryColor ?? NlcPalette.brandBlueDark)
+                                  .withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
