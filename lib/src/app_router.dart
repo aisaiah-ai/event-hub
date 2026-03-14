@@ -242,7 +242,10 @@ GoRouter createAppRouter() {
         path: '/events/:eventSlug/checkin',
         builder: (context, state) {
           final slug = state.pathParameters['eventSlug'] ?? '';
-          return EventCheckinEntryPage(eventSlug: slug);
+          return EventCheckinEntryPage(
+            eventSlug: slug,
+            isMainCheckIn: slug != 'nlc',
+          );
         },
         routes: [
           // Literal paths first so they match before :sessionSlug
