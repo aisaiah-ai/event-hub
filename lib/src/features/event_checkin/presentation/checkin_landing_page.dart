@@ -129,7 +129,9 @@ class _CheckinLandingPageState extends State<CheckinLandingPage>
       widget.mode == CheckInFlowType.event && widget.isMainCheckIn;
 
   String get _effectiveSessionId => _isMainCheckIn
-      ? NlcSessions.mainCheckInSessionId
+      ? (widget.event.id == nlc2026EventId
+            ? NlcSessions.mainCheckInSessionId
+            : 'main')
       : (widget.sessionId ?? _selectedSession?.id ?? 'default');
 
   String get _effectiveSessionName => _isMainCheckIn
