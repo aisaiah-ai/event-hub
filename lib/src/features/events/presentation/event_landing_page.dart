@@ -246,7 +246,7 @@ class _EventLandingPageState extends State<EventLandingPage>
                     );
                   },
                   onSpeakers: () =>
-                      context.push('/events/${event.slug}/rsvp-dashboard'),
+                      context.push('/events/${event.slug}/dashboard'),
                 ),
               ),
             ),
@@ -433,11 +433,38 @@ class _HeroSection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _ActionButton(
-                label: 'Register Now',
-                onTap: onRegister,
-                textColor: theme.accent,
-                borderColor: theme.accent.withOpacity(0.4),
+              Opacity(
+                opacity: 0.5,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    _ActionButton(
+                      label: 'Register Now',
+                      onTap: () {},
+                      textColor: theme.accent.withOpacity(0.4),
+                      borderColor: theme.accent.withOpacity(0.2),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'CLOSED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 10),
               _ActionButton(
